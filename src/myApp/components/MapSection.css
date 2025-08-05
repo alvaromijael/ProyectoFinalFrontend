@@ -1,0 +1,24 @@
+.map-section {
+  padding: 60px 40px;
+  background-color: #0c735e;
+  text-align: center;
+}
+
+.map-section h2 {
+  font-size: 28px;
+  margin-bottom: 10px;
+   color: #ffffff;
+}
+
+.map-section p {
+  color: #ffffff;
+  margin-bottom: 30px;
+}
+
+.map-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
