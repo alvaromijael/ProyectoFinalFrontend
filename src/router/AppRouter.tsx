@@ -12,6 +12,7 @@ export const AppRouter = () => {
         {/* Router de la applicacion */}
         <Route path='/*' element={<MyAppRouter/>} />
 
+
     </Routes>
   )
 }
