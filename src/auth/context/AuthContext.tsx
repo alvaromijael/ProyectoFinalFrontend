@@ -5,6 +5,7 @@ import { loginUser,  registerUser,
 
 interface AuthContextType {
   user: AppUser | null;
+  loading: boolean;
   login: (email: string, password: string) => Promise<AppUser | null>;
   registro: (
     email: string,
@@ -23,12 +24,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<AppUser | null>(null);
-
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     const storedUser = localStorage.getItem("authUser");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+    setLoading(false);
   }, []);
 
   const login = async (
@@ -93,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <AuthContext.Provider
-      value={{ user, login, registro, loginWithGoogleContext, logout }}
+      value={{ user, loading, login, registro, loginWithGoogleContext, logout }}
     >
       {children}
     </AuthContext.Provider>
