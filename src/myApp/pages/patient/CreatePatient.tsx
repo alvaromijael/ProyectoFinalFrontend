@@ -17,7 +17,6 @@ import {
   Avatar,
   Layout,
   Collapse,
-  Divider,
 } from 'antd';
 import {
   UserOutlined,
@@ -39,9 +38,16 @@ const { Title, Text } = Typography;
 const { Content } = Layout;
 const { Panel } = Collapse;
 
-import dataEcuador from '../../assets/dataEcuador'; // Asegúrate de que la ruta sea correcta
+import { useNavigate } from "react-router-dom";
 
-export default function Income() {
+
+import dataEcuador from '../../../assets/dataEcuador'; 
+
+export default function Patient() {
+
+  const navigate = useNavigate();
+
+
   const [formData, setFormData] = useState({
     apellidos: '',
     nombres: '',
@@ -55,13 +61,11 @@ export default function Income() {
     procedencia: '',
     provincia: '',
     ciudad: '',
+    antecedentes: '',
+    observaciones: '',
     sectorBarrio: '',
     calle: '',
     numeroCasa: '',
-    causaEmergencia: '',
-    cuadroClinico: '',
-    examenFisico: '',
-    diagnostico: '',
     contactos: []
   });
 
@@ -79,6 +83,10 @@ export default function Income() {
 
   const provincias = Object.keys(dataEcuador);
   const ciudades = formData.provincia ? dataEcuador[formData.provincia] : [];
+
+  const goToPatientList = () => {
+    navigate("/patientList"); // Aquí pones la ruta a la que quieres ir
+  };
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -556,74 +564,41 @@ export default function Income() {
                 </Col>
               </Row>
             </Panel>
-
-            {/* Panel 3: Información Médica */}
+          {/* Panel 3: Información Adicional */}
             <Panel
               header={
                 <Space>
-                  <MedicineBoxOutlined style={{ color: '#f5222d' }} />
-                  <Text strong>Información Médica</Text>
+                  <MedicineBoxOutlined style={{ color: '#52c41a' }} />
+                  <Text strong>Informacion Medica</Text>
                 </Space>
               }
               key="3"
             >
               <Row gutter={[24, 16]}>
-                <Col xs={24} lg={12}>
+                <Col xs={24} sm={12} lg={6}>
                   <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>
-                      Causa de la Emergencia <Text type="danger">*</Text>
-                    </Text>
-                    <TextArea
-                      rows={6}
-                      placeholder="Describe la causa de la emergencia..."
-                      value={formData.causaEmergencia}
-                      onChange={(e) => handleInputChange('causaEmergencia', e.target.value)}
-                      size="large"
+                    <Text strong>Antecedentes</Text>
+                <TextArea
+                  value={formData.antecedentes}
+                  onChange={(e) => handleInputChange('antecedentes', e.target.value)}
+                  placeholder="Escribe los antecedentes aquí..."
+                  rows={4}
                     />
-                  </Space>
-                </Col>
-                
-                <Col xs={24} lg={12}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Cuadro Clínico</Text>
-                    <TextArea
-                      rows={6}
-                      placeholder="Describe el cuadro clínico..."
-                      value={formData.cuadroClinico}
-                      onChange={(e) => handleInputChange('cuadroClinico', e.target.value)}
-                      size="large"
+
+                     <Text strong>Observaciones</Text>
+                <TextArea
+                  value={formData.observaciones}
+                  onChange={(e) => handleInputChange('observaciones', e.target.value)}
+                  placeholder="Informacion Adicional..."
+                  rows={4}
                     />
+
                   </Space>
-                </Col>
-                
-                <Col xs={24} lg={12}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Examen Físico</Text>
-                    <TextArea
-                      rows={6}
-                      placeholder="Resultados del examen físico..."
-                      value={formData.examenFisico}
-                      onChange={(e) => handleInputChange('examenFisico', e.target.value)}
-                      size="large"
-                    />
-                  </Space>
-                </Col>
-                
-                <Col xs={24} lg={12}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Diagnóstico</Text>
-                    <TextArea
-                      rows={6}
-                      placeholder="Diagnóstico médico..."
-                      value={formData.diagnostico}
-                      onChange={(e) => handleInputChange('diagnostico', e.target.value)}
-                      size="large"
-                    />
-                  </Space>
+
+                  
                 </Col>
               </Row>
             </Panel>
-
             {/* Panel 4: Contactos */}
             <Panel
               header={
@@ -690,7 +665,7 @@ export default function Income() {
           {/* Botones de Acción */}
           <Row justify="end" style={{ marginTop: '24px' }}>
             <Space size="middle">
-              <Button size="large">
+              <Button size="large" onClick={goToPatientList}>
                 Cancelar
               </Button>
               <Button
