@@ -4,7 +4,7 @@ import { Header } from "../components/Header";
 import { HomePage } from "../pages/HomePage";
 // import { ProfilePage } from "../pages/ProfilePage";
 
-// import { AllUsersPage } from "../pages/AllUsersPage";
+import { AllUsersPage } from "../pages/AllUsersPage";
 
 import { WelcomePage } from "../pages/WelcomePage";
 import CreatePatient from "../pages/patient/CreatePatient";
@@ -34,7 +34,7 @@ export const MyAppRouter = () => {
         />
         {/* <Route path="/profile" element={<ProfilePage />} /> */}
 
-        {/* <Route path="/all-users" element={<AllUsersPage />} /> */}
+        <Route path="/all-users" element={<AllUsersPage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
           

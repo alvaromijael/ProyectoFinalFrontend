@@ -111,7 +111,7 @@ export const registerUser = async (
   password: string,
   firstName: string,
   lastName: string,
-  role: "admin" | "user" | "superadmin"
+  role: string,
 ): Promise<AuthResponse> => {
   const response = await axios.post("http://127.0.0.1:8000/auth/register", {
     email,

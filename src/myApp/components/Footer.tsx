@@ -14,7 +14,7 @@ export const Footer = () => {
           <div className="footer-column">
             <h4>Nosotros</h4>
             <ul>
-              <li>Acerca de FlatFinder</li>
+              <li>Acerca de Fenix</li>
               <li>Bolsa de Trabajo</li>
               <li>Contáctanos</li>
               <li>Clientes</li>

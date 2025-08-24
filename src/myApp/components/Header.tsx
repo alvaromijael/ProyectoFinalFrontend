@@ -6,7 +6,7 @@ import {
   StarOutlined,
   AppstoreOutlined,
   TeamOutlined,
-  MenuOutlined, // Nuevo icono de menú para móviles
+  MenuOutlined, 
 } from "@ant-design/icons";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuthContext } from "../../auth/context/AuthContext";
@@ -49,20 +49,20 @@ export const Header = () => {
         icon: <AppstoreOutlined />,
       },
       {
-        label: <Link to="/favourites">Medical</Link>,
+        label: <Link to="/income">Medical</Link>,
         key: "/favourites",
         icon: <StarOutlined />,
       },
        {
-        label: <Link to="/favourites">Laboratorio</Link>,
+        label: <Link to="/laboratory">Laboratorio</Link>,
         key: "/favourites",
         icon: <StarOutlined />,
       },
      
     );
   }
-
-  if (user?.role === "admin" || user?.role === "superadmin") {
+ 
+  if (user?.role?.name === "admin" || user?.role?.name === "superadmin") {
     menuItems.push({
       label: <Link to="/all-users">Usuarios</Link>,
       key: "/all-users",

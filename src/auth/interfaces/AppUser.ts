@@ -3,5 +3,11 @@ export interface AppUser {
   email: string;
   firstName: string;
   lastName: string;
-  role: "admin" | "user" | "superadmin";
+  role: RoleType;
 }
+
+type RoleType = {
+  name: string;
+};
+
+
