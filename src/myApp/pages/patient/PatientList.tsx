@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Input,
-  Select,
   Button,
   Card,
   Table,
@@ -25,218 +24,231 @@ import {
   DeleteOutlined,
   EyeOutlined,
   PlusOutlined,
-  FilterOutlined,
   PhoneOutlined,
   EnvironmentOutlined,
-  MedicineBoxOutlined,
   CalendarOutlined,
   MailOutlined,
   HomeOutlined
 } from '@ant-design/icons';
 
 import { useNavigate } from "react-router-dom";
+import PatientService from '../../../auth/services/PatientService';
 
+// Interfaz del Patient
+interface Patient {
+  id?: number;
+  first_name: string;
+  last_name: string;
+  document_id?: string;
+  birth_date?: string;
+  age?: number;
+  gender: string;
+  marital_status?: string;
+  occupation?: string;
+  education?: string;
+  origin?: string;
+  province?: string;
+  city?: string;
+  neighborhood?: string;
+  street?: string;
+  house_number?: string;
+  contacts?: Array<{
+    first_name: string;
+    last_name: string;
+    phone: string;
+    email?: string;
+    relationship_type: string;
+  }>;
+  medical_history?: string;
+  notes?: string;
+}
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
-const { Option } = Select;
 
 export default function PatientList() {
-
   const navigate = useNavigate();
 
-  const [patients, setPatients] = useState([
-    {
-      id: 1,
-      apellidos: 'García López',
-      nombres: 'María Elena',
-      cedula: '1234567890',
-      edad: 34,
-      sexo: 'F',
-      fecha: '1989-03-15',
-      estadoCivil: 'Casado',
-      ocupacion: 'Dependiente',
-      instruccion: 'Superior',
-      procedencia: 'Urbana',
-      provincia: 'Pichincha',
-      ciudad: 'Quito',
-      sectorBarrio: 'La Carolina',
-      calle: 'Av. Amazonas',
-      numeroCasa: '123',
-      contactos: [
-        { 
-          nombre: 'Juan', 
-          apellidos: 'García', 
-          telefono: '0987654321', 
-          email: 'juan.garcia@email.com',
-          relacion: 'Esposo' 
-        },
-        { 
-          nombre: 'Ana', 
-          apellidos: 'López', 
-          telefono: '0976543210', 
-          email: 'ana.lopez@email.com',
-          relacion: 'Madre' 
-        }
-      ]
-    },
-    {
-      id: 2,
-      apellidos: 'Rodríguez Silva',
-      nombres: 'Carlos Andrés',
-      cedula: '0987654321',
-      edad: 28,
-      sexo: 'M',
-      fecha: '1995-07-22',
-      estadoCivil: 'Soltero',
-      ocupacion: 'Independiente',
-      instruccion: 'Bachillerato',
-      procedencia: 'Urbana',
-      provincia: 'Guayas',
-      ciudad: 'Guayaquil',
-      sectorBarrio: 'Urdesa',
-      calle: 'Av. Víctor Emilio Estrada',
-      numeroCasa: '456',
-      contactos: [
-        { 
-          nombre: 'Rosa', 
-          apellidos: 'Silva', 
-          telefono: '0965432109', 
-          email: 'rosa.silva@email.com',
-          relacion: 'Madre' 
-        }
-      ]
-    },
-    {
-      id: 3,
-      apellidos: 'Vásquez Morales',
-      nombres: 'Ana Lucía',
-      cedula: '1122334455',
-      edad: 42,
-      sexo: 'F',
-      fecha: '1981-11-08',
-      estadoCivil: 'Divorciado',
-      ocupacion: 'Estudiante',
-      instruccion: 'Superior',
-      procedencia: 'Rural',
-      provincia: 'Azuay',
-      ciudad: 'Cuenca',
-      sectorBarrio: 'El Ejido',
-      calle: 'Calle Larga',
-      numeroCasa: '789',
-      contactos: [
-        { 
-          nombre: 'Pedro', 
-          apellidos: 'Morales', 
-          telefono: '0954321098', 
-          email: 'pedro.morales@email.com',
-          relacion: 'Hermano' 
-        },
-        { 
-          nombre: 'Laura', 
-          apellidos: 'Vásquez', 
-          telefono: '0943210987', 
-          email: 'laura.vasquez@email.com',
-          relacion: 'Hija' 
-        }
-      ]
-    }
-  ]);
-
-  const [filteredPatients, setFilteredPatients] = useState(patients);
+  // Estados simplificados
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [displayedPatients, setDisplayedPatients] = useState<Patient[]>([]);
   const [searchText, setSearchText] = useState('');
-  const [sexFilter, setSexFilter] = useState('');
-  const [provinceFilter, setProvinceFilter] = useState('');
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
 
+  useEffect(() => {
+    loadPatients();
+  }, []);
 
-   const goToCreatePatient = () => {
-    navigate("/createPatient"); // Aquí pones la ruta a la que quieres ir
+  const loadPatients = async () => {
+    setTableLoading(true);
+    try {
+      const response = await PatientService.getPatients({ limit: 1000 });
+      if (response.success) {
+        setPatients(response.data as Patient[]);
+        setDisplayedPatients(response.data as Patient[]);
+        message.success(response.message);
+      } else {
+        message.error(response.message);
+      }
+    } catch (error) {
+      message.error('Error al cargar los pacientes');
+      console.error('Error:', error);
+    } finally {
+      setTableLoading(false);
+    }
   };
 
+  const goToCreatePatient = () => {
+    navigate("/patientCreate");
+  };
 
-  const handleSearch = (value) => {
+  // Función de búsqueda con validación de mínimo 3 caracteres
+  const handleSearch = async (value: string) => {
     setSearchText(value);
-    filterPatients(value, sexFilter, provinceFilter);
-  };
-
-  const handleSexFilter = (value) => {
-    setSexFilter(value);
-    filterPatients(searchText, value, provinceFilter);
-  };
-
-  const handleProvinceFilter = (value) => {
-    setProvinceFilter(value);
-    filterPatients(searchText, sexFilter, value);
-  };
-
-  const filterPatients = (search, sex, province) => {
-    let filtered = patients;
-
-    if (search) {
-      filtered = filtered.filter(patient => 
-        patient.apellidos.toLowerCase().includes(search.toLowerCase()) ||
-        patient.nombres.toLowerCase().includes(search.toLowerCase()) ||
-        patient.cedula.includes(search) ||
-        patient.ciudad.toLowerCase().includes(search.toLowerCase()) ||
-        patient.sectorBarrio.toLowerCase().includes(search.toLowerCase())
-      );
+    
+    const trimmedValue = value.trim();
+    
+    if (trimmedValue.length >= 3) {  // Vuelve a 3 caracteres
+      setSearchLoading(true);
+      setTableLoading(true);
+      try {
+        console.log('🔍 Buscando:', trimmedValue); // Debug
+        
+        // Usar el servicio de búsqueda del backend
+        const response = await PatientService.searchPatients(trimmedValue);
+        
+        console.log('📊 Respuesta del backend:', response); // Debug
+        
+        if (response.success) {
+          // Debug: mostrar qué pacientes coinciden y por qué campo
+          response.data.forEach(patient => {
+            const searchTerm = trimmedValue.toLowerCase();
+            const firstName = (patient.first_name || '').toLowerCase();
+            const lastName = (patient.last_name || '').toLowerCase();
+            const documentId = (patient.document_id || '').toLowerCase();
+            
+            let matchedField = '';
+            if (firstName.includes(searchTerm)) matchedField += 'nombre ';
+            if (lastName.includes(searchTerm)) matchedField += 'apellido ';
+            if (documentId.includes(searchTerm)) matchedField += 'cédula ';
+            
+            console.log(`✅ ${patient.last_name}, ${patient.first_name} (${patient.document_id}) - Coincide en: ${matchedField || 'CAMPO DESCONOCIDO'}`);
+          });
+          
+          setDisplayedPatients(response.data as Patient[]);
+          
+          if (response.data.length === 0) {
+            message.info('No se encontraron pacientes que coincidan con la búsqueda');
+          }
+        } else {
+          message.error(response.message);
+          // En caso de error, mantener la lista actual
+          setDisplayedPatients(patients);
+        }
+      } catch (error) {
+        console.error('❌ Error completo:', error);
+        
+        // Mostrar detalles del error 422
+        if (error.response?.status === 422) {
+          console.error('📋 Detalles del error 422:', error.response.data);
+          message.error(`Error de validación: ${JSON.stringify(error.response.data.detail || 'Datos inválidos')}`);
+        } else {
+          message.error('Error en la búsqueda');
+        }
+        
+        // En caso de error, mantener la lista actual
+        setDisplayedPatients(patients);
+      } finally {
+        setSearchLoading(false);
+        setTableLoading(false);
+      }
+    } else if (trimmedValue.length === 0) {
+      // Si no hay texto de búsqueda, mostrar todos los pacientes
+      setDisplayedPatients(patients);
+    } else {
+      // Si hay texto pero menos de 3 caracteres, filtrar localmente
+      const localFiltered = patients.filter(patient => {
+        const searchTerm = trimmedValue.toLowerCase();
+        const firstName = (patient.first_name || '').toLowerCase();
+        const lastName = (patient.last_name || '').toLowerCase();
+        const documentId = (patient.document_id || '').toLowerCase();
+        
+        return firstName.includes(searchTerm) || 
+               lastName.includes(searchTerm) || 
+               documentId.includes(searchTerm);
+      });
+      
+      setDisplayedPatients(localFiltered);
     }
-
-    if (sex) {
-      filtered = filtered.filter(patient => patient.sexo === sex);
-    }
-
-    if (province) {
-      filtered = filtered.filter(patient => patient.provincia === province);
-    }
-
-    setFilteredPatients(filtered);
   };
 
-  const clearFilters = () => {
+  const clearSearch = () => {
     setSearchText('');
-    setSexFilter('');
-    setProvinceFilter('');
-    setFilteredPatients(patients);
+    setDisplayedPatients(patients);
   };
 
-  const handleEdit = (patient) => {
-    message.info(`Editar paciente: ${patient.nombres} ${patient.apellidos}`);
-    // Aquí iría la lógica para abrir el formulario de edición
+  const handleEdit = (patient: Patient) => {
+    navigate(`/patientEdit/${patient.id}`);
   };
 
-  const handleDelete = (patientId) => {
-    setPatients(patients.filter(p => p.id !== patientId));
-    setFilteredPatients(filteredPatients.filter(p => p.id !== patientId));
-    message.success('Paciente eliminado correctamente');
+  const handleDelete = async (patientId: number) => {
+    setLoading(true);
+    try {
+      const response = await PatientService.deletePatient(patientId);
+      if (response.success) {
+        message.success(response.message);
+        // Recargar la lista después de eliminar
+        await loadPatients();
+      } else {
+        message.error(response.message);
+      }
+    } catch (error) {
+      message.error('Error al eliminar el paciente');
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const showPatientDetail = (patient) => {
+  const showPatientDetail = (patient: Patient) => {
     setSelectedPatient(patient);
     setIsDetailModalVisible(true);
   };
 
-  const provinces = [...new Set(patients.map(p => p.provincia))];
+  // Función para calcular la edad
+  const calculateAge = (birthDate: string): number => {
+    if (!birthDate) return 0;
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
 
   const columns = [
     {
       title: 'Paciente',
       key: 'patient',
       width: 250,
-      render: (_, record) => (
+      render: (_: any, record: Patient) => (
         <Space>
           <Avatar 
-            style={{ backgroundColor: record.sexo === 'F' ? '#f56a00' : '#1890ff' }}
+            style={{ backgroundColor: record.gender === 'F' ? '#f56a00' : '#1890ff' }}
             icon={<UserOutlined />}
           />
           <div>
             <div style={{ fontWeight: 'bold' }}>
-              {record.apellidos}, {record.nombres}
+              {record.last_name}, {record.first_name}
             </div>
             <Text type="secondary" style={{ fontSize: '12px' }}>
-              CI: {record.cedula}
+              CI: {record.document_id || 'N/A'}
             </Text>
           </div>
         </Space>
@@ -246,15 +258,22 @@ export default function PatientList() {
       title: 'Información Personal',
       key: 'personal',
       width: 180,
-      render: (_, record) => (
+      render: (_: any, record: Patient) => (
         <Space direction="vertical" size="small">
-          <Text>{record.edad} años - {record.sexo === 'M' ? 'Masculino' : 'Femenino'}</Text>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
-            <CalendarOutlined /> {record.fecha}
+          <Text>
+            {record.birth_date ? calculateAge(record.birth_date) : record.age || 'N/A'} años - 
+            {record.gender === 'M' ? ' Masculino' : record.gender === 'F' ? ' Femenino' : ' N/A'}
           </Text>
-          <Tag color={record.sexo === 'M' ? 'blue' : 'pink'}>
-            {record.estadoCivil}
-          </Tag>
+          {record.birth_date && (
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              <CalendarOutlined /> {new Date(record.birth_date).toLocaleDateString()}
+            </Text>
+          )}
+          {record.marital_status && (
+            <Tag color={record.gender === 'M' ? 'blue' : 'pink'}>
+              {record.marital_status}
+            </Tag>
+          )}
         </Space>
       ),
     },
@@ -262,16 +281,16 @@ export default function PatientList() {
       title: 'Ubicación',
       key: 'location',
       width: 180,
-      render: (_, record) => (
+      render: (_: any, record: Patient) => (
         <Space direction="vertical" size="small">
           <Text>
-            <EnvironmentOutlined /> {record.provincia}
+            <EnvironmentOutlined /> {record.province || 'N/A'}
           </Text>
           <Text type="secondary" style={{ fontSize: '12px' }}>
-            {record.ciudad}
+            {record.city || 'N/A'}
           </Text>
           <Text type="secondary" style={{ fontSize: '11px' }}>
-            <HomeOutlined /> {record.sectorBarrio}
+            <HomeOutlined /> {record.neighborhood || 'N/A'}
           </Text>
         </Space>
       ),
@@ -280,23 +299,21 @@ export default function PatientList() {
       title: 'Educación/Procedencia',
       key: 'education',
       width: 150,
-      render: (_, record) => (
+      render: (_: any, record: Patient) => (
         <Space direction="vertical" size="small">
-          <Tag color="green">{record.instruccion}</Tag>
-          <Tag color="orange">{record.procedencia}</Tag>
+          {record.education && <Tag color="green">{record.education}</Tag>}
+          {record.origin && <Tag color="orange">{record.origin}</Tag>}
         </Space>
       ),
     },
-  
-
     {
       title: 'Contactos',
       key: 'contactos',
       width: 100,
-      align: 'center',
-      render: (_, record) => (
+      align: 'center' as const,
+      render: (_: any, record: Patient) => (
         <Tag color="purple">
-          <PhoneOutlined /> {record.contactos.length}
+          <PhoneOutlined /> {record.contacts?.length || 0}
         </Tag>
       ),
     },
@@ -304,8 +321,8 @@ export default function PatientList() {
       title: 'Acciones',
       key: 'actions',
       width: 180,
-      fixed: 'right',
-      render: (_, record) => (
+      fixed: 'right' as const,
+      render: (_: any, record: Patient) => (
         <Space size="small">
           <Tooltip title="Ver detalles">
             <Button
@@ -326,7 +343,7 @@ export default function PatientList() {
           <Popconfirm
             title="¿Está seguro de eliminar este paciente?"
             description="Esta acción no se puede deshacer."
-            onConfirm={() => handleDelete(record.id)}
+            onConfirm={() => record.id && handleDelete(record.id)}
             okText="Sí, eliminar"
             cancelText="Cancelar"
             okButtonProps={{ danger: true }}
@@ -337,6 +354,7 @@ export default function PatientList() {
                 danger
                 icon={<DeleteOutlined />}
                 size="small"
+                loading={loading}
               />
             </Tooltip>
           </Popconfirm>
@@ -367,71 +385,61 @@ export default function PatientList() {
                     style={{ backgroundColor: '#722ed1' }}
                     icon={<HeartFilled />}
                   />
-              <Button
-                type="primary"
-                size="large"
-                icon={<PlusOutlined />}
-                onClick={goToCreatePatient}  
-               
-              >
-                Nuevo Paciente
-            </Button>
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<PlusOutlined />}
+                    onClick={goToCreatePatient}
+                  >
+                    Nuevo Paciente
+                  </Button>
                 </Space>
               </Col>
             </Row>
           </Card>
 
-          {/* Filtros */}
+          {/* Barra de búsqueda simplificada */}
           <Card style={{ marginBottom: '24px' }}>
             <Row gutter={[16, 16]} align="middle">
-              <Col xs={24} sm={12} lg={8}>
-                <Input
-                  placeholder="Buscar por nombre, cédula, diagnóstico, ciudad..."
-                  prefix={<SearchOutlined />}
-                  value={searchText}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  size="large"
-                  allowClear
-                />
+              <Col xs={24} md={16} lg={18}>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Tooltip title="Busca por nombres, apellidos o número de cédula (mínimo 3 caracteres para búsqueda en servidor)">
+                    <Input
+                      placeholder="Buscar por nombre, apellido o cédula (min. 3 caracteres)..."
+                      prefix={<SearchOutlined />}
+                      value={searchText}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      size="large"
+                      allowClear
+                      loading={searchLoading}
+                      onClear={clearSearch}
+                    />
+                  </Tooltip>
+                  <Space direction="vertical" size="small" style={{ width: '100%', marginTop: '4px' }}>
+                    {searchText && searchText.trim().length > 0 && searchText.trim().length < 3 && (
+                      <Text type="warning" style={{ fontSize: '12px' }}>
+                        ⚠️ Búsqueda local (escriba 3+ caracteres para búsqueda completa en servidor)
+                      </Text>
+                    )}
+                    {searchText && searchText.trim().length >= 3 && (
+                      <Text type="secondary" style={{ fontSize: '12px' }}>
+                        🔍 Buscando en servidor: nombres, apellidos y cédulas
+                      </Text>
+                    )}
+                  </Space>
+                </Space>
               </Col>
-              <Col xs={24} sm={6} lg={4}>
-                <Select
-                  placeholder="Sexo"
-                  value={sexFilter}
-                  onChange={handleSexFilter}
-                  style={{ width: '100%' }}
-                  size="large"
-                  allowClear
-                >
-                  <Option value="M">Masculino</Option>
-                  <Option value="F">Femenino</Option>
-                </Select>
-              </Col>
-              <Col xs={24} sm={6} lg={4}>
-                <Select
-                  placeholder="Provincia"
-                  value={provinceFilter}
-                  onChange={handleProvinceFilter}
-                  style={{ width: '100%' }}
-                  size="large"
-                  allowClear
-                >
-                  {provinces.map(province => (
-                    <Option key={province} value={province}>{province}</Option>
-                  ))}
-                </Select>
-              </Col>
-              <Col xs={24} sm={12} lg={8}>
+              <Col xs={24} md={8} lg={6}>
                 <Space>
-                  <Button
-                    icon={<FilterOutlined />}
-                    onClick={clearFilters}
-                    size="large"
-                  >
-                    Limpiar Filtros
-                  </Button>
+                  {searchText && (
+                    <Button onClick={clearSearch} size="large">
+                      Limpiar Búsqueda
+                    </Button>
+                  )}
                   <Text type="secondary">
-                    {filteredPatients.length} de {patients.length} pacientes
+                    {displayedPatients.length} de {patients.length} pacientes
+                    {searchText && searchText.trim().length >= 3 && ` (búsqueda en servidor: "${searchText}")`}
+                    {searchText && searchText.trim().length > 0 && searchText.trim().length < 3 && ` (filtrado local: "${searchText}")`}
                   </Text>
                 </Space>
               </Col>
@@ -442,11 +450,12 @@ export default function PatientList() {
           <Card>
             <Table
               columns={columns}
-              dataSource={filteredPatients}
+              dataSource={displayedPatients}
               rowKey="id"
+              loading={tableLoading}
               scroll={{ x: 1400 }}
               pagination={{
-                total: filteredPatients.length,
+                total: displayedPatients.length,
                 pageSize: 10,
                 showSizeChanger: true,
                 showQuickJumper: true,
@@ -477,7 +486,7 @@ export default function PatientList() {
                 type="primary"
                 icon={<EditOutlined />}
                 onClick={() => {
-                  handleEdit(selectedPatient);
+                  selectedPatient && handleEdit(selectedPatient);
                   setIsDetailModalVisible(false);
                 }}
               >
@@ -491,54 +500,76 @@ export default function PatientList() {
                   <Col xs={24} sm={12}>
                     <Card size="small" title="Información Personal">
                       <Space direction="vertical" style={{ width: '100%' }}>
-                        <Text><strong>Nombres:</strong> {selectedPatient.nombres}</Text>
-                        <Text><strong>Apellidos:</strong> {selectedPatient.apellidos}</Text>
-                        <Text><strong>Cédula:</strong> {selectedPatient.cedula}</Text>
-                        <Text><strong>Fecha de Nacimiento:</strong> {selectedPatient.fecha}</Text>
-                        <Text><strong>Edad:</strong> {selectedPatient.edad} años</Text>
-                        <Text><strong>Sexo:</strong> {selectedPatient.sexo === 'M' ? 'Masculino' : 'Femenino'}</Text>
-                        <Text><strong>Estado Civil:</strong> {selectedPatient.estadoCivil}</Text>
-                        <Text><strong>Ocupación:</strong> {selectedPatient.ocupacion}</Text>
-                        <Text><strong>Instrucción:</strong> {selectedPatient.instruccion}</Text>
-                        <Text><strong>Procedencia:</strong> {selectedPatient.procedencia}</Text>
+                        <Text><strong>Nombres:</strong> {selectedPatient.first_name || 'N/A'}</Text>
+                        <Text><strong>Apellidos:</strong> {selectedPatient.last_name || 'N/A'}</Text>
+                        <Text><strong>Cédula:</strong> {selectedPatient.document_id || 'N/A'}</Text>
+                        <Text><strong>Fecha de Nacimiento:</strong> {selectedPatient.birth_date || 'N/A'}</Text>
+                        <Text><strong>Edad:</strong> {selectedPatient.age || calculateAge(selectedPatient.birth_date || '')} años</Text>
+                        <Text><strong>Sexo:</strong> {selectedPatient.gender === 'M' ? 'Masculino' : selectedPatient.gender === 'F' ? 'Femenino' : 'N/A'}</Text>
+                        <Text><strong>Estado Civil:</strong> {selectedPatient.marital_status || 'N/A'}</Text>
+                        <Text><strong>Ocupación:</strong> {selectedPatient.occupation || 'N/A'}</Text>
+                        <Text><strong>Instrucción:</strong> {selectedPatient.education || 'N/A'}</Text>
+                        <Text><strong>Procedencia:</strong> {selectedPatient.origin || 'N/A'}</Text>
                       </Space>
                     </Card>
                   </Col>
                   <Col xs={24} sm={12}>
                     <Card size="small" title="Dirección">
                       <Space direction="vertical" style={{ width: '100%' }}>
-                        <Text><strong>Provincia:</strong> {selectedPatient.provincia}</Text>
-                        <Text><strong>Ciudad:</strong> {selectedPatient.ciudad}</Text>
-                        <Text><strong>Sector/Barrio:</strong> {selectedPatient.sectorBarrio}</Text>
-                        <Text><strong>Calle:</strong> {selectedPatient.calle}</Text>
-                        <Text><strong>Número de Casa:</strong> {selectedPatient.numeroCasa}</Text>
+                        <Text><strong>Provincia:</strong> {selectedPatient.province || 'N/A'}</Text>
+                        <Text><strong>Ciudad:</strong> {selectedPatient.city || 'N/A'}</Text>
+                        <Text><strong>Sector/Barrio:</strong> {selectedPatient.neighborhood || 'N/A'}</Text>
+                        <Text><strong>Calle:</strong> {selectedPatient.street || 'N/A'}</Text>
+                        <Text><strong>Número de Casa:</strong> {selectedPatient.house_number || 'N/A'}</Text>
                       </Space>
                     </Card>
                   </Col>
                   <Col xs={24}>
-                    <Card size="small" title={`Contactos de Emergencia (${selectedPatient.contactos.length})`}>
-                      {selectedPatient.contactos.map((contact, index) => (
-                        <div key={index} style={{ marginBottom: '12px', padding: '12px', background: '#f5f5f5', borderRadius: '6px' }}>
-                          <Text><strong>{contact.nombre} {contact.apellidos}</strong></Text>
-                          <br />
-                          <Space direction="vertical" size="small" style={{ marginTop: '4px' }}>
-                            <Text type="secondary">
-                              <PhoneOutlined /> {contact.telefono}
-                            </Text>
-                            {contact.email && (
+                    <Card size="small" title={`Contactos de Emergencia (${selectedPatient.contacts?.length || 0})`}>
+                      {selectedPatient.contacts && selectedPatient.contacts.length > 0 ? (
+                        selectedPatient.contacts.map((contact, index) => (
+                          <div key={index} style={{ marginBottom: '12px', padding: '12px', background: '#f5f5f5', borderRadius: '6px' }}>
+                            <Text><strong>{contact.first_name} {contact.last_name}</strong></Text>
+                            <br />
+                            <Space direction="vertical" size="small" style={{ marginTop: '4px' }}>
                               <Text type="secondary">
-                                <MailOutlined /> {contact.email}
+                                <PhoneOutlined /> {contact.phone}
                               </Text>
-                            )}
-                            <Text type="secondary">
-                              <strong>Relación:</strong> {contact.relacion}
-                            </Text>
-                          </Space>
-                        </div>
-                      ))}
+                              {contact.email && (
+                                <Text type="secondary">
+                                  <MailOutlined /> {contact.email}
+                                </Text>
+                              )}
+                              <Text type="secondary">
+                                <strong>Relación:</strong> {contact.relationship_type}
+                              </Text>
+                            </Space>
+                          </div>
+                        ))
+                      ) : (
+                        <Text type="secondary">No hay contactos registrados</Text>
+                      )}
                     </Card>
                   </Col>
                 </Row>
+                {selectedPatient.medical_history && (
+                  <Row style={{ marginTop: '16px' }}>
+                    <Col xs={24}>
+                      <Card size="small" title="Historia Médica">
+                        <Text>{selectedPatient.medical_history}</Text>
+                      </Card>
+                    </Col>
+                  </Row>
+                )}
+                {selectedPatient.notes && (
+                  <Row style={{ marginTop: '16px' }}>
+                    <Col xs={24}>
+                      <Card size="small" title="Notas">
+                        <Text>{selectedPatient.notes}</Text>
+                      </Card>
+                    </Col>
+                  </Row>
+                )}
               </div>
             )}
           </Modal>

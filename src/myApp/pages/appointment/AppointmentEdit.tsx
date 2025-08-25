@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Form,
   Input,
@@ -15,56 +16,107 @@ import {
   TimePicker,
   message,
   Divider,
-  AutoComplete
+  AutoComplete,
+  Spin
 } from 'antd';
 import {
   UserOutlined,  
   SaveOutlined,
   ArrowLeftOutlined,
-  HeartOutlined,
   FileTextOutlined,
   MedicineBoxOutlined,
   ExperimentOutlined,
+  EditOutlined
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 
 import PatientService from '../../../auth/services/PatientService';
-import AppointmentService from  '../../../auth/services/AppointmentService';
-import type { Patient } from  '../../../auth/services/PatientService';
+import AppointmentService from '../../../auth/services/AppointmentService';
+import type { Patient } from '../../../auth/services/PatientService';
 import dataCIE10 from '../../../assets/dataCIE10.json';
-import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
 const { TextArea } = Input;
 
-export default function CreateAppointment() {
-  const navigate = useNavigate();
+export default function AppointmentEdit() {
+  const { id } = useParams();
 
+  console.log("id",id)
+
+  const navigate = useNavigate();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
   const [loadingPatients, setLoadingPatients] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [appointment, setAppointment] = useState<any>(null);
 
-  // Cargar pacientes al montar el componente
+  // Cargar datos iniciales
   useEffect(() => {
-    loadPatients();
-  }, []);
+    loadInitialData();
+  }, [id]);
 
-  const loadPatients = async () => {
-    setLoadingPatients(true);
+  const loadInitialData = async () => {
+    setLoadingData(true);
     try {
-      const response = await PatientService.getPatients({ limit: 1000 });
-      if (response.success) {
-        setPatients(response.data);
+      // Cargar pacientes y cita en paralelo
+      const [patientsResponse, appointmentResponse] = await Promise.all([
+        PatientService.getPatients({ limit: 1000 }),
+        AppointmentService.getAppointmentById(id!)
+      ]);
+
+      if (patientsResponse.success) {
+        setPatients(patientsResponse.data);
       } else {
-        message.error(response.message);
+        message.error('Error al cargar los pacientes');
+      }
+
+      if (appointmentResponse.success) {
+        const appointmentData = appointmentResponse.data;
+        setAppointment(appointmentData);
+        
+        // Buscar el paciente asociado
+        const patient = patientsResponse.data?.find((p: Patient) => p.id === appointmentData.patient_id);
+        if (patient) {
+          setSelectedPatient(patient);
+        }
+
+        
+
+        // Llenar el formulario con los datos de la cita
+        form.setFieldsValue({
+          searchPatient: patient ? `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}` : '',
+          nombres: patient?.first_name || '',
+          apellidos: patient?.last_name || '',
+          cedula: patient?.document_id || '',
+          fecha: appointmentData.appointment_date ? dayjs(appointmentData.appointment_date) : null,
+          hora: appointmentData.appointment_time ? dayjs(appointmentData.appointment_time, 'HH:mm:ss') : null,
+          antecedentes: patient?.medical_history || 'Sin antecedentes médicos registrados',
+          enfermedadActual: appointmentData.current_illness || '',
+          temperatura: appointmentData.temperature || '',
+          presionArterial: appointmentData.blood_pressure || '',
+          frecuenciaCardiaca: appointmentData.heart_rate || '',
+          saturacionO2: appointmentData.oxygen_saturation || '',
+          peso: appointmentData.weight || '',
+          talla: appointmentData.height ? Math.round(parseFloat(appointmentData.height) * 100).toString() : '',
+          examenFisico: appointmentData.physical_examination || '',
+          diagnostico: appointmentData.diagnosis_code || '',
+          observacionesDiagnostico: appointmentData.diagnosis_observations || '',
+          observaciones: appointmentData.observations || '',
+          examenes: appointmentData.laboratory_tests || ''
+        });
+      } else {
+        message.error('Error al cargar la cita médica');
+        navigate('/appointments');
       }
     } catch (error) {
-      message.error('Error al cargar los pacientes');
-      console.error('Error loading patients:', error);
+      message.error('Error inesperado al cargar los datos');
+      console.error('Error loading initial data:', error);
+      navigate('/appointments');
     } finally {
-      setLoadingPatients(false);
+      setLoadingData(false);
     }
   };
 
@@ -79,11 +131,10 @@ export default function CreateAppointment() {
         nombres: patient.first_name,
         apellidos: patient.last_name,
         cedula: patient.document_id,
-        // Automáticamente llenar antecedentes con el medical_history del paciente
         antecedentes: patient.medical_history || 'Sin antecedentes médicos registrados'
       });
       
-      message.success('Paciente seleccionado. Antecedentes cargados automáticamente.');
+      message.success('Paciente cambiado. Antecedentes actualizados.');
     }
   };
 
@@ -95,7 +146,7 @@ export default function CreateAppointment() {
 
     setLoading(true);
     try {
-      // Preparar datos para crear la cita
+      // Preparar datos para actualizar la cita
       const appointmentData = {
         patient_id: selectedPatient.id!,
         appointment_date: values.fecha.format('YYYY-MM-DD'),
@@ -104,6 +155,7 @@ export default function CreateAppointment() {
         physical_examination: values.examenFisico,
         diagnosis_code: values.diagnostico,
         diagnosis_description: dataCIE10.find(item => item.code === values.diagnostico)?.description || '',
+        diagnosis_observations: values.observacionesDiagnostico,
         observations: values.observaciones,
         laboratory_tests: values.examenes || '',
         temperature: values.temperatura,
@@ -114,23 +166,23 @@ export default function CreateAppointment() {
         height: (parseFloat(values.talla) / 100).toString(), // Convertir cm a metros
       };
 
-      console.log('Datos de la cita a enviar:', appointmentData);
+      console.log('Datos de la cita a actualizar:', appointmentData);
       
-      // Crear la cita usando el servicio
-      const response = await AppointmentService.createAppointment(appointmentData);
+      // Actualizar la cita usando el servicio
+      const response = await AppointmentService.updateAppointment(id!, appointmentData);
       
       if (response.success) {
-        message.success(response.message);
-        form.resetFields();
-        setSelectedPatient(null);
-        // Aquí podrías redirigir o actualizar la lista
-        navigate('/appointmentList');
+        message.success('Cita médica actualizada exitosamente');
+        // Redirigir a la lista de citas
+        setTimeout(() => {
+          navigate('/appointments', { replace: true });
+        }, 1000); // Pequeño delay para mostrar el mensaje de éxito
       } else {
-        message.error(response.message);
+        message.error(response.message || 'Error al actualizar la cita médica');
       }
     } catch (error) {
-      message.error('Error inesperado al crear la cita médica');
-      console.error('Error creating appointment:', error);
+      message.error('Error inesperado al actualizar la cita médica');
+      console.error('Error updating appointment:', error);
     } finally {
       setLoading(false);
     }
@@ -152,22 +204,55 @@ export default function CreateAppointment() {
     }));
 
   const goBack = () => {
-    
-    navigate('/appointmentList');
+    navigate('/appointments');
   };
 
   const handleCancel = () => {
-    form.resetFields();
-    setSelectedPatient(null);
-    message.info('Formulario cancelado');
-    navigate('/appointmentList');
+    navigate('/appointments');
   };
 
-  const handleClear = () => {
-    form.resetFields();
-    setSelectedPatient(null);
-    message.info('Formulario limpiado');
+  const handleReset = () => {
+    if (appointment && selectedPatient) {
+      // Restaurar valores originales
+      form.setFieldsValue({
+        searchPatient: `${selectedPatient.last_name}, ${selectedPatient.first_name} - CI: ${selectedPatient.document_id}`,
+        nombres: selectedPatient.first_name || '',
+        apellidos: selectedPatient.last_name || '',
+        cedula: selectedPatient.document_id || '',
+        fecha: appointment.appointment_date ? dayjs(appointment.appointment_date) : null,
+        hora: appointment.appointment_time ? dayjs(appointment.appointment_time, 'HH:mm:ss') : null,
+        antecedentes: selectedPatient.medical_history || 'Sin antecedentes médicos registrados',
+        enfermedadActual: appointment.current_illness || '',
+        temperatura: appointment.temperature || '',
+        presionArterial: appointment.blood_pressure || '',
+        frecuenciaCardiaca: appointment.heart_rate || '',
+        saturacionO2: appointment.oxygen_saturation || '',
+        peso: appointment.weight || '',
+        talla: appointment.height ? Math.round(parseFloat(appointment.height) * 100).toString() : '',
+        examenFisico: appointment.physical_examination || '',
+        diagnostico: appointment.diagnosis_code || '',
+        observacionesDiagnostico: appointment.diagnosis_observations || '',
+        observaciones: appointment.observations || '',
+        examenes: appointment.laboratory_tests || ''
+      });
+      message.info('Formulario restaurado a valores originales');
+    }
   };
+
+  if (loadingData) {
+    return (
+      <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+        <Content style={{ padding: '24px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <Card style={{ textAlign: 'center', padding: '48px' }}>
+            <Spin size="large" />
+            <div style={{ marginTop: '16px' }}>
+              <Text>Cargando datos de la cita médica...</Text>
+            </div>
+          </Card>
+        </Content>
+      </Layout>
+    );
+  }
 
   return (
     <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
@@ -191,7 +276,7 @@ export default function CreateAppointment() {
                       FENIX
                     </Title>
                     <Text style={{ color: '#722ed1', fontSize: '18px', fontWeight: 500 }}>
-                      Nueva Cita Médica
+                      Editar Cita Médica #{id}
                     </Text>
                   </div>
                 </Space>
@@ -200,7 +285,7 @@ export default function CreateAppointment() {
                 <Avatar
                   size={64}
                   style={{ backgroundColor: '#722ed1' }}
-                  icon={<HeartOutlined />}
+                  icon={<EditOutlined />}
                 />
               </Col>
             </Row>
@@ -474,9 +559,9 @@ export default function CreateAppointment() {
                     <Col>
                       <Button 
                         size="large"
-                        onClick={handleClear}
+                        onClick={handleReset}
                       >
-                        Limpiar
+                        Restaurar
                       </Button>
                     </Col>
                     <Col>
@@ -496,8 +581,8 @@ export default function CreateAppointment() {
                         loading={loading}
                         icon={<SaveOutlined />}
                         disabled={!selectedPatient}
-                      >
-                        Guardar Cita
+                    >
+                        Actualizar Cita
                       </Button>
                     </Col>
                   </Row>
