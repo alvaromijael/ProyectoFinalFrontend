@@ -1,17 +1,16 @@
-import React from "react";
+
 import {
   LockOutlined,
   MailOutlined,
   UserOutlined,
   GoogleOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Typography, Space, Input, message } from "antd";
+import { Button,  Typography, Space, Input, message } from "antd";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { useAuthContext } from "../context/AuthContext";
 import { AuthLayout } from "../component/AuthLayout";
-
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 type RegisterFormData = {
   email: string;
