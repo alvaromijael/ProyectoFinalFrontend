@@ -7,12 +7,15 @@ import { HomePage } from "../pages/HomePage";
 import { AllUsersPage } from "../pages/AllUsersPage";
 
 import { WelcomePage } from "../pages/WelcomePage";
+import PatientList from "../pages/patient/PatientList";
 //import CreatePatient from "../pages/patient/CreatePatient";
 //import PrivateRoute from "../components/PrivateRoute";
 //import PatientList from "../pages/patient/PatientList";
 //import AppointmentList from "../pages/appointment/AppointmentList";
 //import CreateAppointment from "../pages/appointment/CreateAppointment";
 
+import EditPatient from "../pages/patient/PatientEdit";
+import CreatePatient from "../pages/patient/PatientCreate";
 export const MyAppRouter = () => {
   return (
     <>
@@ -20,6 +23,9 @@ export const MyAppRouter = () => {
       <Routes>
         <Route path="/" element={<WelcomePage />} />
         <Route path="/home" element={<HomePage />} />
+        <Route path="/patientList" element={<PatientList />} />
+        <Route path="/patientCreate" element={<CreatePatient />} />
+        <Route path="/patientEdit/:id" element={<EditPatient />} />
         {/* <Route path="/patientList" element={<PatientList />} />
         <Route path="/createPatient" element={<CreatePatient />} />
         <Route path="/appointmentList" element={<AppointmentList />} />

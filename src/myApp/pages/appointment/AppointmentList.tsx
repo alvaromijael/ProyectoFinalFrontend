@@ -1,535 +1,674 @@
-// import { useState } from 'react';
-// import {
-//   Input,
-//   Select,
-//   Button,
-//   Card,
-//   Table,
-//   Space,
-//   Typography,
-//   Row,
-//   Col,
-//   Avatar,
-//   Layout,
-//   Tag,
-//   Popconfirm,
-//   Modal,
-//   message,
-//   Tooltip,
-//   DatePicker,
-//   Descriptions
-// } from 'antd';
-// import {
-//   UserOutlined,
-//   CalendarOutlined,
-//   SearchOutlined,
-//   EditOutlined,
-//   DeleteOutlined,
-//   EyeOutlined,
-//   PlusOutlined,
-//   FilterOutlined,
-//   HeartOutlined,
-//   FileTextOutlined,
-//   MedicineBoxOutlined,
-//   ExperimentOutlined,
+import { useState, useEffect } from 'react';
+import {
+  Input,
+  Button,
+  Card,
+  Table,
+  Space,
+  Typography,
+  Row,
+  Col,
+  Avatar,
+  Layout,
+  Tag,
+  Popconfirm,
+  Modal,
+  message,
+  Tooltip,
+  DatePicker,
+  Descriptions,
+  Spin,
+  Select,
+  Alert
+} from 'antd';
+import type { ColumnsType } from 'antd/es/table';
+import type { Dayjs } from 'dayjs';
+import {
+  UserOutlined,
+  CalendarOutlined,
+  SearchOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  PlusOutlined,
+  FilterOutlined,
+  HeartOutlined,
+  FileTextOutlined,
+  MedicineBoxOutlined,
+  ExperimentOutlined,
+  ReloadOutlined
+} from '@ant-design/icons';
 
-// } from '@ant-design/icons';
+// Import services
+import AppointmentService from '../../services/AppointmentService';
+import PatientService from '../../services/AppointmentService';
+import { useNavigate } from 'react-router-dom';
 
-// const { Title, Text } = Typography;
-// const { Content } = Layout;
-// const { RangePicker } = DatePicker;
+const { Title, Text } = Typography;
+const { Content } = Layout;
+const { RangePicker } = DatePicker;
+const { Option } = Select;
 
-// export default function AppointmentList() {
-//   const [appointments, setAppointments] = useState([
-//     {
-//       id: 1,
-//       patientId: 1,
-//       nombres: 'María Elena',
-//       apellidos: 'García López',
-//       cedula: '1234567890',
-//       fecha: '2024-08-05',
-//       hora: '09:30',
-//       anamnesis: {
-//         antecedentes: 'Hipertensión arterial familiar, diabetes mellitus tipo 2 en madre',
-//         enfermedadActual: 'Paciente refiere dolor abdominal de 3 días de evolución, localizado en epigastrio, de intensidad moderada, que se irradia hacia el dorso. Asociado a náuseas y vómitos ocasionales.'
-//       },
-//       examenFisico: 'Paciente consciente, orientada, colaboradora. Mucosas húmedas, normocoloreadas. Abdomen blando, depresible, doloroso a la palpación en epigastrio, sin signos de irritación peritoneal.',
-//       diagnostico: {
-//         code: 'K29.7',
-//         description: 'Gastritis, no especificada'
-//       },
-//       observaciones: 'Se recomienda dieta blanda, omeprazol 20mg cada 12 horas por 7 días. Control en 1 semana.',
-//       examenes: 'Hemograma completo, glucosa, creatinina, ecografía abdominal',
-//       signosVitales: {
-//         temperatura: '36.5',
-//         presionArterial: '120/80',
-//         frecuenciaCardiaca: '78',
-//         saturacionO2: '98',
-//         peso: '65',
-//         talla: '160'
-//       }
-//     },
-//     {
-//       id: 2,
-//       patientId: 2,
-//       nombres: 'Carlos Andrés',
-//       apellidos: 'Rodríguez Silva',
-//       cedula: '0987654321',
-//       fecha: '2024-08-06',
-//       hora: '14:15',
-//       anamnesis: {
-//         antecedentes: 'Alergia a penicilina, cirugía de apendicectomía hace 5 años',
-//         enfermedadActual: 'Paciente masculino de 28 años que acude por presentar tos seca de 1 semana de evolución, acompañada de malestar general y febrícula vespertina.'
-//       },
-//       examenFisico: 'Buen estado general, afebril. Orofaringe eritematosa. Pulmones: murmullo vesicular conservado, no estertores. Corazón: ruidos cardíacos rítmicos, no soplos.',
-//       diagnostico: {
-//         code: 'J06.9',
-//         description: 'Infección aguda de las vías respiratorias superiores, no especificada'
-//       },
-//       observaciones: 'Tratamiento sintomático con paracetamol 500mg cada 8 horas, abundantes líquidos, reposo relativo.',
-//       examenes: 'Rx de tórax PA y lateral',
-//       signosVitales: {
-//         temperatura: '37.2',
-//         presionArterial: '115/75',
-//         frecuenciaCardiaca: '82',
-//         saturacionO2: '99',
-//         peso: '75',
-//         talla: '175'
-//       }
-//     },
-//     {
-//       id: 3,
-//       patientId: 3,
-//       nombres: 'Ana Lucía',
-//       apellidos: 'Vásquez Morales',
-//       cedula: '1122334455',
-//       fecha: '2024-08-07',
-//       hora: '11:00',
-//       anamnesis: {
-//         antecedentes: 'Migraña crónica, uso de anticonceptivos orales',
-//         enfermedadActual: 'Paciente femenina que presenta cefalea frontal pulsátil de 2 días de evolución, intensidad 8/10, asociada a fotofobia y náuseas.'
-//       },
-//       examenFisico: 'Paciente con facies álgica, consciente, orientada. Pupilas isocóricas, reactivas. Rigidez de nuca negativa. Examen neurológico sin déficit focal.',
-//       diagnostico: {
-//         code: 'G43.9',
-//         description: 'Migraña, no especificada'
-//       },
-//       observaciones: 'Crisis migrañosa típica. Se administra sumatriptán 50mg vía oral. Educación sobre factores desencadenantes.',
-//       examenes: 'No requiere estudios complementarios en esta ocasión',
-//       signosVitales: {
-//         temperatura: '36.8',
-//         presionArterial: '110/70',
-//         frecuenciaCardiaca: '88',
-//         saturacionO2: '97',
-//         peso: '58',
-//         talla: '162'
-//       }
-//     }
-//   ]);
+// Interfaces para el tipado
+interface Patient {
+  id?: number;
+  first_name: string;
+  last_name: string;
+  document_id: string;
+  medical_history?: string;
+}
 
-//   const [filteredAppointments, setFilteredAppointments] = useState(appointments);
-//   const [searchText, setSearchText] = useState('');
-//   const [dateFilter, setDateFilter] = useState([]);
-//   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
-//   const [selectedAppointment, setSelectedAppointment] = useState(null);
+interface Appointment {
+  id?: number;
+  patient_id: number;
+  patient?: Patient;
+  appointment_date: string;
+  appointment_time: string;
+  diagnosis_code?: string;
+  diagnosis_description?: string;
+  current_illness?: string;
+  physical_examination?: string;
+  temperature?: number;
+  blood_pressure?: string;
+  heart_rate?: number;
+  oxygen_saturation?: number;
+  weight?: number;
+  height?: number;
+  observations?: string;
+  laboratory_tests?: string;
+}
 
-//   const handleSearch = (value) => {
-//     setSearchText(value);
-//     filterAppointments(value, dateFilter);
-//   };
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
 
-//   const handleDateFilter = (dates) => {
-//     setDateFilter(dates);
-//     filterAppointments(searchText, dates);
-//   };
+interface GetAppointmentsParams {
+  skip: number;
+  limit: number;
+  include_patient?: boolean;
+}
 
-//   const filterAppointments = (search, dates) => {
-//     let filtered = appointments;
+interface GetPatientsParams {
+  skip: number;
+  limit: number;
+}
 
-//     if (search) {
-//       filtered = filtered.filter(appointment => 
-//         appointment.apellidos.toLowerCase().includes(search.toLowerCase()) ||
-//         appointment.nombres.toLowerCase().includes(search.toLowerCase()) ||
-//         appointment.cedula.includes(search) ||
-//         appointment.diagnostico.description.toLowerCase().includes(search.toLowerCase())
-//       );
-//     }
+// Tipo para los rangos de fecha
+type DateRange = [Dayjs, Dayjs] | null;
 
-//     if (dates && dates.length === 2) {
-//       filtered = filtered.filter(appointment => {
-//         const appointmentDate = new Date(appointment.fecha);
-//         return appointmentDate >= dates[0].toDate() && appointmentDate <= dates[1].toDate();
-//       });
-//     }
+export default function AppointmentList(): JSX.Element {
+  const navigator = useNavigate();
+  
+  // Estados con tipado
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [searchText, setSearchText] = useState<string>('');
+  const [dateFilter, setDateFilter] = useState<DateRange>(null);
+  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState<boolean>(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
 
-//     setFilteredAppointments(filtered);
-//   };
+  // Cargar datos iniciales
+  useEffect(() => {
+    loadAppointments();
+    loadPatients();
+  }, []);
 
-//   const clearFilters = () => {
-//     setSearchText('');
-//     setDateFilter([]);
-//     setFilteredAppointments(appointments);
-//   };
+  const goToCreateAppointment = (): void => {
+    navigator('/appointmentCreate');
+  };
 
-//   const handleEdit = (appointment) => {
-//     message.info(`Editar cita: ${appointment.nombres} ${appointment.apellidos}`);
-//   };
+  const loadAppointments = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const params: GetAppointmentsParams = {
+        skip: 0,
+        limit: 1000,
+        include_patient: true
+      };
 
-//   const handleDelete = (appointmentId) => {
-//     setAppointments(appointments.filter(a => a.id !== appointmentId));
-//     setFilteredAppointments(filteredAppointments.filter(a => a.id !== appointmentId));
-//     message.success('Cita eliminada correctamente');
-//   };
+      const response: ApiResponse<Appointment[]> = await AppointmentService.getAppointments(params);
 
-//   const showAppointmentDetail = (appointment) => {
-//     setSelectedAppointment(appointment);
-//     setIsDetailModalVisible(true);
-//   };
+      if (response.success) {
+        setAppointments(response.data);
+        setFilteredAppointments(response.data);
+      } else {
+        message.error(response.message || 'Error al cargar las citas');
+      }
+    } catch (error) {
+      message.error('Error al cargar las citas');
+      console.error('Error loading appointments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-//   const columns = [
-//     {
-//       title: 'Paciente',
-//       key: 'patient',
-//       width: 200,
-//       render: (_, record) => (
-//         <Space>
-//           <Avatar 
-//             style={{ backgroundColor: '#1890ff' }}
-//             icon={<UserOutlined />}
-//           />
-//           <div>
-//             <div style={{ fontWeight: 'bold' }}>
-//               {record.apellidos}, {record.nombres}
-//             </div>
-//             <Text type="secondary" style={{ fontSize: '12px' }}>
-//               CI: {record.cedula}
-//             </Text>
-//           </div>
-//         </Space>
-//       ),
-//     },
-//     {
-//       title: 'Fecha y Hora',
-//       key: 'datetime',
-//       width: 120,
-//       render: (_, record) => (
-//         <Space direction="vertical" size="small">
-//           <Text>
-//             <CalendarOutlined /> {record.fecha}
-//           </Text>
-//           <Text type="secondary" style={{ fontSize: '12px' }}>
-//             {record.hora}
-//           </Text>
-//         </Space>
-//       ),
-//     },
-//     {
-//       title: 'Diagnóstico',
-//       key: 'diagnostico',
-//       width: 250,
-//       render: (_, record) => (
-//         <Space direction="vertical" size="small">
-//           <Tag color="blue">{record.diagnostico.code}</Tag>
-//           <Text style={{ fontSize: '12px' }}>
-//             {record.diagnostico.description}
-//           </Text>
-//         </Space>
-//       ),
-//     },
-//     {
-//       title: 'Signos Vitales',
-//       key: 'vitales',
-//       width: 150,
-//       render: (_, record) => (
-//         <Space direction="vertical" size="small">
-//           <Text style={{ fontSize: '11px' }}>
-//             T: {record.signosVitales.temperatura}°C
-//           </Text>
-//           <Text style={{ fontSize: '11px' }}>
-//             TA: {record.signosVitales.presionArterial}
-//           </Text>
-//           <Text style={{ fontSize: '11px' }}>
-//             FC: {record.signosVitales.frecuenciaCardiaca} lpm
-//           </Text>
-//         </Space>
-//       ),
-//     },
-//     {
-//       title: 'Acciones',
-//       key: 'actions',
-//       width: 150,
-//       fixed: 'right',
-//       render: (_, record) => (
-//         <Space size="small">
-//           <Tooltip title="Ver detalles">
-//             <Button
-//               type="link"
-//               icon={<EyeOutlined />}
-//               onClick={() => showAppointmentDetail(record)}
-//               size="small"
-//             />
-//           </Tooltip>
-//           <Tooltip title="Editar">
-//             <Button
-//               type="link"
-//               icon={<EditOutlined />}
-//               onClick={() => handleEdit(record)}
-//               size="small"
-//             />
-//           </Tooltip>
-//           <Popconfirm
-//             title="¿Está seguro de eliminar esta cita?"
-//             description="Esta acción no se puede deshacer."
-//             onConfirm={() => handleDelete(record.id)}
-//             okText="Sí, eliminar"
-//             cancelText="Cancelar"
-//             okButtonProps={{ danger: true }}
-//           >
-//             <Tooltip title="Eliminar">
-//               <Button
-//                 type="link"
-//                 danger
-//                 icon={<DeleteOutlined />}
-//                 size="small"
-//               />
-//             </Tooltip>
-//           </Popconfirm>
-//         </Space>
-//       ),
-//     },
-//   ];
+  const loadPatients = async (): Promise<void> => {
+    try {
+      const params: GetPatientsParams = {
+        skip: 0,
+        limit: 1000
+      };
 
-//   return (
-//     <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
-//       <Content style={{ padding: '24px' }}>
-//         <div style={{ maxWidth: '100%', margin: '0 auto' }}>
-//           {/* Header */}
-//           <Card style={{ marginBottom: '24px' }}>
-//             <Row justify="space-between" align="middle">
-//               <Col>
-//                 <Title level={2} style={{ margin: 0, color: '#1890ff' }}>
-//                   FENIX
-//                 </Title>
-//                 <Text style={{ color: '#722ed1', fontSize: '18px', fontWeight: 500 }}>
-//                   Citas Médicas
-//                 </Text>
-//               </Col>
-//               <Col>
-//                 <Space>
-//                   <Avatar
-//                     size={64}
-//                     style={{ backgroundColor: '#722ed1' }}
-//                     icon={<HeartOutlined />}
-//                   />
-//                   <Button
-//                     type="primary"
-//                     size="large"
-//                     icon={<PlusOutlined />}
-//                     onClick={() => message.info('Ir a crear nueva cita')}
-//                   >
-//                     Nueva Cita
-//                   </Button>
-//                 </Space>
-//               </Col>
-//             </Row>
-//           </Card>
+      const response: ApiResponse<Patient[]> = await PatientService.getPatients(params);
 
-//           {/* Filtros */}
-//           <Card style={{ marginBottom: '24px' }}>
-//             <Row gutter={[16, 16]} align="middle">
-//               <Col xs={24} sm={12} lg={8}>
-//                 <Input
-//                   placeholder="Buscar por paciente, cédula, diagnóstico..."
-//                   prefix={<SearchOutlined />}
-//                   value={searchText}
-//                   onChange={(e) => handleSearch(e.target.value)}
-//                   size="large"
-//                   allowClear
-//                 />
-//               </Col>
-//               <Col xs={24} sm={8} lg={6}>
-//                 <RangePicker
-//                   placeholder={['Fecha inicio', 'Fecha fin']}
-//                   value={dateFilter}
-//                   onChange={handleDateFilter}
-//                   style={{ width: '100%' }}
-//                   size="large"
-//                 />
-//               </Col>
-//               <Col xs={24} sm={12} lg={10}>
-//                 <Space>
-//                   <Button
-//                     icon={<FilterOutlined />}
-//                     onClick={clearFilters}
-//                     size="large"
-//                   >
-//                     Limpiar Filtros
-//                   </Button>
-//                   <Text type="secondary">
-//                     {filteredAppointments.length} de {appointments.length} citas
-//                   </Text>
-//                 </Space>
-//               </Col>
-//             </Row>
-//           </Card>
+      if (response.success) {
+        setPatients(response.data);
+      }
+    } catch (error) {
+      console.error('Error al cargar pacientes:', error);
+    }
+  };
 
-//           {/* Tabla */}
-//           <Card>
-//             <Table
-//               columns={columns}
-//               dataSource={filteredAppointments}
-//               rowKey="id"
-//               scroll={{ x: 1200 }}
-//               pagination={{
-//                 total: filteredAppointments.length,
-//                 pageSize: 10,
-//                 showSizeChanger: true,
-//                 showQuickJumper: true,
-//                 showTotal: (total, range) => 
-//                   `${range[0]}-${range[1]} de ${total} citas`,
-//               }}
-//               size="middle"
-//             />
-//           </Card>
+  // Filtrar citas
+  const filterAppointments = (): void => {
+    let filtered: Appointment[] = appointments;
 
-//           {/* Modal de Detalles */}
-//           <Modal
-//             title={
-//               <Space>
-//                 <CalendarOutlined style={{ color: '#1890ff' }} />
-//                 Detalles de la Cita Médica
-//               </Space>
-//             }
-//             open={isDetailModalVisible}
-//             onCancel={() => setIsDetailModalVisible(false)}
-//             width={1000}
-//             footer={[
-//               <Button key="close" onClick={() => setIsDetailModalVisible(false)}>
-//                 Cerrar
-//               </Button>,
-//               <Button
-//                 key="edit"
-//                 type="primary"
-//                 icon={<EditOutlined />}
-//                 onClick={() => {
-//                   handleEdit(selectedAppointment);
-//                   setIsDetailModalVisible(false);
-//                 }}
-//               >
-//                 Editar Cita
-//               </Button>,
-//             ]}
-//           >
-//             {selectedAppointment && (
-//               <div>
-//                 <Row gutter={[24, 16]}>
-//                   {/* Información del Paciente */}
-//                   <Col xs={24}>
-//                     <Card size="small" title="Información del Paciente">
-//                       <Descriptions column={3} size="small">
-//                         <Descriptions.Item label="Paciente">
-//                           {selectedAppointment.nombres} {selectedAppointment.apellidos}
-//                         </Descriptions.Item>
-//                         <Descriptions.Item label="Cédula">
-//                           {selectedAppointment.cedula}
-//                         </Descriptions.Item>
-//                         <Descriptions.Item label="Fecha y Hora">
-//                           {selectedAppointment.fecha} - {selectedAppointment.hora}
-//                         </Descriptions.Item>
-//                       </Descriptions>
-//                     </Card>
-//                   </Col>
+    // Filtro por texto (buscar en nombre del paciente o diagnóstico)
+    if (searchText) {
+      filtered = filtered.filter((appointment: Appointment) => {
+        const patientName = appointment.patient 
+          ? `${appointment.patient.first_name} ${appointment.patient.last_name}`.toLowerCase()
+          : '';
+        const patientDocument = appointment.patient?.document_id || '';
+        const diagnosis = appointment.diagnosis_description?.toLowerCase() || '';
+        
+        return patientName.includes(searchText.toLowerCase()) ||
+               patientDocument.includes(searchText) ||
+               diagnosis.includes(searchText.toLowerCase());
+      });
+    }
 
-//                   {/* Anamnesis */}
-//                   <Col xs={24}>
-//                     <Card size="small" title={<><FileTextOutlined /> Anamnesis</>}>
-//                       <Space direction="vertical" style={{ width: '100%' }}>
-//                         <div>
-//                           <Text strong>Antecedentes:</Text>
-//                           <br />
-//                           <Text>{selectedAppointment.anamnesis.antecedentes}</Text>
-//                         </div>
-//                         <div>
-//                           <Text strong>Enfermedad Actual:</Text>
-//                           <br />
-//                           <Text>{selectedAppointment.anamnesis.enfermedadActual}</Text>
-//                         </div>
-//                       </Space>
-//                     </Card>
-//                   </Col>
+    // Filtro por paciente específico
+    if (selectedPatientId) {
+      filtered = filtered.filter((appointment: Appointment) => 
+        appointment.patient_id === selectedPatientId
+      );
+    }
 
-//                   {/* Examen Físico y Diagnóstico */}
-//                   <Col xs={24} md={12}>
-//                     <Card size="small" title={<><MedicineBoxOutlined /> Examen Físico</>}>
-//                       <Text>{selectedAppointment.examenFisico}</Text>
-//                     </Card>
-//                   </Col>
-//                   <Col xs={24} md={12}>
-//                     <Card size="small" title="Diagnóstico (CIE-10)">
-//                       <Space direction="vertical">
-//                         <Tag color="blue" style={{ fontSize: '14px', padding: '4px 8px' }}>
-//                           {selectedAppointment.diagnostico.code}
-//                         </Tag>
-//                         <Text>{selectedAppointment.diagnostico.description}</Text>
-//                       </Space>
-//                     </Card>
-//                   </Col>
+    // Filtro por rango de fechas
+    if (dateFilter && dateFilter.length === 2) {
+      const startDate = dateFilter[0].format('YYYY-MM-DD');
+      const endDate = dateFilter[1].format('YYYY-MM-DD');
+      
+      filtered = filtered.filter((appointment: Appointment) => {
+        return appointment.appointment_date >= startDate && 
+               appointment.appointment_date <= endDate;
+      });
+    }
 
-//                   {/* Signos Vitales */}
-//                   <Col xs={24}>
-//                     <Card size="small" title="Signos Vitales">
-//                       <Row gutter={[16, 8]}>
-//                         <Col xs={12} sm={8} md={4}>
-//                           <Text strong>Temperatura:</Text>
-//                           <br />
-//                           <Text>{selectedAppointment.signosVitales.temperatura}°C</Text>
-//                         </Col>
-//                         <Col xs={12} sm={8} md={4}>
-//                           <Text strong>Presión Arterial:</Text>
-//                           <br />
-//                           <Text>{selectedAppointment.signosVitales.presionArterial} mmHg</Text>
-//                         </Col>
-//                         <Col xs={12} sm={8} md={4}>
-//                           <Text strong>Frecuencia Cardíaca:</Text>
-//                           <br />
-//                           <Text>{selectedAppointment.signosVitales.frecuenciaCardiaca} lpm</Text>
-//                         </Col>
-//                         <Col xs={12} sm={8} md={4}>
-//                           <Text strong>SpO2:</Text>
-//                           <br />
-//                           <Text>{selectedAppointment.signosVitales.saturacionO2}%</Text>
-//                         </Col>
-//                         <Col xs={12} sm={8} md={4}>
-//                           <Text strong>Peso:</Text>
-//                           <br />
-//                           <Text>{selectedAppointment.signosVitales.peso} kg</Text>
-//                         </Col>
-//                         <Col xs={12} sm={8} md={4}>
-//                           <Text strong>Talla:</Text>
-//                           <br />
-//                           <Text>{selectedAppointment.signosVitales.talla} cm</Text>
-//                         </Col>
-//                       </Row>
-//                     </Card>
-//                   </Col>
+    setFilteredAppointments(filtered);
+  };
 
-//                   {/* Observaciones y Exámenes */}
-//                   <Col xs={24} md={12}>
-//                     <Card size="small" title="Observaciones">
-//                       <Text>{selectedAppointment.observaciones}</Text>
-//                     </Card>
-//                   </Col>
-//                   <Col xs={24} md={12}>
-//                     <Card size="small" title={<><ExperimentOutlined /> Exámenes</>}>
-//                       <Text>{selectedAppointment.examenes}</Text>
-//                     </Card>
-//                   </Col>
-//                 </Row>
-//               </div>
-//             )}
-//           </Modal>
-//         </div>
-//       </Content>
-//     </Layout>
-//   );
-// }
+  // Aplicar filtros cuando cambien los valores
+  useEffect(() => {
+    filterAppointments();
+  }, [searchText, selectedPatientId, dateFilter, appointments]);
+
+  const handleSearch = (value: string): void => {
+    setSearchText(value);
+  };
+
+  const handleDateFilter = (dates: DateRange): void => {
+    setDateFilter(dates);
+  };
+
+  const handlePatientFilter = (patientId: number | null): void => {
+    setSelectedPatientId(patientId);
+  };
+
+  const clearFilters = (): void => {
+    setSearchText('');
+    setDateFilter(null);
+    setSelectedPatientId(null);
+  };
+
+  const handleEdit = (appointment: Appointment): void => {
+    navigator(`/appointmentEdit/${appointment.id}`);
+  };
+
+  const handleDelete = async (appointmentId: number): Promise<void> => {
+    try {
+      const response: ApiResponse<void> = await AppointmentService.deleteAppointment(appointmentId);
+      
+      if (response.success) {
+        message.success('Cita eliminada correctamente');
+        loadAppointments(); // Recargar la lista
+      } else {
+        message.error(response.message || 'Error al eliminar la cita');
+      }
+    } catch (error) {
+      message.error('Error al eliminar la cita');
+      console.error('Error deleting appointment:', error);
+    }
+  };
+
+  const showAppointmentDetail = (appointment: Appointment): void => {
+    setSelectedAppointment(appointment);
+    setIsDetailModalVisible(true);
+  };
+
+  const formatDateTime = (date: string, time: string): { formattedDate: string; formattedTime: string } => {
+    const formattedDate = new Date(date).toLocaleDateString('es-ES');
+    const formattedTime = time ? time.substring(0, 5) : '';
+    return { formattedDate, formattedTime };
+  };
+
+  // Definir las columnas con tipado correcto
+  const columns: ColumnsType<Appointment> = [
+    {
+      title: 'Paciente',
+      key: 'patient',
+      width: 200,
+      render: (_: unknown, record: Appointment) => (
+        <Space>
+          <Avatar 
+            style={{ backgroundColor: '#1890ff' }}
+            icon={<UserOutlined />}
+          />
+          <div>
+            <div style={{ fontWeight: 'bold' }}>
+              {record.patient?.last_name}, {record.patient?.first_name}
+            </div>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              CI: {record.patient?.document_id}
+            </Text>
+          </div>
+        </Space>
+      ),
+    },
+    {
+      title: 'Fecha y Hora',
+      key: 'datetime',
+      width: 120,
+      render: (_: unknown, record: Appointment) => {
+        const { formattedDate, formattedTime } = formatDateTime(
+          record.appointment_date, 
+          record.appointment_time
+        );
+        return (
+          <Space direction="vertical" size="small">
+            <Text>
+              <CalendarOutlined /> {formattedDate}
+            </Text>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              {formattedTime}
+            </Text>
+          </Space>
+        );
+      },
+    },
+    {
+      title: 'Diagnóstico',
+      key: 'diagnostico',
+      width: 250,
+      render: (_: unknown, record: Appointment) => (
+        <Space direction="vertical" size="small">
+          {record.diagnosis_code && (
+            <Tag color="blue">{record.diagnosis_code}</Tag>
+          )}
+          <Text style={{ fontSize: '12px' }}>
+            {record.diagnosis_description || 'Sin diagnóstico'}
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'Signos Vitales',
+      key: 'vitales',
+      width: 150,
+      render: (_: unknown, record: Appointment) => (
+        <Space direction="vertical" size="small">
+          {record.temperature && (
+            <Text style={{ fontSize: '11px' }}>
+              T: {record.temperature}°C
+            </Text>
+          )}
+          {record.blood_pressure && (
+            <Text style={{ fontSize: '11px' }}>
+              TA: {record.blood_pressure}
+            </Text>
+          )}
+          {record.heart_rate && (
+            <Text style={{ fontSize: '11px' }}>
+              FC: {record.heart_rate} lpm
+            </Text>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: 'Acciones',
+      key: 'actions',
+      width: 150,
+      fixed: 'right',
+      render: (_: unknown, record: Appointment) => (
+        <Space size="small">
+          <Tooltip title="Ver detalles">
+            <Button
+              type="link"
+              icon={<EyeOutlined />}
+              onClick={() => showAppointmentDetail(record)}
+              size="small"
+            />
+          </Tooltip>
+          <Tooltip title="Editar">
+            <Button
+              type="link"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+              size="small"
+            />
+          </Tooltip>
+          <Popconfirm
+            title="¿Está seguro de eliminar esta cita?"
+            description="Esta acción no se puede deshacer."
+            onConfirm={() => record.id && handleDelete(record.id)}
+            okText="Sí, eliminar"
+            cancelText="Cancelar"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="Eliminar">
+              <Button
+                type="link"
+                danger
+                icon={<DeleteOutlined />}
+                size="small"
+              />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  return (
+    <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+      <Content style={{ padding: '24px' }}>
+        <div style={{ maxWidth: '100%', margin: '0 auto' }}>
+          {/* Header */}
+          <Card style={{ marginBottom: '24px' }}>
+            <Row justify="space-between" align="middle">
+              <Col>
+                <Title level={2} style={{ margin: 0, color: '#1890ff' }}>
+                  FENIX
+                </Title>
+                <Text style={{ color: '#722ed1', fontSize: '18px', fontWeight: 500 }}>
+                  Citas Médicas
+                </Text>
+              </Col>
+              <Col>
+                <Space>
+                  <Avatar
+                    size={64}
+                    style={{ backgroundColor: '#722ed1' }}
+                    icon={<HeartOutlined />}
+                  />
+                  <Button
+                    type="default"
+                    size="large"
+                    icon={<ReloadOutlined />}
+                    onClick={loadAppointments}
+                    loading={loading}
+                  >
+                    Actualizar
+                  </Button>
+                  <Button
+                    type="primary"
+                    size="large"
+                    icon={<PlusOutlined />}
+                    onClick={goToCreateAppointment}
+                  >
+                    Nueva Cita
+                  </Button>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+
+          {/* Filtros */}
+          <Card style={{ marginBottom: '24px' }}>
+            <Row gutter={[16, 16]} align="middle">
+              <Col xs={24} sm={12} lg={6}>
+                <Input
+                  placeholder="Buscar por paciente, cédula, diagnóstico..."
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  size="large"
+                  allowClear
+                />
+              </Col>
+              <Col xs={24} sm={12} lg={6}>
+                <Select<number>
+                  placeholder="Filtrar por paciente"
+                  value={selectedPatientId}
+                  onChange={handlePatientFilter}
+                  size="large"
+                  style={{ width: '100%' }}
+                  allowClear
+                  showSearch
+                  optionFilterProp="children"
+                  filterOption={(input: string, option?: { children: React.ReactNode }) =>
+                    (option?.children as string)
+                      ?.toLowerCase()
+                      ?.indexOf(input.toLowerCase()) >= 0
+                  }
+                >
+                  {patients.map((patient: Patient) => (
+                    <Option key={patient.id} value={patient.id}>
+                      {patient.last_name}, {patient.first_name} - {patient.document_id}
+                    </Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} sm={8} lg={6}>
+                <RangePicker
+                  placeholder={['Fecha inicio', 'Fecha fin']}
+                  value={dateFilter}
+                  onChange={handleDateFilter}
+                  style={{ width: '100%' }}
+                  size="large"
+                />
+              </Col>
+              <Col xs={24} sm={12} lg={6}>
+                <Space>
+                  <Button
+                    icon={<FilterOutlined />}
+                    onClick={clearFilters}
+                    size="large"
+                  >
+                    Limpiar Filtros
+                  </Button>
+                  <Text type="secondary">
+                    {filteredAppointments.length} de {appointments.length} citas
+                  </Text>
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+
+          {/* Tabla */}
+          <Card>
+            <Spin spinning={loading}>
+              {appointments.length === 0 && !loading ? (
+                <Alert
+                  message="No hay citas registradas"
+                  description="Comience agregando una nueva cita médica."
+                  type="info"
+                  showIcon
+                  style={{ margin: '40px 0' }}
+                />
+              ) : (
+                <Table<Appointment>
+                  columns={columns}
+                  dataSource={filteredAppointments}
+                  rowKey="id"
+                  scroll={{ x: 1200 }}
+                  pagination={{
+                    total: filteredAppointments.length,
+                    pageSize: 10,
+                    showSizeChanger: true,
+                    showQuickJumper: true,
+                    showTotal: (total: number, range: [number, number]) => 
+                      `${range[0]}-${range[1]} de ${total} citas`,
+                  }}
+                  size="middle"
+                />
+              )}
+            </Spin>
+          </Card>
+
+          {/* Modal de Detalles */}
+          <Modal
+            title={
+              <Space>
+                <CalendarOutlined style={{ color: '#1890ff' }} />
+                Detalles de la Cita Médica
+              </Space>
+            }
+            open={isDetailModalVisible}
+            onCancel={() => setIsDetailModalVisible(false)}
+            width={1000}
+            footer={[
+              <Button key="close" onClick={() => setIsDetailModalVisible(false)}>
+                Cerrar
+              </Button>,
+              <Button
+                key="edit"
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={() => {
+                  selectedAppointment && handleEdit(selectedAppointment);
+                  setIsDetailModalVisible(false);
+                }}
+              >
+                Editar Cita
+              </Button>,
+            ]}
+          >
+            {selectedAppointment && (
+              <div>
+                <Row gutter={[24, 16]}>
+                  {/* Información del Paciente */}
+                  <Col xs={24}>
+                    <Card size="small" title="Información del Paciente">
+                      <Descriptions column={3} size="small">
+                        <Descriptions.Item label="Paciente">
+                          {selectedAppointment.patient?.first_name} {selectedAppointment.patient?.last_name}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Cédula">
+                          {selectedAppointment.patient?.document_id}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Fecha y Hora">
+                          {(() => {
+                            const { formattedDate, formattedTime } = formatDateTime(
+                              selectedAppointment.appointment_date,
+                              selectedAppointment.appointment_time
+                            );
+                            return `${formattedDate} - ${formattedTime}`;
+                          })()}
+                        </Descriptions.Item>
+                      </Descriptions>
+                    </Card>
+                  </Col>
+
+                  {/* Historia Clínica (del paciente) */}
+                  {selectedAppointment.patient?.medical_history && (
+                    <Col xs={24}>
+                      <Card size="small" title={<><FileTextOutlined /> Historia Médica del Paciente</>}>
+                        <Text>{selectedAppointment.patient.medical_history}</Text>
+                      </Card>
+                    </Col>
+                  )}
+
+                  {/* Enfermedad Actual */}
+                  {selectedAppointment.current_illness && (
+                    <Col xs={24}>
+                      <Card size="small" title="Enfermedad Actual">
+                        <Text>{selectedAppointment.current_illness}</Text>
+                      </Card>
+                    </Col>
+                  )}
+
+                  {/* Examen Físico y Diagnóstico */}
+                  <Col xs={24} md={12}>
+                    <Card size="small" title={<><MedicineBoxOutlined /> Examen Físico</>}>
+                      <Text>{selectedAppointment.physical_examination || 'No registrado'}</Text>
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Card size="small" title="Diagnóstico (CIE-10)">
+                      <Space direction="vertical">
+                        {selectedAppointment.diagnosis_code && (
+                          <Tag color="blue" style={{ fontSize: '14px', padding: '4px 8px' }}>
+                            {selectedAppointment.diagnosis_code}
+                          </Tag>
+                        )}
+                        <Text>{selectedAppointment.diagnosis_description || 'Sin diagnóstico'}</Text>
+                      </Space>
+                    </Card>
+                  </Col>
+
+                  {/* Signos Vitales */}
+                  <Col xs={24}>
+                    <Card size="small" title="Signos Vitales">
+                      <Row gutter={[16, 8]}>
+                        <Col xs={12} sm={8} md={4}>
+                          <Text strong>Temperatura:</Text>
+                          <br />
+                          <Text>{selectedAppointment.temperature ? `${selectedAppointment.temperature}°C` : 'No registrado'}</Text>
+                        </Col>
+                        <Col xs={12} sm={8} md={4}>
+                          <Text strong>Presión Arterial:</Text>
+                          <br />
+                          <Text>{selectedAppointment.blood_pressure ? `${selectedAppointment.blood_pressure} mmHg` : 'No registrado'}</Text>
+                        </Col>
+                        <Col xs={12} sm={8} md={4}>
+                          <Text strong>Frecuencia Cardíaca:</Text>
+                          <br />
+                          <Text>{selectedAppointment.heart_rate ? `${selectedAppointment.heart_rate} lpm` : 'No registrado'}</Text>
+                        </Col>
+                        <Col xs={12} sm={8} md={4}>
+                          <Text strong>SpO2:</Text>
+                          <br />
+                          <Text>{selectedAppointment.oxygen_saturation ? `${selectedAppointment.oxygen_saturation}%` : 'No registrado'}</Text>
+                        </Col>
+                        <Col xs={12} sm={8} md={4}>
+                          <Text strong>Peso:</Text>
+                          <br />
+                          <Text>{selectedAppointment.weight ? `${selectedAppointment.weight} kg` : 'No registrado'}</Text>
+                        </Col>
+                        <Col xs={12} sm={8} md={4}>
+                          <Text strong>Talla:</Text>
+                          <br />
+                          <Text>{selectedAppointment.height ? `${selectedAppointment.height} m` : 'No registrado'}</Text>
+                        </Col>
+                      </Row>
+                    </Card>
+                  </Col>
+
+                  {/* Observaciones y Exámenes */}
+                  <Col xs={24} md={12}>
+                    <Card size="small" title="Observaciones">
+                      <Text>{selectedAppointment.observations || 'Sin observaciones'}</Text>
+                    </Card>
+                  </Col>
+                  <Col xs={24} md={12}>
+                    <Card size="small" title={<><ExperimentOutlined /> Exámenes de Laboratorio</>}>
+                      <Text>{selectedAppointment.laboratory_tests || 'No se solicitaron exámenes'}</Text>
+                    </Card>
+                  </Col>
+                </Row>
+              </div>
+            )}
+          </Modal>
+        </div>
+      </Content>
+    </Layout>
+  );
+}
