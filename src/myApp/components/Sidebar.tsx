@@ -1,4 +1,3 @@
-// Sidebar.tsx
 import React from 'react';
 import { Layout, Menu } from 'antd';
 import {
@@ -6,23 +5,31 @@ import {
   MedicineBoxOutlined,
   ExperimentOutlined,
 } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 
 const { Sider } = Layout;
 
 const Sidebar: React.FC = () => {
+  const navigate = useNavigate();
+
+  const handleClick = ({ key }: { key: string }) => {
+    navigate(`/${key}`);
+  };
+
   return (
-    <Sider
-      breakpoint="lg"
-      collapsedWidth="0"
-      style={{ height: '100vh', position: 'fixed', left: 0 }}
-    >
+    <Sider breakpoint="lg" collapsedWidth="0" style={{ left: 0 }}>
       <div style={{ height: 64, margin: 16, color: 'white', fontSize: 18 }}>
-        🏥 Mi App
+        🏥 Dashboard
       </div>
-      <Menu theme="dark" mode="inline" defaultOpenKeys={['medical', 'users']}>
+      <Menu
+        theme="dark"
+        mode="inline"
+        defaultOpenKeys={['medical', 'users']}
+        onClick={handleClick}
+      >
         <Menu.SubMenu key="medical" icon={<MedicineBoxOutlined />} title="Medical">
-          <Menu.Item key="pacientes">Pacientes</Menu.Item>
-          <Menu.Item key="citas">Citas</Menu.Item>
+          <Menu.Item key="patientList">Pacientes</Menu.Item>
+          <Menu.Item key="appointmentList">Citas</Menu.Item>
           <Menu.Item key="resultados-med">Resultados</Menu.Item>
         </Menu.SubMenu>
 

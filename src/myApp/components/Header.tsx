@@ -38,13 +38,16 @@ export const Header = () => {
         key: "/home",
         icon: <HomeOutlined />,
       },
+    )
+  }
+    menuItems.push(
       {
-        label: <Link to="/new-flat">Acerca de nosotros</Link>,
+        label: <Link to="/about-us">Acerca de nosotros</Link>,
         key: "/new-flat",
         icon: <AppstoreOutlined />,
       },
       {
-        label: <Link to="/my-flats">Especialidades</Link>,
+        label: <Link to="/specialities">Especialidades</Link>,
         key: "/my-flats",
         icon: <AppstoreOutlined />,
       },
@@ -60,7 +63,7 @@ export const Header = () => {
       },
      
     );
-  }
+  
  
   if (user?.role?.name === "admin" || user?.role?.name === "superadmin") {
     menuItems.push({
