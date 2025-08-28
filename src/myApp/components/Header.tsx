@@ -65,13 +65,13 @@ export const Header = () => {
     );
   
  
-  if (user?.role?.name === "admin" || user?.role?.name === "superadmin") {
-    menuItems.push({
-      label: <Link to="/all-users">Usuarios</Link>,
-      key: "/all-users",
-      icon: <TeamOutlined />,
-    });
-  }
+  // if (user?.role?.name === "admin" || user?.role?.name === "superadmin") {
+  //   menuItems.push({
+  //     label: <Link to="/all-users">Usuarios</Link>,
+  //     key: "/all-users",
+  //     icon: <TeamOutlined />,
+  //   });
+  // }
 
   const dropdownMenu = (
     <Menu

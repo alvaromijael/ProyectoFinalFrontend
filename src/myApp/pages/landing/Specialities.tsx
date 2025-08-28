@@ -1,6 +1,6 @@
 import React from "react";
 import { Row, Col, Card, Typography } from "antd";
-import { Footer } from "../../components/Footer";
+
 
 const { Title, Paragraph } = Typography;
 
@@ -81,7 +81,7 @@ const EspecialidadesPage: React.FC = () => {
           ))}
         </Row>
       </div>
-      <Footer />
+     
     </div>
   );
 };

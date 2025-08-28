@@ -1,89 +1,99 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { Layout } from "antd";
+import { useAuthContext } from "../../auth/context/AuthContext";
+
 import { Header } from "../components/Header";
+import Sidebar from "../components/Sidebar";
+import { Footer } from "../components/Footer";
 
 import { HomePage } from "../pages/HomePage";
-// import { ProfilePage } from "../pages/ProfilePage";
-
 import { AllUsersPage } from "../pages/AllUsersPage";
-
 import { WelcomePage } from "../pages/WelcomePage";
 import PatientList from "../pages/patient/PatientList";
-//import CreatePatient from "../pages/patient/CreatePatient";
-import PrivateRoute from "../components/PrivateRoute";
-//import PatientList from "../pages/patient/PatientList";
+import CreatePatient from "../pages/patient/PatientCreate";
+import EditPatient from "../pages/patient/PatientEdit";
 import AppointmentList from "../pages/appointment/AppointmentList";
 import CreateAppointment from "../pages/appointment/CreateAppointment";
-
-import EditPatient from "../pages/patient/PatientEdit";
-import CreatePatient from "../pages/patient/PatientCreate";
 import AboutUs from "../pages/landing/AboutUs";
 import Specialities from "../pages/landing/Specialities";
 import Laboratory from "../pages/landing/Laboratory";
+import PrivateRoute from "../components/PrivateRoute";
+
+const { Content } = Layout;
+
 export const MyAppRouter = () => {
+  const { user, loading } = useAuthContext(); // 👈 usamos tu hook
+
+  if (loading) return null; // o un spinner si prefieres
+
   return (
     <>
       <Header />
-      <Routes>
-        <Route path="/" element={<WelcomePage />} />
-        <Route path="/home" element={<HomePage />} />
-        <Route
-          path="/patientList"
-          element={
-            <PrivateRoute>
-              <PatientList />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/patientCreate"
-          element={
-            <PrivateRoute>
-              <CreatePatient />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/patientEdit/:id"
-          element={
-            <PrivateRoute>
-              <EditPatient />
-            </PrivateRoute>
-          }
-        />
 
-        <Route
-          path="/appointmentList"
-          element={
-            <PrivateRoute>
-              <AppointmentList />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/createAppointment"
-          element={
-            <PrivateRoute>
-              <CreateAppointment />
-            </PrivateRoute>
-          }
-        />
+      <Layout style={{ minHeight: "calc(100vh - 24px)" }}>
+        {user && <Sidebar />} 
 
-        {/* <Route path="/profile" element={<ProfilePage />} /> */}
+        <Content style={{  width: "100%" }}>
+          <Routes>
+            <Route path="/" element={<WelcomePage />} />
+            <Route path="/home" element={<HomePage />} />
+            <Route
+              path="/patientList"
+              element={
+                <PrivateRoute>
+                  <PatientList />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/patientCreate"
+              element={
+                <PrivateRoute>
+                  <CreatePatient />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/patientEdit/:id"
+              element={
+                <PrivateRoute>
+                  <EditPatient />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/appointmentList"
+              element={
+                <PrivateRoute>
+                  <AppointmentList />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/createAppointment"
+              element={
+                <PrivateRoute>
+                  <CreateAppointment />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/all-users"
+              element={
+                <PrivateRoute>
+                  <AllUsersPage />
+                </PrivateRoute>
+              }
+            />
+            <Route path="/about-us" element={<AboutUs />} />
+            <Route path="/specialities" element={<Specialities />} />
+            <Route path="/laboratory" element={<Laboratory />} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </Content>
+      </Layout>
 
-        <Route
-          path="/all-users"
-          element={
-            <PrivateRoute>
-              <AllUsersPage />
-            </PrivateRoute>
-          }
-        />
-        <Route path="*" element={<Navigate to="/" />} />
-        <Route path="/about-us" element={<AboutUs />} />
-        <Route path="/specialities" element={<Specialities />} />
-        <Route path="/laboratory" element={<Laboratory />} />
-      </Routes>
-          
+      <Footer />
     </>
   );
 };

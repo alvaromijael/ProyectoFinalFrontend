@@ -1,6 +1,6 @@
 import React from "react";
 import { Row, Col, Typography, Divider } from "antd";
-import { Footer } from "../../components/Footer";
+
 
 const { Title, Paragraph } = Typography;
 
@@ -46,7 +46,7 @@ const Laboratory: React.FC = () => {
           </Col>
         </Row>
       </div>
-      <Footer />
+    
     </div>
   );
 };

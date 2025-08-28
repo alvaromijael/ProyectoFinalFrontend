@@ -30,7 +30,7 @@ const Sidebar: React.FC = () => {
         <Menu.SubMenu key="medical" icon={<MedicineBoxOutlined />} title="Medical">
           <Menu.Item key="patientList">Pacientes</Menu.Item>
           <Menu.Item key="appointmentList">Citas</Menu.Item>
-          <Menu.Item key="resultados-med">Resultados</Menu.Item>
+          <Menu.Item key="resultados-med">Recetas</Menu.Item>
         </Menu.SubMenu>
 
         <Menu.SubMenu key="laboratory" icon={<ExperimentOutlined />} title="Laboratory">
@@ -38,7 +38,7 @@ const Sidebar: React.FC = () => {
         </Menu.SubMenu>
 
         <Menu.SubMenu key="users" icon={<UserOutlined />} title="Usuarios">
-          <Menu.Item key="gestion">Gestión</Menu.Item>
+          <Menu.Item key="all-users">Gestión</Menu.Item>
           <Menu.Item key="roles">Roles</Menu.Item>
         </Menu.SubMenu>
       </Menu>

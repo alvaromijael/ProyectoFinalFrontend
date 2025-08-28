@@ -1,7 +1,7 @@
 // AboutClinicPage.tsx
 import React from 'react';
 import { Layout, Typography, Row, Col, Image, Card } from 'antd';
-import { Footer } from '../../components/Footer';
+
 
 const { Content } = Layout;
 const { Title, Paragraph } = Typography;
@@ -77,7 +77,7 @@ const AboutUs: React.FC = () => {
           </Row>
         </div>
       </Content>
-       <Footer/>
+      
     </Layout>
    
   );

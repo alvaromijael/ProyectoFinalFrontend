@@ -2,7 +2,7 @@ import { Button, Typography } from "antd";
 import { Link } from "react-router-dom";
 import "./HomePage.css";
 import { MapSection } from "../components/MapSection";
-import { Footer } from "../components/Footer";
+
 
 const { Title, Paragraph } = Typography;
 
@@ -62,7 +62,7 @@ export const WelcomePage = () => {
         </div>
       </div>
       <MapSection />
-      <Footer />
+      
     </>
   );
 };
