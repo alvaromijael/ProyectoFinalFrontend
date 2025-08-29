@@ -27,9 +27,9 @@ import {
   ExperimentOutlined,
 } from '@ant-design/icons';
 
-import PatientService from '../../services/AppointmentService';
+import PatientService from '../../services/PatientService';
 import AppointmentService from  '../../services/AppointmentService';
-import type { Patient } from  '../../services/AppointmentService';
+import type { Patient } from  '../../services/PatientService';
 import dataCIE10 from '../../../assets/dataCIE10.json';
 import { useNavigate } from 'react-router-dom';
 
@@ -54,7 +54,7 @@ export default function CreateAppointment() {
   const loadPatients = async () => {
     setLoadingPatients(true);
     try {
-      const response = await PatientService.getPatients({ limit: 1000 });
+     const response = await PatientService.getPatients({ limit: 1000 });
       if (response.success) {
         setPatients(response.data);
       } else {

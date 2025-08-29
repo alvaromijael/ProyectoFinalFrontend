@@ -5,6 +5,7 @@ import './index.css'
 import "antd/dist/reset.css"
 import { App } from './App'
 import "leaflet/dist/leaflet.css"
+import '@ant-design/v5-patch-for-react-19';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

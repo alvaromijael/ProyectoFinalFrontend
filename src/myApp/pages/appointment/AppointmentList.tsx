@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type JSX } from 'react';
 import {
   Input,
   Button,
@@ -39,10 +39,13 @@ import {
   ReloadOutlined
 } from '@ant-design/icons';
 
+
+
 // Import services
 import AppointmentService from '../../services/AppointmentService';
-import PatientService from '../../services/AppointmentService';
+
 import { useNavigate } from 'react-router-dom';
+import PatientService from '../../services/PatientService';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -119,7 +122,7 @@ export default function AppointmentList(): JSX.Element {
   }, []);
 
   const goToCreateAppointment = (): void => {
-    navigator('/appointmentCreate');
+    navigator('/createAppointment');
   };
 
   const loadAppointments = async (): Promise<void> => {
@@ -155,6 +158,7 @@ export default function AppointmentList(): JSX.Element {
       };
 
       const response: ApiResponse<Patient[]> = await PatientService.getPatients(params);
+      console.log("response", response)
 
       if (response.success) {
         setPatients(response.data);

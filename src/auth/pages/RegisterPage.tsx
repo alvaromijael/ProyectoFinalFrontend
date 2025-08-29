@@ -1,15 +1,23 @@
-
 import {
   LockOutlined,
   MailOutlined,
   UserOutlined,
   GoogleOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
-import { Button,  Typography, Space, Input, message } from "antd";
+import {
+  Button,
+  Typography,
+  Space,
+  Input,
+  Modal,
+  message,
+} from "antd";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
-import { useAuthContext } from "../context/AuthContext";
+import axios from "axios";
 import { AuthLayout } from "../component/AuthLayout";
+
 const { Text } = Typography;
 
 type RegisterFormData = {
@@ -18,6 +26,7 @@ type RegisterFormData = {
   confirmPassword: string;
   firstName: string;
   lastName: string;
+  birthDate: string;
 };
 
 export const RegisterPage = () => {
@@ -29,7 +38,6 @@ export const RegisterPage = () => {
   } = useForm<RegisterFormData>();
 
   const navigate = useNavigate();
-  const { registro, loginWithGoogleContext } = useAuthContext();
 
   const onSubmit = async (data: RegisterFormData) => {
     if (data.password !== data.confirmPassword) {
@@ -38,29 +46,32 @@ export const RegisterPage = () => {
     }
 
     try {
-      const user = await registro(
-        data.email,
-        data.password,
-        data.firstName,
-        data.lastName,
-        "user"
-      );
-      if (user) {
-        message.success("Registro exitoso");
-        navigate("/auth/login");
-      }
-    } catch (error) {
-      console.error(error);
-      message.error("Error al registrar");
-    }
-  };
+      const response = await axios.post("http://127.0.0.1:8000/auth/register", {
+        first_name: data.firstName,
+        last_name: data.lastName,
+        email: data.email,
+        password: data.password,
+        birth_date: data.birthDate,
+      });
 
-  const handleGoogleLogin = async () => {
-    try {
-      const user = await loginWithGoogleContext();
-      if (user) navigate("/", { replace: true });
-    } catch (error) {
-      console.log("Error con login de google: ", error);
+      if (response.status === 200 || response.status === 201) {
+        Modal.success({
+          title: "¡Registro exitoso 🎉!",
+          content: "Tu cuenta fue creada correctamente. Ahora puedes iniciar sesión.",
+          onOk: () => navigate("/auth/login"),
+        });
+        
+      }
+    } catch (error: any) {
+      const backendMessage =
+        error.response?.data?.detail || "Error inesperado desde el servidor.";
+
+      Modal.error({
+        title: "Error al registrar",
+        content: backendMessage,
+      });
+
+      
     }
   };
 
@@ -124,6 +135,24 @@ export const RegisterPage = () => {
           {errors.email && <Text type="danger">{errors.email.message}</Text>}
 
           <Controller
+            name="birthDate"
+            control={control}
+            rules={{ required: "Fecha de nacimiento requerida" }}
+            render={({ field }) => (
+              <Input
+                {...field}
+                type="date"
+                placeholder="Fecha de nacimiento"
+                prefix={<CalendarOutlined />}
+                status={errors.birthDate ? "error" : ""}
+              />
+            )}
+          />
+          {errors.birthDate && (
+            <Text type="danger">{errors.birthDate.message}</Text>
+          )}
+
+          <Controller
             name="password"
             control={control}
             rules={{
@@ -167,11 +196,20 @@ export const RegisterPage = () => {
             <Text type="danger">{errors.confirmPassword.message}</Text>
           )}
 
-          <Button type="primary" htmlType="submit" block style={{ background: "#333", color: "#fff", borderRadius: "8px" }}>
-            Registrarse
+          <Button
+            type="primary"
+            htmlType="submit"
+            block
+            style={{
+              background: "#333",
+              color: "#fff",
+              borderRadius: "8px",
+            }}
+          >
+            Registrarte
           </Button>
 
-          <Button icon={<GoogleOutlined />} onClick={handleGoogleLogin} block>
+          <Button icon={<GoogleOutlined />} block>
             Google
           </Button>
 
@@ -184,5 +222,5 @@ export const RegisterPage = () => {
         </Space>
       </form>
     </AuthLayout>
-  );
+  );
 };

@@ -5,7 +5,7 @@ import {
   HomeOutlined,
   StarOutlined,
   AppstoreOutlined,
-  TeamOutlined,
+  // TeamOutlined,
   MenuOutlined, 
 } from "@ant-design/icons";
 import { useNavigate, Link, useLocation } from "react-router-dom";
@@ -53,12 +53,12 @@ export const Header = () => {
       },
       {
         label: <Link to="/income">Medical</Link>,
-        key: "/favourites",
+        key: "/income",
         icon: <StarOutlined />,
       },
        {
         label: <Link to="/laboratory">Laboratorio</Link>,
-        key: "/favourites",
+        key: "/laboratory",
         icon: <StarOutlined />,
       },
      

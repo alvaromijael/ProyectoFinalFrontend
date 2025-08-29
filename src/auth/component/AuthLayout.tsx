@@ -18,7 +18,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        background: "#f0f2f5",
+        background:"linear-gradient(135deg, #2C2A6C, #226B6D, #D14B4B)",
         padding: "20px",
       }}
     >
@@ -34,7 +34,7 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
         {description && (
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <img
-              src="/logo1.png" // Asegúrate de que la ruta es correcta
+              src="/LogoFenix-09.png"
               alt="Logo"
               style={{ width: "60px", height: "60px", objectFit: "contain" }}
             />

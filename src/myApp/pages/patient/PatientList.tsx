@@ -355,7 +355,7 @@ export default function PatientList() {
   ];
 
   return (
-    <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+    <Layout style={{ minHeight: '100vh', background: '#f0f2f5',  maxWidth: '87%'}}>
       <Content style={{ padding: '24px' }}>
         <div style={{ maxWidth: '100%', margin: '0 auto' }}>
           {/* Header */}
