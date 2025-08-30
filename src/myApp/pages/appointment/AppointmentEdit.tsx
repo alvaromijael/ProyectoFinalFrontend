@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type JSX } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Form,
@@ -29,39 +29,148 @@ import {
   EditOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import type { Dayjs } from 'dayjs';
 
 import PatientService from '../../services/PatientService';
 import AppointmentService from '../../services/AppointmentService';
-import type { Patient } from '../../services/AppointmentService';
-import type { Appointment } from '../../services/AppointmentService';
+import type { DefaultOptionType } from 'antd/es/select';
 import dataCIE10 from '../../../assets/dataCIE10.json';
+
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
 const { TextArea } = Input;
 
-export default function AppointmentEdit() {
-  const { id } = useParams();
+// Interfaces para el tipado
+interface Patient {
+  id?: number;
+  first_name?: string;
+  last_name?: string;
+  birth_date?: string; 
+  age?: string;
+  gender?: string;
+  document_id?: string;
+  marital_status?: string;
+  occupation?: string;
+  education?: string;
+  origin?: string;
+  province?: string;
+  city?: string;
+  neighborhood?: string;
+  street?: string;
+  house_number?: string;
+  medical_history?: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
 
+interface Appointment {
+  id?: number;
+  patient_id: number;
+  patient?: Patient;
+  appointment_date: string;
+  appointment_time: string;
+  diagnosis_code?: string;
+  diagnosis_description?: string;
+  current_illness?: string;
+  physical_examination?: string;
+  temperature?: string;
+  blood_pressure?: string;
+  heart_rate?: string;
+  oxygen_saturation?: string;
+  weight?: string;
+  height?: string;
+  observations?: string;
+  laboratory_tests?: string;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
+interface GetPatientsParams {
+  limit: number;
+  skip?: number;
+}
+
+interface AppointmentUpdateData {
+  patient_id: number;
+  appointment_date: string;
+  appointment_time: string;
+  current_illness?: string;
+  physical_examination?: string;
+  diagnosis_code?: string;
+  diagnosis_description?: string;
+  diagnosis_observations?: string;
+  observations?: string;
+  laboratory_tests?: string;
+  temperature?: string;
+  blood_pressure?: string;
+  heart_rate?: string;
+  oxygen_saturation?: string;
+  weight?: string;
+  height?: string;
+}
+
+interface FormValues {
+  searchPatient: string;
+  nombres: string;
+  apellidos: string;
+  cedula: string;
+  fecha: Dayjs;
+  hora: Dayjs;
+  antecedentes: string;
+  enfermedadActual: string;
+  temperatura: string;
+  presionArterial: string;
+  frecuenciaCardiaca: string;
+  saturacionO2: string;
+  peso: string;
+  talla: string;
+  examenFisico: string;
+  diagnostico: string;
+  observacionesDiagnostico: string;
+  observaciones: string;
+  examenes: string;
+}
+
+interface PatientOption {
+  value: string;
+  label: string;
+  patient: Patient;
+}
+
+interface CIE10Option {
+  value: string;
+  label: string;
+}
+
+export default function AppointmentEdit(): JSX.Element {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const [loadingData, setLoadingData] = useState(true);
+  const [form] = Form.useForm<FormValues>();
+  
+  // Estados con tipado
+  const [loading, setLoading] = useState<boolean>(false);
+  const [loadingData, setLoadingData] = useState<boolean>(true);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [appointment, setAppointment] = useState<Appointment| null>(null);
+  const [appointment, setAppointment] = useState<Appointment | null>(null);
 
   // Cargar datos iniciales
   useEffect(() => {
     loadInitialData();
   }, [id]);
 
-  const loadInitialData = async () => {
+  const loadInitialData = async (): Promise<void> => {
     setLoadingData(true);
     try {
       // Cargar pacientes y cita en paralelo
       const [patientsResponse, appointmentResponse] = await Promise.all([
-        PatientService.getPatients({ limit: 1000 }),
+        PatientService.getPatients({ limit: 1000 } as GetPatientsParams),
         AppointmentService.getAppointmentById(id!)
       ]);
 
@@ -72,7 +181,7 @@ export default function AppointmentEdit() {
       }
 
       if (appointmentResponse.success) {
-        const appointmentData = appointmentResponse.data;
+        const appointmentData: Appointment = appointmentResponse.data;
         setAppointment(appointmentData);
         
         // Buscar el paciente asociado
@@ -81,16 +190,14 @@ export default function AppointmentEdit() {
           setSelectedPatient(patient);
         }
 
-        
-
         // Llenar el formulario con los datos de la cita
         form.setFieldsValue({
           searchPatient: patient ? `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}` : '',
           nombres: patient?.first_name || '',
           apellidos: patient?.last_name || '',
           cedula: patient?.document_id || '',
-          fecha: appointmentData.appointment_date ? dayjs(appointmentData.appointment_date) : null,
-          hora: appointmentData.appointment_time ? dayjs(appointmentData.appointment_time, 'HH:mm:ss') : null,
+          fecha: appointmentData.appointment_date ? dayjs(appointmentData.appointment_date) : undefined,
+          hora: appointmentData.appointment_time ? dayjs(appointmentData.appointment_time, 'HH:mm:ss') : undefined,
           antecedentes: patient?.medical_history || 'Sin antecedentes médicos registrados',
           enfermedadActual: appointmentData.current_illness || '',
           temperatura: appointmentData.temperature || '',
@@ -118,7 +225,7 @@ export default function AppointmentEdit() {
     }
   };
 
-  const onPatientSelect = (value: string) => {
+  const onPatientSelect = (value: string): void => {
     const patient = patients.find(p => 
       `${p.last_name}, ${p.first_name} - CI: ${p.document_id}` === value
     );
@@ -136,7 +243,7 @@ export default function AppointmentEdit() {
     }
   };
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: FormValues): Promise<void> => {
     if (!selectedPatient) {
       message.error('Debe seleccionar un paciente');
       return;
@@ -145,7 +252,7 @@ export default function AppointmentEdit() {
     setLoading(true);
     try {
       // Preparar datos para actualizar la cita
-      const appointmentData = {
+      const appointmentData: AppointmentUpdateData = {
         patient_id: selectedPatient.id!,
         appointment_date: values.fecha.format('YYYY-MM-DD'),
         appointment_time: values.hora.format('HH:mm:ss'),
@@ -167,7 +274,7 @@ export default function AppointmentEdit() {
       console.log('Datos de la cita a actualizar:', appointmentData);
       
       // Actualizar la cita usando el servicio
-      const response = await AppointmentService.updateAppointment(id!, appointmentData);
+      const response: ApiResponse<Appointment> = await AppointmentService.updateAppointment(id!, appointmentData);
       
       if (response.success) {
         message.success('Cita médica actualizada exitosamente');
@@ -187,29 +294,29 @@ export default function AppointmentEdit() {
   };
 
   // Preparar opciones para el autocompletado de pacientes
-  const patientOptions = patients.map(patient => ({
+  const patientOptions: PatientOption[] = patients.map(patient => ({
     value: `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}`,
     label: `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}`,
     patient: patient
   }));
 
   // Opciones del CIE-10
-  const cie10Options = dataCIE10
+  const cie10Options: CIE10Option[] = dataCIE10
     .filter(item => item.level > 0) // Solo mostrar códigos específicos, no categorías
     .map(item => ({
       value: item.code,
       label: `${item.code} - ${item.description}`
     }));
 
-  const goBack = () => {
+  const goBack = (): void => {
     navigate('/appointments');
   };
 
-  const handleCancel = () => {
+  const handleCancel = (): void => {
     navigate('/appointments');
   };
 
-  const handleReset = () => {
+  const handleReset = (): void => {
     if (appointment && selectedPatient) {
       // Restaurar valores originales
       form.setFieldsValue({
@@ -217,8 +324,8 @@ export default function AppointmentEdit() {
         nombres: selectedPatient.first_name || '',
         apellidos: selectedPatient.last_name || '',
         cedula: selectedPatient.document_id || '',
-        fecha: appointment.appointment_date ? dayjs(appointment.appointment_date) : null,
-        hora: appointment.appointment_time ? dayjs(appointment.appointment_time, 'HH:mm:ss') : null,
+        fecha: appointment.appointment_date ? dayjs(appointment.appointment_date) : undefined,
+        hora: appointment.appointment_time ? dayjs(appointment.appointment_time, 'HH:mm:ss') : undefined,
         antecedentes: selectedPatient.medical_history || 'Sin antecedentes médicos registrados',
         enfermedadActual: appointment.current_illness || '',
         temperatura: appointment.temperature || '',
@@ -307,14 +414,14 @@ export default function AppointmentEdit() {
                         name="searchPatient"
                         rules={[{ required: true, message: 'Debe seleccionar un paciente' }]}
                       >
-                        <AutoComplete
-                          options={patientOptions}
-                          onSelect={onPatientSelect}
-                          placeholder="Buscar por apellidos, nombres o cédula"
-                          filterOption={(inputValue, option) =>
-                            option!.value.toLowerCase().includes(inputValue.toLowerCase())
+                       <AutoComplete
+                            options={patientOptions}
+                            onSelect={onPatientSelect}
+                            placeholder="Buscar por apellidos, nombres o cédula"
+                            filterOption={(inputValue: string, option?: DefaultOptionType) =>
+                              (option?.value as string).toLowerCase().includes(inputValue.toLowerCase())
                           }
-                        />
+                          />
                       </Form.Item>
                     </Col>
                     <Col xs={24} lg={6}>
@@ -497,15 +604,16 @@ export default function AppointmentEdit() {
                     name="diagnostico"
                     rules={[{ required: true, message: 'Seleccione un diagnóstico' }]}
                   >
-                    <Select
-                      showSearch
-                      placeholder="Buscar por código o descripción"
-                      optionFilterProp="label"
-                      options={cie10Options}
-                      filterOption={(input, option) =>
-                        option!.label.toLowerCase().includes(input.toLowerCase())
-                      }
-                    />
+                  <Select
+                    showSearch
+                    placeholder="Buscar por código o descripción"
+                    optionFilterProp="label"
+                    options={cie10Options}
+                    filterOption={(input: string, option?: DefaultOptionType) => {
+                      const label = option?.label;
+                      return typeof label === 'string' && label.toLowerCase().includes(input.toLowerCase());
+                    }}
+                  />
                   </Form.Item>
                   
                   <Form.Item
@@ -578,7 +686,7 @@ export default function AppointmentEdit() {
                         loading={loading}
                         icon={<SaveOutlined />}
                         disabled={!selectedPatient}
-                    >
+                      >
                         Actualizar Cita
                       </Button>
                     </Col>

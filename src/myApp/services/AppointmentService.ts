@@ -6,6 +6,13 @@ interface Patient {
   first_name?: string;
   last_name?: string;
   document_id?: string;
+  gender?: string;
+}
+
+interface AdvancedSearchParams extends SearchParams {
+  query?: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 interface Appointment {
@@ -364,6 +371,39 @@ class AppointmentService {
       data: null as T,
       message: errorMessage
     };
+  }
+
+  static async searchAppointmentsAdvanced(params: AdvancedSearchParams): Promise<ApiResponse<Appointment[]>> {
+    try {
+      const { query, start_date, end_date, skip = 0, limit = 100 }: AdvancedSearchParams = params;
+      
+      // Construir parámetros de consulta
+      const searchParams = new URLSearchParams();
+      searchParams.append('skip', skip.toString());
+      searchParams.append('limit', limit.toString());
+      
+      if (query && query.trim()) {
+        searchParams.append('query', query.trim());
+      }
+      if (start_date) {
+        searchParams.append('start_date', start_date);
+      }
+      if (end_date) {
+        searchParams.append('end_date', end_date);
+      }
+      
+      const response: AxiosResponse<Appointment[]> = await api.get<Appointment[]>(
+        `/appointments/search?${searchParams.toString()}`
+      );
+      
+      return {
+        success: true,
+        data: response.data,
+        message: `${response.data.length} citas encontradas con los criterios especificados`
+      };
+    } catch (error) {
+      return this.handleError<Appointment[]>(error, 'Error en la búsqueda avanzada de citas');
+    }
   }
 }
 

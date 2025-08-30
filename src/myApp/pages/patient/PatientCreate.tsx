@@ -236,9 +236,10 @@ const handleContactInputChange = <K extends keyof typeof contactoForm>(
         }))
       };
 
-      console.log('Datos a enviar:', patientData);
 
       const response = await PatientService.createPatient(patientData);
+
+      console.log('Response from API:', response);
 
       if (response.success) {
         message.success(response.message);
@@ -663,12 +664,13 @@ const handleContactInputChange = <K extends keyof typeof contactoForm>(
               <Row gutter={[24, 16]}>
                 <Col xs={24} sm={12}>
                   <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Antecedentes Médicos</Text>
+                    <Text strong>Antecedentes Médicos</Text> <Text type="danger">*</Text>
                     <TextArea
                       value={formData.medical_history}
                       onChange={(e) => handleInputChange('medical_history', e.target.value)}
                       placeholder="Escribe los antecedentes médicos aquí..."
                       rows={4}
+                      required
                     />
                   </Space>
                 </Col>

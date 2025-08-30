@@ -42,7 +42,6 @@ export default function CreateAppointment() {
 
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [loadingPatients, setLoadingPatients] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
 
@@ -52,7 +51,6 @@ export default function CreateAppointment() {
   }, []);
 
   const loadPatients = async () => {
-    setLoadingPatients(true);
     try {
      const response = await PatientService.getPatients({ limit: 1000 });
       if (response.success) {
@@ -63,9 +61,7 @@ export default function CreateAppointment() {
     } catch (error) {
       message.error('Error al cargar los pacientes');
       console.error('Error loading patients:', error);
-    } finally {
-      setLoadingPatients(false);
-    }
+    } 
   };
 
   const onPatientSelect = (value: string) => {
@@ -228,7 +224,6 @@ export default function CreateAppointment() {
                           options={patientOptions}
                           onSelect={onPatientSelect}
                           placeholder="Buscar por apellidos, nombres o cédula"
-                          loading={loadingPatients}
                           filterOption={(inputValue, option) =>
                             option!.value.toLowerCase().includes(inputValue.toLowerCase())
                           }
