@@ -9,37 +9,37 @@ const especialidades = [
     nombre: "Medicina General",
     descripcion:
       "Atención integral para todas las edades. Evaluación, diagnóstico y seguimiento de tu salud.",
-    imagen: "/images/medicina-general.jpg",
+    imagen: "general.png",
   },
   {
     nombre: "Medicina Interna",
     descripcion:
       "Diagnóstico y tratamiento de enfermedades crónicas y complejas en adultos.",
-    imagen: "/images/medicina-interna.jpg",
+    imagen: "interna.jpg",
   },
   {
     nombre: "Ginecología",
     descripcion:
       "Salud femenina, control ginecológico, planificación familiar y atención especializada.",
-    imagen: "/images/ginecologia.jpg",
+    imagen: "ginecologia.png",
   },
   {
     nombre: "Pediatría",
     descripcion:
       "Cuidado médico para niños y adolescentes. Prevención, desarrollo y bienestar infantil.",
-    imagen: "/images/pediatria.jpg",
+    imagen: "Pediatria4.jpg",
   },
   {
     nombre: "Odontología",
     descripcion:
       "Salud bucal, estética dental, limpieza, ortodoncia y tratamientos especializados.",
-    imagen: "/images/odontologia.jpg",
+    imagen: "odontologia.jpg",
   },
   {
     nombre: "Fisioterapia",
     descripcion:
       "Rehabilitación física, recuperación postoperatoria y mejora de movilidad funcional.",
-    imagen: "/images/fisioterapia.jpg",
+    imagen: "fisioterapia.jpg",
   },
 ];
 

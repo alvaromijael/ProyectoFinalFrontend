@@ -11,7 +11,7 @@ const Laboratory: React.FC = () => {
         <Row gutter={[32, 32]} align="middle">
           <Col xs={24} md={12}>
             <img
-              src="/images/laboratorio-clinico.jpg"
+              src="laboratory.jpg"
               alt="Laboratorio clínico moderno"
               style={{
                 width: "100%",

@@ -17,7 +17,7 @@ const AboutUs: React.FC = () => {
           style={{ marginBottom: '2rem' }}
           cover={
             <Image
-              src="https://es.vecteezy.com/foto/15173394-interior-del-gabinete-de-la-clinica-moderna-con-equipo-medico"
+              src="/PORTADA-01.png"
               alt="Imagen clínica"
               preview={false}
               style={{ height: 300, objectFit: 'cover' }}
@@ -35,7 +35,7 @@ const AboutUs: React.FC = () => {
         <Row gutter={[24, 24]} align="middle">
           <Col xs={24} md={12}>
             <Image
-              src="https://www.ylab.es/proyectos-de-arquitectura-e-interiorismo/arquitectura-corporativa/diseno-interior-clinica-odontologica-acevedo.html"
+              src="frente.jpg"
               alt="Trayectoria clínica"
               preview={false}
               style={{ width: '100%', borderRadius: 8 }}
@@ -61,7 +61,7 @@ const AboutUs: React.FC = () => {
                   hoverable
                   cover={
                     <Image
-                      src="https://www.shutterstock.com/es/search/cl%C3%ADnica-moderna?image_type=illustration"
+                      src={`Pediatria${i}.jpg`} // si tienes Pediatria1.jpg, Pediatria2.jpg, etc.
                       alt={`Imagen ${i}`}
                       preview={false}
                       style={{ height: 200, objectFit: 'cover' }}

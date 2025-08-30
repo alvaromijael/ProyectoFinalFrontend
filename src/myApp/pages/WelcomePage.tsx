@@ -56,9 +56,9 @@ export const WelcomePage = () => {
         </div>
 
         <div className="lifestyle-gallery">
-          <img src="/login4.jpg" alt="Estilo 1" />
-          <img src="/login2.jpg" alt="Estilo 2" />
-          <img src="/login3.jpg" alt="Estilo 3" />
+          <img src="Pediatria2.jpg" alt="Estilo 1" />
+          <img src="Post Base.png" alt="Estilo 2" />
+          <img src="ginecologia.png" alt="Estilo 3" />
         </div>
       </div>
       <MapSection />
