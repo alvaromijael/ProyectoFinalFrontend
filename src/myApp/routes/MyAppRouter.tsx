@@ -18,6 +18,7 @@ import AboutUs from "../pages/landing/AboutUs";
 import Specialities from "../pages/landing/Specialities";
 import Laboratory from "../pages/landing/Laboratory";
 import PrivateRoute from "../components/PrivateRoute";
+import AppointmentEdit from "../pages/appointment/AppointmentEdit";
 
 const { Content } = Layout;
 
@@ -74,6 +75,14 @@ export const MyAppRouter = () => {
               element={
                 <PrivateRoute>
                   <CreateAppointment />
+                </PrivateRoute>
+              }
+            />
+             <Route
+              path="/appointmentEdit/:id"
+              element={
+                <PrivateRoute>
+                  <AppointmentEdit />
                 </PrivateRoute>
               }
             />

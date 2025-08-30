@@ -30,7 +30,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
-import PatientService from '../../services/AppointmentService';
+import PatientService from '../../services/PatientService';
 import AppointmentService from '../../services/AppointmentService';
 import type { Patient } from '../../services/AppointmentService';
 import type { Appointment } from '../../services/AppointmentService';
@@ -49,7 +49,7 @@ export default function AppointmentEdit() {
   const [loadingData, setLoadingData] = useState(true);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
-  const [appointment, setAppointment] = useState<Appointment>(null);
+  const [appointment, setAppointment] = useState<Appointment| null>(null);
 
   // Cargar datos iniciales
   useEffect(() => {
