@@ -218,7 +218,7 @@ export default function AppointmentList() {
   };
 
   const goToCreateAppointment = () => {
-    navigate("/appointmentCreate");
+    navigate("/createAppointment");
   };
 
   const handleEdit = (appointment: Appointment) => {
