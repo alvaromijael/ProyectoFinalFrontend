@@ -46,7 +46,8 @@ export const RegisterPage = () => {
     }
 
     try {
-      const response = await axios.post("http://127.0.0.1:8000/auth/register", {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL; 
+      const response = await axios.post(`${API_BASE_URL}/auth/register`, {
         first_name: data.firstName,
         last_name: data.lastName,
         email: data.email,

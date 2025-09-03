@@ -112,7 +112,7 @@ interface AppointmentCountResponse {
   appointment_count: number;
 }
 
-const API_BASE_URL: string = 'http://127.0.0.1:8000';
+const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL;
 
 const api = axios.create({
   baseURL: API_BASE_URL,

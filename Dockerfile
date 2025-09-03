@@ -29,3 +29,4 @@ EXPOSE 80
 ENV NODE_ENV=production
 
 # Nginx runs by default as the container's entrypoint
+ENV APP_MODULE=main:app

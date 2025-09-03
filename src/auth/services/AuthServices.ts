@@ -98,11 +98,16 @@ interface AuthResponse {
   token: string;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL; 
+console.log(API_BASE_URL)
 export const loginUser = async (
   email: string,
   password: string
 ): Promise<AuthResponse> => {
-  const response = await axios.post("http://127.0.0.1:8000/auth/login", { email, password });
+  const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+    email,
+    password,
+  });
   return response.data;
 };
 
@@ -113,7 +118,7 @@ export const registerUser = async (
   lastName: string,
   role: string,
 ): Promise<AuthResponse> => {
-  const response = await axios.post("http://127.0.0.1:8000/auth/register", {
+  const response = await axios.post(`${API_BASE_URL}/auth/register`, {
     email,
     password,
     firstName,
