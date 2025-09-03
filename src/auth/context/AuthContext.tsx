@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import type { AppUser } from "../interfaces/AppUser";
-import { loginUser,  registerUser,
-  loginWithGoogle } from "../services/AuthServices";
+import {
+  loginUser,
+  registerUser,
+  loginWithGoogle,
+} from "../services/AuthServices";
 import { useNavigate } from "react-router-dom";
-
-
 
 interface AuthContextType {
   user: AppUser | null;
@@ -15,10 +16,13 @@ interface AuthContextType {
     password: string,
     firstName: string,
     lastName: string,
-    role: string,
+    role: string
   ) => Promise<AppUser | null>;
   loginWithGoogleContext: () => Promise<AppUser | null>;
   logout: () => void;
+
+  // Nueva función para actualizar el usuario
+  updateUser: (user: AppUser) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,6 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const navigate = useNavigate();
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const storedUser = localStorage.getItem("authUser");
     if (storedUser) {
@@ -58,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     password: string,
     firstName: string,
     lastName: string,
-    role: string,
+    role: string
   ): Promise<AppUser | null> => {
     try {
       const { user, token } = await registerUser(
@@ -66,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         password,
         firstName,
         lastName,
-        role,
+        role
       );
       localStorage.setItem("authToken", token);
       localStorage.setItem("authUser", JSON.stringify(user));
@@ -98,9 +103,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     navigate("/login");
   };
 
+  // Función para actualizar el usuario
+  const updateUser = (updatedUser: AppUser) => {
+    localStorage.setItem("authUser", JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, registro, loginWithGoogleContext, logout }}
+      value={{
+        user,
+        loading,
+        login,
+        registro,
+        loginWithGoogleContext,
+        logout,
+        updateUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

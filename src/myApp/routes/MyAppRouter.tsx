@@ -19,6 +19,7 @@ import Specialities from "../pages/landing/Specialities";
 import Laboratory from "../pages/landing/Laboratory";
 import PrivateRoute from "../components/PrivateRoute";
 import AppointmentEdit from "../pages/appointment/AppointmentEdit";
+import { ProfilePage } from "../pages/ProfilePage";
 
 const { Content } = Layout;
 
@@ -32,12 +33,19 @@ export const MyAppRouter = () => {
       <Header />
 
       <Layout style={{ minHeight: "calc(100vh - 24px)" }}>
-        {user && <Sidebar />} 
+        {user && <Sidebar />}
 
-        <Content style={{  width: "100%" }}>
+        <Content style={{ width: "100%" }}>
           <Routes>
             <Route path="/" element={<WelcomePage />} />
-            <Route path="/home" element={<HomePage />} />
+            <Route
+              path="/home"
+              element={
+                <PrivateRoute>
+                  <HomePage />
+                </PrivateRoute>
+              }
+            />
             <Route
               path="/patientList"
               element={
@@ -78,7 +86,7 @@ export const MyAppRouter = () => {
                 </PrivateRoute>
               }
             />
-             <Route
+            <Route
               path="/appointmentEdit/:id"
               element={
                 <PrivateRoute>
@@ -91,6 +99,14 @@ export const MyAppRouter = () => {
               element={
                 <PrivateRoute>
                   <AllUsersPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/profile-page"
+              element={
+                <PrivateRoute>
+                  <ProfilePage />
                 </PrivateRoute>
               }
             />

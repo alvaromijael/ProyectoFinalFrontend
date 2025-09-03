@@ -2,7 +2,7 @@ import {
   LockOutlined,
   MailOutlined,
   UserOutlined,
-  GoogleOutlined,
+  //GoogleOutlined,
   CalendarOutlined,
 } from "@ant-design/icons";
 import {
@@ -210,9 +210,9 @@ export const RegisterPage = () => {
             Registrarte
           </Button>
 
-          <Button icon={<GoogleOutlined />} block>
+          {/* <Button icon={<GoogleOutlined />} block>
             Google
-          </Button>
+          </Button> */}
 
           <Text style={{ display: "block", textAlign: "center" }}>
             ¿Ya tienes cuenta?{" "}

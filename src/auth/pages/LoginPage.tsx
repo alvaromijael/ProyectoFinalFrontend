@@ -1,5 +1,5 @@
-import { LockOutlined, MailOutlined, GoogleOutlined } from "@ant-design/icons";
-import { Button, Card, Form, Input, Typography, Space } from "antd";
+import { LockOutlined, MailOutlined } from "@ant-design/icons";
+import { Button, Card, Form, Input, Typography, Space, Modal } from "antd";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthContext } from "../context/AuthContext";
 import { useState } from "react";
@@ -13,27 +13,32 @@ interface LoginFormData {
 
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, loginWithGoogleContext } = useAuthContext();
-  const [messageError, setmessageError] = useState("");
+  const { login } = useAuthContext();
   const [form] = Form.useForm();
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
+
+  const showErrorModal = (message: string) => {
+    setModalMessage(message);
+    setIsModalVisible(true);
+  };
+
+  const handleModalOk = () => {
+    setIsModalVisible(false);
+    form.setFieldsValue({ password: "" });  // Limpia solo el campo password
+  };
 
   const onFinish = async (values: LoginFormData) => {
     try {
       const user = await login(values.email, values.password);
-      if (user) navigate("/home");
+      if (user) {
+        navigate("/home");
+      } else {
+        showErrorModal("Usuario o contraseña inválida");
+      }
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
-      setmessageError("Usuario o contraseña inválida");
-      form.resetFields();
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    try {
-      const user = await loginWithGoogleContext();
-      if (user) navigate("/home", { replace: true });
-    } catch (error) {
-      console.error("Error con login de Google:", error);
+      showErrorModal("Error en el servidor. Intenta de nuevo más tarde.");
     }
   };
 
@@ -61,10 +66,7 @@ export const LoginPage = () => {
           alignItems: "center",
         }}
       >
-        <Title
-          level={3}
-          style={{ color: "#333", marginBottom: "16px", textAlign: "center" }}
-        >
+        <Title level={3} style={{ color: "#333", marginBottom: "16px", textAlign: "center" }}>
           Iniciar Sesión
         </Title>
 
@@ -73,7 +75,7 @@ export const LoginPage = () => {
             display: "flex",
             alignItems: "center",
             gap: "20px",
-            flexWrap: "wrap", // Permite que los elementos se apilen en pantallas pequeñas
+            flexWrap: "wrap",
             justifyContent: "center",
           }}
         >
@@ -81,9 +83,7 @@ export const LoginPage = () => {
           <div style={{ flex: "2 1 300px", minWidth: "300px" }}>
             <Form form={form} layout="vertical" onFinish={onFinish}>
               <Form.Item
-                label={
-                  <span style={{ color: "#333" }}>Correo electrónico</span>
-                }
+                label={<span style={{ color: "#333" }}>Correo electrónico</span>}
                 name="email"
                 rules={[
                   { required: true, message: "Por favor ingresa tu correo" },
@@ -107,10 +107,7 @@ export const LoginPage = () => {
                 label={<span style={{ color: "#333" }}>Contraseña</span>}
                 name="password"
                 rules={[
-                  {
-                    required: true,
-                    message: "Por favor ingresa tu contraseña",
-                  },
+                  { required: true, message: "Por favor ingresa tu contraseña" },
                   { min: 6, message: "Debe tener al menos 6 caracteres" },
                 ]}
               >
@@ -129,19 +126,6 @@ export const LoginPage = () => {
 
               <Form.Item>
                 <Space direction="vertical" style={{ width: "100%" }}>
-                  {messageError && (
-                    <Text
-                      type="danger"
-                      style={{
-                        display: "block",
-                        textAlign: "center",
-                        marginBottom: 10,
-                        color: "#cc3333",
-                      }}
-                    >
-                      {messageError}
-                    </Text>
-                  )}
                   <Button
                     type="primary"
                     htmlType="submit"
@@ -154,25 +138,11 @@ export const LoginPage = () => {
                   >
                     Iniciar sesión
                   </Button>
-                  <Button
-                    icon={<GoogleOutlined />}
-                    onClick={handleGoogleLogin}
-                    block
-                    style={{
-                      background: "#eaeaea",
-                      color: "#333",
-                      borderRadius: "8px",
-                    }}
-                  >
-                    Iniciar con Google
-                  </Button>
                 </Space>
               </Form.Item>
             </Form>
 
-            <Text
-              style={{ display: "block", textAlign: "center", color: "#333" }}
-            >
+            <Text style={{ display: "block", textAlign: "center", color: "#333" }}>
               ¿No tienes cuenta?{" "}
               <Link to="/auth/register" style={{ fontWeight: 500 }}>
                 Regístrate
@@ -203,6 +173,18 @@ export const LoginPage = () => {
             />
           </div>
         </div>
+
+        {/* Modal para mostrar errores */}
+        <Modal
+          title="Error"
+          visible={isModalVisible}
+          onOk={handleModalOk}
+          onCancel={handleModalOk}
+          okText="Aceptar"
+          cancelButtonProps={{ style: { display: "none" } }}
+        >
+          <p>{modalMessage}</p>
+        </Modal>
       </Card>
     </div>
   );

@@ -77,8 +77,8 @@ export const Header = () => {
     <Menu
       items={[
          {
-        label: <Link to="/profile">Mi Perfil</Link>,
-        key: "/profile",
+        label: <Link to="/profile-page">Mi Perfil</Link>,
+        key: "/profile-page",
         icon: <UserOutlined />,
       },
         {

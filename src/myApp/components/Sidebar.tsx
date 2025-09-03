@@ -16,6 +16,20 @@ const Sidebar: React.FC = () => {
     navigate(`/${key}`);
   };
 
+  // Obtener usuario del localStorage
+  const storedUser = localStorage.getItem('authUser');
+  let userRole = '';
+  if (storedUser) {
+    try {
+      const user = JSON.parse(storedUser);
+      userRole = user.role?.name || '';
+    } catch {
+      userRole = '';
+    }
+  }
+
+  const isAdmin = userRole === 'admin';
+
   return (
     <Sider breakpoint="lg" collapsedWidth="0" style={{ left: 0 }}>
       <div style={{ height: 64, margin: 16, color: 'white', fontSize: 18 }}>
@@ -37,10 +51,12 @@ const Sidebar: React.FC = () => {
           <Menu.Item key="resultados-lab">Resultados</Menu.Item>
         </Menu.SubMenu>
 
-        <Menu.SubMenu key="users" icon={<UserOutlined />} title="Usuarios">
-          <Menu.Item key="all-users">Gestión</Menu.Item>
-          <Menu.Item key="roles">Roles</Menu.Item>
-        </Menu.SubMenu>
+        {isAdmin && (
+          <Menu.SubMenu key="users" icon={<UserOutlined />} title="Usuarios">
+            <Menu.Item key="all-users">Gestión</Menu.Item>
+            <Menu.Item key="roles">Roles</Menu.Item>
+          </Menu.SubMenu>
+        )}
       </Menu>
     </Sider>
   );
