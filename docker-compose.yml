@@ -1,0 +1,8 @@
+services:
+  web:
+    build: .
+    ports:
+      - "5173:80"   # visit http://localhost:5173
+    environment:
+      - TZ=America/Guayaquil
+    restart: unless-stopped

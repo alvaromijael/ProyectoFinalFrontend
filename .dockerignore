@@ -1,0 +1,2 @@
+# Copy only the manifest (and npm lock if present via pattern)
+COPY package*.json ./

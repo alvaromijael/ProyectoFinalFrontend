@@ -1,0 +1,46 @@
+{
+  "containers": {
+    "fenix-web-db": {
+      "image": ":fenixweb.fenixweb-db.2",
+      "ports": {
+        "5432": "TCP"
+      },
+      "environment": {
+        "POSTGRES_DB": "fenixweb",
+        "POSTGRES_USER": "admin",
+        "POSTGRES_PASSWORD": "admin123"
+      }
+    },
+    "fenix-web-back": {
+      "image": ":fenixweb.fenixweb-back.1",
+      "ports": {
+        "8000": "HTTP"
+      },
+      "environment": {
+        "DATABASE_URL": "postgresql+psycopg2://admin:admin123@localhost:5432/fenixweb",
+        "JWT_SECRET_KEY": "secret123"
+      }
+    },
+    "fenixweb-frontend": {
+      "image": ":fenixweb.fenixweb-frontend.3",
+      "ports": {
+        "5173": "HTTP"
+      },
+      "environment": {
+        "VITE_API_BASE_URL": "https://fenixweb.j8hx8gh0jmcw8.us-east-1.cs.amazonlightsail.com/api"
+      }
+    }
+  },
+  "publicEndpoint": {
+    "containerName": "fenixweb-frontend",
+    "containerPort": 5173,
+    "healthCheck": {
+      "path": "/",
+      "successCodes": "200-299",
+      "intervalSeconds": 30,
+      "timeoutSeconds": 10,
+      "healthyThreshold": 2,
+      "unhealthyThreshold": 3
+    }
+  }
+}
