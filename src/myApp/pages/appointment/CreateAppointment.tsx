@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, type JSX } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Form,
   Input,
@@ -15,67 +16,164 @@ import {
   TimePicker,
   message,
   Divider,
-  AutoComplete
+  AutoComplete,
+  Spin
 } from 'antd';
 import {
   UserOutlined,  
   SaveOutlined,
   ArrowLeftOutlined,
-  HeartOutlined,
   FileTextOutlined,
   MedicineBoxOutlined,
   ExperimentOutlined,
+  PlusOutlined,
+  SearchOutlined
 } from '@ant-design/icons';
+import dayjs from 'dayjs';
 
 import PatientService from '../../services/PatientService';
-import AppointmentService from  '../../services/AppointmentService';
-import type { Patient } from  '../../services/PatientService';
+import AppointmentService from '../../services/AppointmentService';
 import dataCIE10 from '../../../assets/dataCIE10.json';
-import { useNavigate } from 'react-router-dom';
+import RecipeTable from '../../components/RecipeTable';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
 const { TextArea } = Input;
 
-export default function CreateAppointment() {
-  const navigate = useNavigate();
+// Función helper para debounce
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
 
-  const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [patients, setPatients] = useState<Patient[]>([]);
-
-  // Cargar pacientes al montar el componente
   useEffect(() => {
-    loadPatients();
-  }, []);
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
 
-  const loadPatients = async () => {
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+// Interfaces
+interface Patient {
+  id?: number;
+  first_name?: string;
+  last_name?: string;
+  document_id?: string;
+  medical_history?: string;
+}
+
+interface Recipe {
+  key: string;
+  medicine: string;
+  amount: string;
+  instructions: string;
+  observations: string;
+}
+
+export default function AppointmentCreate(): JSX.Element {
+  const navigate = useNavigate();
+  const [form] = Form.useForm();
+  
+  // Estados
+  const [loading, setLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [searchValue, setSearchValue] = useState('');
+  const [patientOptions, setPatientOptions] = useState<any[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+
+  // Debounce del valor de búsqueda
+  const debouncedSearchValue = useDebounce(searchValue, 500);
+
+  // Función para buscar pacientes
+  const searchPatients = useCallback(async (query: string) => {
+    if (!query || query.length < 2) {
+      setPatientOptions([]);
+      return;
+    }
+
+    setSearchLoading(true);
     try {
-     const response = await PatientService.getPatients({ limit: 1000 });
-      if (response.success) {
-        setPatients(response.data);
+      const response = await PatientService.searchPatients(query, { limit: 50 });
+      if (response.success && response.data) {
+        const options = response.data.map((patient: Patient) => ({
+          value: `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}`,
+          label: (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontWeight: 500 }}>
+                  {patient.last_name}, {patient.first_name}
+                </div>
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  CI: {patient.document_id}
+                </div>
+              </div>
+              <UserOutlined style={{ color: '#1890ff' }} />
+            </div>
+          ),
+          patient: patient
+        }));
+        setPatientOptions(options);
       } else {
-        message.error(response.message);
+        setPatientOptions([]);
+        if (query.length >= 3) {
+          message.warning(`No se encontraron pacientes con: "${query}"`);
+        }
       }
     } catch (error) {
-      message.error('Error al cargar los pacientes');
-      console.error('Error loading patients:', error);
-    } 
+      console.error('Error searching patients:', error);
+      message.error('Error al buscar pacientes');
+      setPatientOptions([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, []);
+
+  // Efecto para buscar cuando cambie el valor debounced
+  useEffect(() => {
+    if (debouncedSearchValue) {
+      searchPatients(debouncedSearchValue);
+    }
+  }, [debouncedSearchValue, searchPatients]);
+
+  // Establecer valores por defecto al cargar el componente
+  useEffect(() => {
+    // Establecer fecha y hora actual por defecto
+    const now = dayjs();
+    form.setFieldsValue({
+      fecha: now,
+      hora: now,
+      temperatura: '36.5',
+      presionArterial: '120/80',
+      frecuenciaCardiaca: '78',
+      saturacionO2: '98',
+      peso: '',
+      talla: ''
+    });
+  }, [form]);
+
+  const onPatientSearch = (value: string) => {
+    setSearchValue(value);
+    if (!value) {
+      setPatientOptions([]);
+    }
   };
 
-  const onPatientSelect = (value: string) => {
-    const patient = patients.find(p => 
-      `${p.last_name}, ${p.first_name} - CI: ${p.document_id}` === value
-    );
+  const onPatientSelect = (value: string, option: any) => {
+    const patient = option.patient;
     
     if (patient) {
       setSelectedPatient(patient);
+      setSearchValue(value);
       form.setFieldsValue({
-        nombres: patient.first_name,
-        apellidos: patient.last_name,
-        cedula: patient.document_id,
-        // Automáticamente llenar antecedentes con el medical_history del paciente
+        searchPatient: value,
+        nombres: patient.first_name || '',
+        apellidos: patient.last_name || '',
+        cedula: patient.document_id || '',
         antecedentes: patient.medical_history || 'Sin antecedentes médicos registrados'
       });
       
@@ -84,84 +182,120 @@ export default function CreateAppointment() {
   };
 
   const onFinish = async (values: any) => {
-    if (!selectedPatient) {
-      message.error('Debe seleccionar un paciente');
+    if (!selectedPatient || !selectedPatient.id) {
+      message.error('Debe seleccionar un paciente válido');
+      return;
+    }
+
+    if (!values.fecha || !values.hora) {
+      message.error('Fecha y hora son obligatorias');
       return;
     }
 
     setLoading(true);
     try {
-      // Preparar datos para crear la cita
+      // Validar altura
+      let heightInMeters = '';
+      if (values.talla) {
+        const heightInCm = parseFloat(values.talla);
+        if (isNaN(heightInCm) || heightInCm <= 0) {
+          message.error('Talla debe ser un número válido');
+          setLoading(false);
+          return;
+        }
+        heightInMeters = (heightInCm / 100).toString();
+      }
+
+      // Preparar datos para crear la nueva cita
       const appointmentData = {
-        patient_id: selectedPatient.id!,
+        patient_id: selectedPatient.id,
         appointment_date: values.fecha.format('YYYY-MM-DD'),
         appointment_time: values.hora.format('HH:mm:ss'),
-        current_illness: values.enfermedadActual,
-        physical_examination: values.examenFisico,
-        diagnosis_code: values.diagnostico,
-        diagnosis_description: dataCIE10.find(item => item.code === values.diagnostico)?.description || '',
-        observations: values.observaciones,
+        current_illness: values.enfermedadActual || '',
+        physical_examination: values.examenFisico || '',
+        diagnosis_code: values.diagnostico || '',
+        diagnosis_description: values.observacionesDiagnostico || (
+          values.diagnostico ? 
+          dataCIE10.find(item => item.code === values.diagnostico)?.description || '' : 
+          ''
+        ),
+        observations: values.observaciones || '',
         laboratory_tests: values.examenes || '',
-        temperature: values.temperatura,
-        blood_pressure: values.presionArterial,
-        heart_rate: values.frecuenciaCardiaca,
-        oxygen_saturation: values.saturacionO2,
-        weight: values.peso,
-        height: (parseFloat(values.talla) / 100).toString(), // Convertir cm a metros
+        temperature: values.temperatura || '',
+        blood_pressure: values.presionArterial || '',
+        heart_rate: values.frecuenciaCardiaca || '',
+        oxygen_saturation: values.saturacionO2 || '',
+        weight: values.peso || '',
+        height: heightInMeters,
+        recipes: recipes.filter(recipe => 
+          (recipe.medicine && recipe.medicine.trim()) || 
+          (recipe.amount && recipe.amount.trim()) || 
+          (recipe.instructions && recipe.instructions.trim()) || 
+          (recipe.observations && recipe.observations.trim())
+        ).map(recipe => ({
+          medicine: recipe.medicine ? recipe.medicine.trim() : '',
+          amount: recipe.amount ? recipe.amount.trim() : '',
+          instructions: recipe.instructions ? recipe.instructions.trim() : '',
+          observations: recipe.observations ? recipe.observations.trim() : ''
+        }))
       };
 
-      console.log('Datos de la cita a enviar:', appointmentData);
+      console.log('Datos a enviar:', appointmentData);
       
-      // Crear la cita usando el servicio
+      // Crear nueva cita
       const response = await AppointmentService.createAppointment(appointmentData);
       
       if (response.success) {
-        message.success(response.message);
-        form.resetFields();
-        setSelectedPatient(null);
-        // Aquí podrías redirigir o actualizar la lista
-        navigate('/appointmentList');
+        message.success('Cita médica creada exitosamente');
+        navigate('/appointments');
       } else {
-        message.error(response.message);
+        message.error(response.message || 'Error al crear la cita médica');
       }
     } catch (error) {
-      message.error('Error inesperado al crear la cita médica');
       console.error('Error creating appointment:', error);
+      message.error('Error inesperado al crear la cita médica');
     } finally {
       setLoading(false);
     }
   };
 
-  // Preparar opciones para el autocompletado de pacientes
-  const patientOptions = patients.map(patient => ({
-    value: `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}`,
-    label: `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}`,
-    patient: patient
-  }));
-
-  // Opciones del CIE-10
-  const cie10Options = dataCIE10
-    .filter(item => item.level > 0) // Solo mostrar códigos específicos, no categorías
-    .map(item => ({
-      value: item.code,
-      label: `${item.code} - ${item.description}`
-    }));
+  // Opciones del CIE-10 con validación
+  const cie10Options = Array.isArray(dataCIE10) 
+    ? dataCIE10
+        .filter(item => item && item.code && item.description && (item.level > 0))
+        .map(item => ({
+          value: item.code,
+          label: `${item.code} - ${item.description}`
+        }))
+    : [];
 
   const goBack = () => {
-    
-    navigate('/appointmentList');
+    navigate('/appointments');
   };
 
   const handleCancel = () => {
-    form.resetFields();
-    setSelectedPatient(null);
-    message.info('Formulario cancelado');
-    navigate('/appointmentList');
+    navigate('/appointments');
   };
 
   const handleClear = () => {
+    // Limpiar formulario
     form.resetFields();
     setSelectedPatient(null);
+    setSearchValue('');
+    setPatientOptions([]);
+    setRecipes([]);
+    
+    // Reestablecer valores por defecto
+    const now = dayjs();
+    form.setFieldsValue({
+      fecha: now,
+      hora: now,
+      temperatura: '36.5',
+      presionArterial: '120/80',
+      frecuenciaCardiaca: '78',
+      saturacionO2: '98'
+    });
+    
     message.info('Formulario limpiado');
   };
 
@@ -196,7 +330,7 @@ export default function CreateAppointment() {
                 <Avatar
                   size={64}
                   style={{ backgroundColor: '#722ed1' }}
-                  icon={<HeartOutlined />}
+                  icon={<PlusOutlined />}
                 />
               </Col>
             </Row>
@@ -219,16 +353,57 @@ export default function CreateAppointment() {
                         label="Buscar Paciente"
                         name="searchPatient"
                         rules={[{ required: true, message: 'Debe seleccionar un paciente' }]}
+                        extra="Busque por apellidos, nombres o número de cédula"
                       >
                         <AutoComplete
+                          value={searchValue}
                           options={patientOptions}
+                          onSearch={onPatientSearch}
                           onSelect={onPatientSelect}
-                          placeholder="Buscar por apellidos, nombres o cédula"
-                          filterOption={(inputValue, option) =>
-                            option!.value.toLowerCase().includes(inputValue.toLowerCase())
+                          placeholder="Escriba apellidos, nombres o cédula..."
+                          notFoundContent={
+                            searchLoading ? (
+                              <div style={{ padding: '12px', textAlign: 'center' }}>
+                                <Spin size="small" /> Buscando pacientes...
+                              </div>
+                            ) : searchValue && searchValue.length >= 2 ? (
+                              <div style={{ padding: '12px', textAlign: 'center', color: '#999' }}>
+                                No se encontraron pacientes
+                              </div>
+                            ) : searchValue && searchValue.length < 2 ? (
+                              <div style={{ padding: '12px', textAlign: 'center', color: '#999' }}>
+                                Escriba al menos 2 caracteres para buscar
+                              </div>
+                            ) : null
                           }
+                          suffixIcon={searchLoading ? <Spin size="small" /> : <SearchOutlined />}
+                          allowClear
+                          onClear={() => {
+                            setSearchValue('');
+                            setPatientOptions([]);
+                            setSelectedPatient(null);
+                            form.setFieldsValue({
+                              nombres: '',
+                              apellidos: '',
+                              cedula: '',
+                              antecedentes: ''
+                            });
+                          }}
                         />
                       </Form.Item>
+                      {selectedPatient && (
+                        <div style={{ 
+                          marginTop: '8px', 
+                          padding: '8px', 
+                          background: '#f6ffed', 
+                          border: '1px solid #b7eb8f',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          color: '#52c41a'
+                        }}>
+                          ✓ Paciente seleccionado: {selectedPatient.first_name} {selectedPatient.last_name}
+                        </div>
+                      )}
                     </Col>
                     <Col xs={24} lg={6}>
                       <Form.Item label="Nombres" name="nombres">
@@ -254,6 +429,7 @@ export default function CreateAppointment() {
                         <DatePicker 
                           style={{ width: '100%' }}
                           placeholder="Seleccionar fecha"
+                          format="DD/MM/YYYY"
                         />
                       </Form.Item>
                     </Col>
@@ -416,8 +592,9 @@ export default function CreateAppointment() {
                       optionFilterProp="label"
                       options={cie10Options}
                       filterOption={(input, option) =>
-                        option!.label.toLowerCase().includes(input.toLowerCase())
+                        option?.label?.toLowerCase().includes(input.toLowerCase()) || false
                       }
+                      notFoundContent="No se encontraron diagnósticos"
                     />
                   </Form.Item>
                   
@@ -431,6 +608,14 @@ export default function CreateAppointment() {
                     />
                   </Form.Item>
                 </Card>
+              </Col>
+
+              {/* Receta Médica */}
+              <Col xs={24}>
+                <RecipeTable 
+                  recipes={recipes}
+                  setRecipes={setRecipes}
+                />
               </Col>
 
               {/* Observaciones */}
@@ -470,6 +655,7 @@ export default function CreateAppointment() {
                       <Button 
                         size="large"
                         onClick={handleClear}
+                        disabled={loading}
                       >
                         Limpiar
                       </Button>
@@ -479,6 +665,7 @@ export default function CreateAppointment() {
                         type="default" 
                         size="large"
                         onClick={handleCancel}
+                        disabled={loading}
                       >
                         Cancelar
                       </Button>
@@ -492,7 +679,7 @@ export default function CreateAppointment() {
                         icon={<SaveOutlined />}
                         disabled={!selectedPatient}
                       >
-                        Guardar Cita
+                        Crear Cita
                       </Button>
                     </Col>
                   </Row>

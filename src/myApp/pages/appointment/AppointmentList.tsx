@@ -618,6 +618,44 @@ export default function AppointmentList() {
                         </Col>
                       </Row>
                     </Card>
+                    <Card size="small" title="Recetas Médicas" style={{ marginTop: 16 }}>
+  {selectedAppointment.recipes && selectedAppointment.recipes.length > 0 ? (
+    <Table 
+      dataSource={selectedAppointment.recipes} 
+      pagination={false}
+      size="small"
+      rowKey={(_, index) => index!} 
+      columns={[
+        {
+          title: 'Medicamento',
+          dataIndex: 'medicine',
+          key: 'medicine',
+          width: '25%',
+        },
+        {
+          title: 'Cantidad',
+          dataIndex: 'amount',
+          key: 'amount',
+          width: '15%',
+        },
+        {
+          title: 'Instrucciones',
+          dataIndex: 'instructions',
+          key: 'instructions',
+          width: '25%',
+        },
+        {
+          title: 'Observaciones',
+          dataIndex: 'observations',
+          key: 'observations',
+          width: '35%',
+        },
+      ]}
+    />
+  ) : (
+    <Text type="secondary">No hay recetas médicas registradas</Text>
+  )}
+</Card>
                   </Col>
                 </Row>
               </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, type JSX } from 'react';
+import { useState, useEffect, useCallback, type JSX } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Form,
@@ -26,49 +26,57 @@ import {
   FileTextOutlined,
   MedicineBoxOutlined,
   ExperimentOutlined,
-  EditOutlined
+  EditOutlined,
+  SearchOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import type { Dayjs } from 'dayjs';
 
 import PatientService from '../../services/PatientService';
 import AppointmentService from '../../services/AppointmentService';
-import type { DefaultOptionType } from 'antd/es/select';
 import dataCIE10 from '../../../assets/dataCIE10.json';
-
+import RecipeTable from '../../components/RecipeTable';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
 const { TextArea } = Input;
 
-// Interfaces para el tipado
+// Función helper para debounce
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+// Interfaces
 interface Patient {
   id?: number;
   first_name?: string;
   last_name?: string;
-  birth_date?: string; 
-  age?: string;
-  gender?: string;
   document_id?: string;
-  marital_status?: string;
-  occupation?: string;
-  education?: string;
-  origin?: string;
-  province?: string;
-  city?: string;
-  neighborhood?: string;
-  street?: string;
-  house_number?: string;
   medical_history?: string;
-  notes?: string;
-  created_at?: string;
-  updated_at?: string;
+}
+
+interface Recipe {
+  key: string;
+  medicine: string;
+  amount: string;
+  instructions: string;
+  observations: string;
 }
 
 interface Appointment {
   id?: number;
   patient_id: number;
-  patient?: Patient;
   appointment_date: string;
   appointment_time: string;
   diagnosis_code?: string;
@@ -83,167 +91,185 @@ interface Appointment {
   height?: string;
   observations?: string;
   laboratory_tests?: string;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
-
-interface GetPatientsParams {
-  limit: number;
-  skip?: number;
-}
-
-interface AppointmentUpdateData {
-  patient_id: number;
-  appointment_date: string;
-  appointment_time: string;
-  current_illness?: string;
-  physical_examination?: string;
-  diagnosis_code?: string;
-  diagnosis_description?: string;
-  diagnosis_observations?: string;
-  observations?: string;
-  laboratory_tests?: string;
-  temperature?: string;
-  blood_pressure?: string;
-  heart_rate?: string;
-  oxygen_saturation?: string;
-  weight?: string;
-  height?: string;
-}
-
-interface FormValues {
-  searchPatient: string;
-  nombres: string;
-  apellidos: string;
-  cedula: string;
-  fecha: Dayjs;
-  hora: Dayjs;
-  antecedentes: string;
-  enfermedadActual: string;
-  temperatura: string;
-  presionArterial: string;
-  frecuenciaCardiaca: string;
-  saturacionO2: string;
-  peso: string;
-  talla: string;
-  examenFisico: string;
-  diagnostico: string;
-  observacionesDiagnostico: string;
-  observaciones: string;
-  examenes: string;
-}
-
-interface PatientOption {
-  value: string;
-  label: string;
-  patient: Patient;
-}
-
-interface CIE10Option {
-  value: string;
-  label: string;
+  recipes?: any[];
 }
 
 export default function AppointmentEdit(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [form] = Form.useForm<FormValues>();
+  const [form] = Form.useForm();
   
-  // Estados con tipado
-  const [loading, setLoading] = useState<boolean>(false);
-  const [loadingData, setLoadingData] = useState<boolean>(true);
+  // Estados
+  const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const [searchValue, setSearchValue] = useState('');
+  const [patientOptions, setPatientOptions] = useState<any[]>([]);
   const [appointment, setAppointment] = useState<Appointment | null>(null);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [originalData, setOriginalData] = useState<any>(null); // Para restaurar datos originales
 
-  // Cargar datos iniciales
+  // Debounce del valor de búsqueda
+  const debouncedSearchValue = useDebounce(searchValue, 500);
+
+  // Función para buscar pacientes
+  const searchPatients = useCallback(async (query: string) => {
+    if (!query || query.length < 2) {
+      setPatientOptions([]);
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      const response = await PatientService.searchPatients(query, { limit: 50 });
+      if (response.success) {
+        const options = response.data.map(patient => ({
+          value: `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}`,
+          label: (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontWeight: 500 }}>
+                  {patient.last_name}, {patient.first_name}
+                </div>
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  CI: {patient.document_id}
+                </div>
+              </div>
+              <UserOutlined style={{ color: '#1890ff' }} />
+            </div>
+          ),
+          patient: patient
+        }));
+        setPatientOptions(options);
+      } else {
+        setPatientOptions([]);
+        if (query.length >= 3) {
+          message.warning(`No se encontraron pacientes con: "${query}"`);
+        }
+      }
+    } catch (error) {
+      console.error('Error searching patients:', error);
+      message.error('Error al buscar pacientes');
+      setPatientOptions([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    loadInitialData();
+    if (debouncedSearchValue) {
+      searchPatients(debouncedSearchValue);
+    }
+  }, [debouncedSearchValue, searchPatients]);
+
+  useEffect(() => {
+    loadAppointmentData();
   }, [id]);
 
-  const loadInitialData = async (): Promise<void> => {
+  const loadAppointmentData = async () => {
     setLoadingData(true);
     try {
-      // Cargar pacientes y cita en paralelo
-      const [patientsResponse, appointmentResponse] = await Promise.all([
-        PatientService.getPatients({ limit: 1000 } as GetPatientsParams),
-        AppointmentService.getAppointmentById(id!)
-      ]);
-
-      if (patientsResponse.success) {
-        setPatients(patientsResponse.data);
-      } else {
-        message.error('Error al cargar los pacientes');
-      }
-
+      const appointmentResponse = await AppointmentService.getAppointmentById(id!);
+      
       if (appointmentResponse.success) {
-        const appointmentData: Appointment = appointmentResponse.data;
+        const appointmentData = appointmentResponse.data;
         setAppointment(appointmentData);
-        
-        // Buscar el paciente asociado
-        const patient = patientsResponse.data?.find((p: Patient) => p.id === appointmentData.patient_id);
-        if (patient) {
-          setSelectedPatient(patient);
-        }
+                if (appointmentData.patient_id) {
+          const patientResponse = await PatientService.getPatientById(appointmentData.patient_id);
+          if (patientResponse.success) {
+            const patient = patientResponse.data;
+            setSelectedPatient(patient);
+            
+            const patientDisplayValue = `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}`;
+            
+            const formData = {
+              searchPatient: patientDisplayValue,
+              nombres: patient.first_name || '',
+              apellidos: patient.last_name || '',
+              cedula: patient.document_id || '',
+              fecha: appointmentData.appointment_date ? dayjs(appointmentData.appointment_date) : undefined,
+              hora: appointmentData.appointment_time ? dayjs(appointmentData.appointment_time, 'HH:mm:ss') : undefined,
+              antecedentes: patient.medical_history || 'Sin antecedentes médicos registrados',
+              enfermedadActual: appointmentData.current_illness || '',
+              temperatura: appointmentData.temperature || '',
+              presionArterial: appointmentData.blood_pressure || '',
+              frecuenciaCardiaca: appointmentData.heart_rate || '',
+              saturacionO2: appointmentData.oxygen_saturation || '',
+              peso: appointmentData.weight || '',
+              talla: appointmentData.height ? Math.round(parseFloat(appointmentData.height) * 100).toString() : '',
+              examenFisico: appointmentData.physical_examination || '',
+              diagnostico: appointmentData.diagnosis_code || '',
+              observacionesDiagnostico: appointmentData.diagnosis_description || '',
+              observaciones: appointmentData.observations || '',
+              examenes: appointmentData.laboratory_tests || ''
+            };
 
-        // Llenar el formulario con los datos de la cita
-        form.setFieldsValue({
-          searchPatient: patient ? `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}` : '',
-          nombres: patient?.first_name || '',
-          apellidos: patient?.last_name || '',
-          cedula: patient?.document_id || '',
-          fecha: appointmentData.appointment_date ? dayjs(appointmentData.appointment_date) : undefined,
-          hora: appointmentData.appointment_time ? dayjs(appointmentData.appointment_time, 'HH:mm:ss') : undefined,
-          antecedentes: patient?.medical_history || 'Sin antecedentes médicos registrados',
-          enfermedadActual: appointmentData.current_illness || '',
-          temperatura: appointmentData.temperature || '',
-          presionArterial: appointmentData.blood_pressure || '',
-          frecuenciaCardiaca: appointmentData.heart_rate || '',
-          saturacionO2: appointmentData.oxygen_saturation || '',
-          peso: appointmentData.weight || '',
-          talla: appointmentData.height ? Math.round(parseFloat(appointmentData.height) * 100).toString() : '',
-          examenFisico: appointmentData.physical_examination || '',
-          diagnostico: appointmentData.diagnosis_code || '',
-          observacionesDiagnostico: appointmentData.diagnosis_description || '',
-          observaciones: appointmentData.observations || '',
-          examenes: appointmentData.laboratory_tests || ''
-        });
+            let processedRecipes: Recipe[] = [];
+            if (appointmentData.recipes && Array.isArray(appointmentData.recipes) && appointmentData.recipes.length > 0) {
+              processedRecipes = appointmentData.recipes
+                .filter((recipe: any) => recipe && (recipe.medicine || recipe.amount || recipe.instructions || recipe.observations))
+                .map((recipe: any, index: number) => ({
+                  key: `recipe-${index}-${Date.now()}`, // Clave única
+                  medicine: recipe.medicine ? recipe.medicine.trim() : '',
+                  amount: recipe.amount ? recipe.amount.trim() : '',
+                  instructions: recipe.instructions ? recipe.instructions.trim() : '',
+                  observations: recipe.observations ? recipe.observations.trim() : ''
+                }));
+            }
+            
+            setOriginalData({
+              formData,
+              recipes: processedRecipes,
+              patient,
+              appointment: appointmentData
+            });
+            
+            form.setFieldsValue(formData);
+            setRecipes(processedRecipes);
+            setSearchValue(patientDisplayValue);
+            message.success('Datos de la cita médica cargados correctamente');
+          }
+        }
       } else {
         message.error('Error al cargar la cita médica');
         navigate('/appointments');
       }
     } catch (error) {
       message.error('Error inesperado al cargar los datos');
-      console.error('Error loading initial data:', error);
+      console.error('Error loading appointment data:', error);
       navigate('/appointments');
     } finally {
       setLoadingData(false);
     }
   };
 
-  const onPatientSelect = (value: string): void => {
-    const patient = patients.find(p => 
-      `${p.last_name}, ${p.first_name} - CI: ${p.document_id}` === value
-    );
+  const onPatientSearch = (value: string) => {
+    setSearchValue(value);
+    if (!value) {
+      setPatientOptions([]);
+    }
+  };
+
+  const onPatientSelect = (value: string, option: any) => {
+    const patient = option.patient;
     
     if (patient) {
       setSelectedPatient(patient);
+      setSearchValue(value);
       form.setFieldsValue({
+        searchPatient: value,
         nombres: patient.first_name,
         apellidos: patient.last_name,
         cedula: patient.document_id,
         antecedentes: patient.medical_history || 'Sin antecedentes médicos registrados'
       });
       
-      message.success('Paciente cambiado. Antecedentes actualizados.');
+      message.success('Paciente seleccionado. Antecedentes cargados automáticamente.');
     }
   };
 
-  const onFinish = async (values: FormValues): Promise<void> => {
+  const onFinish = async (values: any) => {
     if (!selectedPatient) {
       message.error('Debe seleccionar un paciente');
       return;
@@ -251,16 +277,30 @@ export default function AppointmentEdit(): JSX.Element {
 
     setLoading(true);
     try {
-      // Preparar datos para actualizar la cita
-      const appointmentData: AppointmentUpdateData = {
+            const validRecipes = recipes.filter(recipe => 
+        (recipe.medicine && recipe.medicine.trim()) || 
+        (recipe.amount && recipe.amount.trim()) || 
+        (recipe.instructions && recipe.instructions.trim()) || 
+        (recipe.observations && recipe.observations.trim())
+      ).map(recipe => ({
+        medicine: recipe.medicine ? recipe.medicine.trim() : '',
+        amount: recipe.amount ? recipe.amount.trim() : '',
+        instructions: recipe.instructions ? recipe.instructions.trim() : '',
+        observations: recipe.observations ? recipe.observations.trim() : ''
+      }));
+
+      const appointmentData = {
         patient_id: selectedPatient.id!,
         appointment_date: values.fecha.format('YYYY-MM-DD'),
         appointment_time: values.hora.format('HH:mm:ss'),
         current_illness: values.enfermedadActual,
         physical_examination: values.examenFisico,
         diagnosis_code: values.diagnostico,
-        diagnosis_description: dataCIE10.find(item => item.code === values.diagnostico)?.description || '',
-        diagnosis_observations: values.observacionesDiagnostico,
+        diagnosis_description: values.observacionesDiagnostico || (
+          values.diagnostico ? 
+          dataCIE10.find(item => item.code === values.diagnostico)?.description || '' : 
+          ''
+        ),
         observations: values.observaciones,
         laboratory_tests: values.examenes || '',
         temperature: values.temperatura,
@@ -268,22 +308,19 @@ export default function AppointmentEdit(): JSX.Element {
         heart_rate: values.frecuenciaCardiaca,
         oxygen_saturation: values.saturacionO2,
         weight: values.peso,
-        height: (parseFloat(values.talla) / 100).toString(), // Convertir cm a metros
+        height: values.talla ? (parseFloat(values.talla) / 100).toString() : '',
+        recipes: validRecipes
       };
 
       console.log('Datos de la cita a actualizar:', appointmentData);
       
-      // Actualizar la cita usando el servicio
-      const response: ApiResponse<Appointment> = await AppointmentService.updateAppointment(id!, appointmentData);
+      const response = await AppointmentService.updateAppointment(id!, appointmentData);
       
       if (response.success) {
         message.success('Cita médica actualizada exitosamente');
-        // Redirigir a la lista de citas
-        setTimeout(() => {
-          navigate('/appointments', { replace: true });
-        }, 1000); // Pequeño delay para mostrar el mensaje de éxito
+        navigate('/appointments');
       } else {
-        message.error(response.message || 'Error al actualizar la cita médica');
+        message.error(response.message);
       }
     } catch (error) {
       message.error('Error inesperado al actualizar la cita médica');
@@ -293,54 +330,33 @@ export default function AppointmentEdit(): JSX.Element {
     }
   };
 
-  // Preparar opciones para el autocompletado de pacientes
-  const patientOptions: PatientOption[] = patients.map(patient => ({
-    value: `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}`,
-    label: `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}`,
-    patient: patient
-  }));
+  const cie10Options = Array.isArray(dataCIE10) 
+    ? dataCIE10
+        .filter(item => item && item.code && item.description && (item.level > 0))
+        .map(item => ({
+          value: item.code,
+          label: `${item.code} - ${item.description}`
+        }))
+    : [];
 
-  // Opciones del CIE-10
-  const cie10Options: CIE10Option[] = dataCIE10
-    .filter(item => item.level > 0) // Solo mostrar códigos específicos, no categorías
-    .map(item => ({
-      value: item.code,
-      label: `${item.code} - ${item.description}`
-    }));
-
-  const goBack = (): void => {
+  const goBack = () => {
     navigate('/appointments');
   };
 
-  const handleCancel = (): void => {
+  const handleCancel = () => {
     navigate('/appointments');
   };
 
-  const handleReset = (): void => {
-    if (appointment && selectedPatient) {
-      // Restaurar valores originales
-      form.setFieldsValue({
-        searchPatient: `${selectedPatient.last_name}, ${selectedPatient.first_name} - CI: ${selectedPatient.document_id}`,
-        nombres: selectedPatient.first_name || '',
-        apellidos: selectedPatient.last_name || '',
-        cedula: selectedPatient.document_id || '',
-        fecha: appointment.appointment_date ? dayjs(appointment.appointment_date) : undefined,
-        hora: appointment.appointment_time ? dayjs(appointment.appointment_time, 'HH:mm:ss') : undefined,
-        antecedentes: selectedPatient.medical_history || 'Sin antecedentes médicos registrados',
-        enfermedadActual: appointment.current_illness || '',
-        temperatura: appointment.temperature || '',
-        presionArterial: appointment.blood_pressure || '',
-        frecuenciaCardiaca: appointment.heart_rate || '',
-        saturacionO2: appointment.oxygen_saturation || '',
-        peso: appointment.weight || '',
-        talla: appointment.height ? Math.round(parseFloat(appointment.height) * 100).toString() : '',
-        examenFisico: appointment.physical_examination || '',
-        diagnostico: appointment.diagnosis_code || '',
-        observacionesDiagnostico: appointment.diagnosis_description || '',
-        observaciones: appointment.observations || '',
-        examenes: appointment.laboratory_tests || ''
-      });
+  const handleClear = () => {
+    if (originalData) {
+      form.setFieldsValue(originalData.formData);
+      setRecipes([...originalData.recipes]); 
+      setSelectedPatient(originalData.patient);
+      setSearchValue(originalData.formData.searchPatient);
       message.info('Formulario restaurado a valores originales');
+    } else {
+      loadAppointmentData();
+      message.info('Formulario restaurado desde el servidor');
     }
   };
 
@@ -363,7 +379,6 @@ export default function AppointmentEdit(): JSX.Element {
     <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
       <Content style={{ padding: '24px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          {/* Header */}
           <Card style={{ marginBottom: '24px' }}>
             <Row justify="space-between" align="middle">
               <Col>
@@ -404,7 +419,6 @@ export default function AppointmentEdit(): JSX.Element {
             scrollToFirstError
           >
             <Row gutter={[24, 0]}>
-              {/* Información del Paciente */}
               <Col xs={24}>
                 <Card title={<><UserOutlined /> Información del Paciente</>} style={{ marginBottom: '24px' }}>
                   <Row gutter={[16, 0]}>
@@ -413,16 +427,57 @@ export default function AppointmentEdit(): JSX.Element {
                         label="Buscar Paciente"
                         name="searchPatient"
                         rules={[{ required: true, message: 'Debe seleccionar un paciente' }]}
+                        extra="Busque por apellidos, nombres o número de cédula"
                       >
-                       <AutoComplete
-                            options={patientOptions}
-                            onSelect={onPatientSelect}
-                            placeholder="Buscar por apellidos, nombres o cédula"
-                            filterOption={(inputValue: string, option?: DefaultOptionType) =>
-                              (option?.value as string).toLowerCase().includes(inputValue.toLowerCase())
+                        <AutoComplete
+                          value={searchValue}
+                          options={patientOptions}
+                          onSearch={onPatientSearch}
+                          onSelect={onPatientSelect}
+                          placeholder="Escriba apellidos, nombres o cédula..."
+                          notFoundContent={
+                            searchLoading ? (
+                              <div style={{ padding: '12px', textAlign: 'center' }}>
+                                <Spin size="small" /> Buscando pacientes...
+                              </div>
+                            ) : searchValue && searchValue.length >= 2 ? (
+                              <div style={{ padding: '12px', textAlign: 'center', color: '#999' }}>
+                                No se encontraron pacientes
+                              </div>
+                            ) : searchValue && searchValue.length < 2 ? (
+                              <div style={{ padding: '12px', textAlign: 'center', color: '#999' }}>
+                                Escriba al menos 2 caracteres para buscar
+                              </div>
+                            ) : null
                           }
-                          />
+                          suffixIcon={searchLoading ? <Spin size="small" /> : <SearchOutlined />}
+                          allowClear
+                          onClear={() => {
+                            setSearchValue('');
+                            setPatientOptions([]);
+                            setSelectedPatient(null);
+                            form.setFieldsValue({
+                              nombres: '',
+                              apellidos: '',
+                              cedula: '',
+                              antecedentes: ''
+                            });
+                          }}
+                        />
                       </Form.Item>
+                      {selectedPatient && (
+                        <div style={{ 
+                          marginTop: '8px', 
+                          padding: '8px', 
+                          background: '#f6ffed', 
+                          border: '1px solid #b7eb8f',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          color: '#52c41a'
+                        }}>
+                          ✓ Paciente seleccionado: {selectedPatient.first_name} {selectedPatient.last_name}
+                        </div>
+                      )}
                     </Col>
                     <Col xs={24} lg={6}>
                       <Form.Item label="Nombres" name="nombres">
@@ -448,6 +503,7 @@ export default function AppointmentEdit(): JSX.Element {
                         <DatePicker 
                           style={{ width: '100%' }}
                           placeholder="Seleccionar fecha"
+                          format="DD/MM/YYYY"
                         />
                       </Form.Item>
                     </Col>
@@ -467,8 +523,6 @@ export default function AppointmentEdit(): JSX.Element {
                   </Row>
                 </Card>
               </Col>
-
-              {/* Anamnesis */}
               <Col xs={24}>
                 <Card title={<><FileTextOutlined /> Anamnesis</>} style={{ marginBottom: '24px' }}>
                   <Row gutter={[16, 16]}>
@@ -500,8 +554,6 @@ export default function AppointmentEdit(): JSX.Element {
                   </Row>
                 </Card>
               </Col>
-
-              {/* Signos Vitales */}
               <Col xs={24}>
                 <Card title="Signos Vitales" style={{ marginBottom: '24px' }}>
                   <Row gutter={[16, 0]}>
@@ -580,8 +632,6 @@ export default function AppointmentEdit(): JSX.Element {
                   </Row>
                 </Card>
               </Col>
-
-              {/* Examen Físico */}
               <Col xs={24} lg={12}>
                 <Card title={<><MedicineBoxOutlined /> Examen Físico</>} style={{ marginBottom: '24px' }}>
                   <Form.Item
@@ -596,7 +646,6 @@ export default function AppointmentEdit(): JSX.Element {
                 </Card>
               </Col>
 
-              {/* Diagnóstico */}
               <Col xs={24} lg={12}>
                 <Card title="Diagnóstico (CIE-10)" style={{ marginBottom: '24px' }}>
                   <Form.Item
@@ -604,16 +653,16 @@ export default function AppointmentEdit(): JSX.Element {
                     name="diagnostico"
                     rules={[{ required: true, message: 'Seleccione un diagnóstico' }]}
                   >
-                  <Select
-                    showSearch
-                    placeholder="Buscar por código o descripción"
-                    optionFilterProp="label"
-                    options={cie10Options}
-                    filterOption={(input: string, option?: DefaultOptionType) => {
-                      const label = option?.label;
-                      return typeof label === 'string' && label.toLowerCase().includes(input.toLowerCase());
-                    }}
-                  />
+                    <Select
+                      showSearch
+                      placeholder="Buscar por código o descripción"
+                      optionFilterProp="label"
+                      options={cie10Options}
+                      filterOption={(input, option) =>
+                        option?.label?.toLowerCase().includes(input.toLowerCase()) || false
+                      }
+                      notFoundContent="No se encontraron diagnósticos"
+                    />
                   </Form.Item>
                   
                   <Form.Item
@@ -627,8 +676,12 @@ export default function AppointmentEdit(): JSX.Element {
                   </Form.Item>
                 </Card>
               </Col>
-
-              {/* Observaciones */}
+              <Col xs={24}>
+                <RecipeTable 
+                  recipes={recipes}
+                  setRecipes={setRecipes}
+                />
+              </Col>
               <Col xs={24} lg={12}>
                 <Card title="Observaciones Generales" style={{ marginBottom: '24px' }}>
                   <Form.Item
@@ -642,8 +695,6 @@ export default function AppointmentEdit(): JSX.Element {
                   </Form.Item>
                 </Card>
               </Col>
-
-              {/* Exámenes */}
               <Col xs={24} lg={12}>
                 <Card title={<><ExperimentOutlined /> Exámenes Solicitados</>} style={{ marginBottom: '24px' }}>
                   <Form.Item
@@ -656,15 +707,14 @@ export default function AppointmentEdit(): JSX.Element {
                   </Form.Item>
                 </Card>
               </Col>
-
-              {/* Botones de Acción */}
               <Col xs={24}>
                 <Card>
                   <Row justify="end" gutter={[16, 16]}>
                     <Col>
                       <Button 
                         size="large"
-                        onClick={handleReset}
+                        onClick={handleClear}
+                        disabled={loading}
                       >
                         Restaurar
                       </Button>
@@ -674,6 +724,7 @@ export default function AppointmentEdit(): JSX.Element {
                         type="default" 
                         size="large"
                         onClick={handleCancel}
+                        disabled={loading}
                       >
                         Cancelar
                       </Button>

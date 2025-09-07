@@ -1,12 +1,18 @@
 import axios, {  AxiosError, type AxiosResponse } from 'axios';
 
-
 interface Patient {
   id?: number;
   first_name?: string;
   last_name?: string;
   document_id?: string;
   gender?: string;
+}
+
+interface Recipe {
+  medicine: string;
+  amount: string;
+  instructions: string;
+  observations: string;
 }
 
 interface AdvancedSearchParams extends SearchParams {
@@ -32,6 +38,7 @@ interface Appointment {
   oxygen_saturation?: string;
   weight?: string;
   height?: string;
+  recipes?: Recipe[]; // ← Agregar recetas
   created_at?: string;
   updated_at?: string;
   patient?: Patient;
@@ -53,6 +60,7 @@ interface AppointmentCreate {
   oxygen_saturation?: string;
   weight?: string;
   height?: string;
+  recipes?: Recipe[]; // ← Agregar recetas
 }
 
 interface AppointmentUpdate {
@@ -71,6 +79,7 @@ interface AppointmentUpdate {
   oxygen_saturation?: string;
   weight?: string;
   height?: string;
+  recipes?: Recipe[]; // ← Agregar recetas
 }
 
 interface ApiResponse<T> {
@@ -126,6 +135,7 @@ class AppointmentService {
   // Crear nueva cita
   static async createAppointment(appointmentData: AppointmentCreate): Promise<ApiResponse<Appointment>> {
     try {
+      console.log("appointmen", appointmentData)
       const response: AxiosResponse<Appointment> = await api.post<Appointment>('/appointments', appointmentData);
       return {
         success: true,
@@ -413,6 +423,7 @@ export type {
   AppointmentCreate, 
   AppointmentUpdate,
   Patient,
+  Recipe, // ← Exportar nueva interfaz
   ApiResponse, 
   SearchParams,
   DateRangeParams,
