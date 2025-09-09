@@ -1,11 +1,11 @@
-import React from 'react';
-import { Layout, Menu } from 'antd';
+import React from "react";
+import { Layout, Menu } from "antd";
 import {
   UserOutlined,
   MedicineBoxOutlined,
   ExperimentOutlined,
-} from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+} from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 
 const { Sider } = Layout;
 
@@ -17,37 +17,46 @@ const Sidebar: React.FC = () => {
   };
 
   // Obtener usuario del localStorage
-  const storedUser = localStorage.getItem('authUser');
-  let userRole = '';
+  const storedUser = localStorage.getItem("authUser");
+  let userRole = "";
   if (storedUser) {
     try {
       const user = JSON.parse(storedUser);
-      userRole = user.role?.name || '';
+      userRole = user.role?.name || "";
     } catch {
-      userRole = '';
+      userRole = "";
     }
   }
 
-  const isAdmin = userRole === 'admin';
+  const isAdmin = userRole === "admin";
 
   return (
     <Sider breakpoint="lg" collapsedWidth="0" style={{ left: 0 }}>
-      <div style={{ height: 64, margin: 16, color: 'white', fontSize: 18 }}>
+      <div style={{ height: 64, margin: 16, color: "white", fontSize: 18 }}>
         🏥 Dashboard
       </div>
       <Menu
         theme="dark"
         mode="inline"
-        defaultOpenKeys={['medical', 'users']}
+        defaultOpenKeys={["medical", "users"]}
         onClick={handleClick}
       >
-        <Menu.SubMenu key="medical" icon={<MedicineBoxOutlined />} title="Medical">
+        <Menu.SubMenu
+          key="medical"
+          icon={<MedicineBoxOutlined />}
+          title="Medical"
+        >
           <Menu.Item key="patientList">Pacientes</Menu.Item>
           <Menu.Item key="appointmentList">Citas</Menu.Item>
           <Menu.Item key="resultados-med">Recetas</Menu.Item>
         </Menu.SubMenu>
 
-        <Menu.SubMenu key="laboratory" icon={<ExperimentOutlined />} title="Laboratory">
+        <Menu.SubMenu
+          key="laboratory"
+          icon={<ExperimentOutlined />}
+          title="Laboratory"
+        >
+          <Menu.Item key="lab-order-form">Pedidos</Menu.Item>
           <Menu.Item key="resultados-lab">Resultados</Menu.Item>
         </Menu.SubMenu>
 

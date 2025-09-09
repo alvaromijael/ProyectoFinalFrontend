@@ -1,0 +1,180 @@
+{
+  "categories": {
+    "hematologia": {
+      "title": "HEMATOLOGÍA",
+      "color": "#52c41a",
+      "tests": [
+        "BIOMETRÍA HEMÁTICA",
+        "HB. HEMATOCRITO",
+        "LEUCOCITOS FÓRMULA LEUC.",
+        "V.S.G.",
+        "GRUPO SANGUÍNEO",
+        "PT/PTT",
+        "HEMOGLOBINA GLICOSILADA",
+        "DÍMERO D"
+      ]
+    },
+    "quimicaSanguinea": {
+      "title": "QUÍMICA SANGUÍNEA",
+      "color": "#1890ff",
+      "tests": [
+        "GLUCOSA BASAL",
+        "GLUCOSA POST PAND",
+        "COLESTEROL",
+        "TRIGLICÉRIDOS",
+        "HDL-COLESTEROL",
+        "LDL-COLESTEROL",
+        "ÁCIDO ÚRICO",
+        "AMILASA"
+      ]
+    },
+    "funcionRenal": {
+      "title": "FUNCIÓN RENAL",
+      "color": "#722ed1",
+      "tests": [
+        "UREA",
+        "CREATININA",
+        "T.G.O.",
+        "T.G.P.",
+        "BILIRRUBINA TOTAL",
+        "BILIRRUBINA DIRECTA",
+        "BILIRRUBINA INDIRECTA",
+        "PROTEÍNAS TOTALES"
+      ]
+    },
+    "enzimas": {
+      "title": "ENZIMAS",
+      "color": "#fa541c",
+      "tests": [
+        "CK MB"
+      ]
+    },
+    "electrolitos": {
+      "title": "ELECTROLITOS",
+      "color": "#13c2c2",
+      "tests": [
+        "ALBUMINAS",
+        "GLOBULINAS",
+        "RELACIÓN A/G",
+        "A.L.P.",
+        "G.G.T.",
+        "T. CALCIO",
+        "HIERRO",
+        "MAGNESIO"
+      ]
+    },
+    "marcadoresTumorales": {
+      "title": "MARCADORES TUMORALES",
+      "color": "#eb2f96",
+      "tests": [
+        "P.S.A. TOTAL",
+        "P.S.A. LIBRE",
+        "ALFAFETOPROTEÍNA",
+        "CEA"
+      ]
+    },
+    "inmunoserologia": {
+      "title": "INMUNOSEROLOGÍA",
+      "color": "#faad14",
+      "tests": [
+        "P.C.R.",
+        "P.C.R. CUANTITATIVA",
+        "TORCH: IGM",
+        "IGG",
+        "A.S.O.",
+        "WIDAL",
+        "IGE TOTAL",
+        "P.C.T.",
+        "R.F.",
+        "HEPATITIS A IGM",
+        "HELICOBACTER PILORY",
+        "INF. A+B, COVID19",
+        "INF. A+B, COVID19, VSR."
+      ]
+    },
+    "hormonas": {
+      "title": "HORMONAS",
+      "color": "#f759ab",
+      "tests": [
+        "T4",
+        "T.S.H.",
+        "F.S.H.",
+        "L.H.",
+        "PROGESTERONA",
+        "HCG CUALITATIVA"
+      ]
+    },
+    "uroanalisis": {
+      "title": "UROANÁLISIS",
+      "color": "#36cfc9",
+      "tests": [
+        "E.M.O.",
+        "GRAM",
+        "CREATININA EN ORINA PARCIAL"
+      ]
+    },
+    "coproanalisis": {
+      "title": "COPROANÁLISIS",
+      "color": "#95de64",
+      "tests": [
+        "COPROPARASITOLÓGICO",
+        "LEUCOCITOS FECALES",
+        "ADENOVIRUS/ROTAVIRUS",
+        "SANGRE OCULTA",
+        "HELICOBACTER PILORY"
+      ]
+    },
+    "otros": {
+      "title": "OTROS",
+      "color": "#ffc53d",
+      "tests": [
+        "GRAM EN SECRECIONES"
+      ]
+    }
+  },
+  "patientFields": [
+    {
+      "id": "nombre",
+      "label": "Nombre Completo",
+      "type": "text",
+      "required": true,
+      "placeholder": "Ingrese nombre completo"
+    },
+    {
+      "id": "sexo",
+      "label": "Sexo",
+      "type": "select",
+      "required": true,
+      "options": ["MASCULINO", "FEMENINO"]
+    },
+    {
+      "id": "edad",
+      "label": "Edad",
+      "type": "number",
+      "required": false,
+      "placeholder": "Edad",
+      "min": 0,
+      "max": 120
+    },
+    {
+      "id": "doctor",
+      "label": "Solicita Dr./Dra.",
+      "type": "text",
+      "required": true,
+      "placeholder": "Dr./Dra. que solicita"
+    },
+    {
+      "id": "fecha",
+      "label": "Fecha",
+      "type": "date",
+      "required": true
+    },
+    {
+      "id": "cedula",
+      "label": "C.I.",
+      "type": "text",
+      "required": false,
+      "placeholder": "Cédula de Identidad"
+    }
+  ]
+}

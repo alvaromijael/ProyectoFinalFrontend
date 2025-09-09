@@ -20,6 +20,7 @@ import Laboratory from "../pages/landing/Laboratory";
 import PrivateRoute from "../components/PrivateRoute";
 import AppointmentEdit from "../pages/appointment/AppointmentEdit";
 import { ProfilePage } from "../pages/ProfilePage";
+import LabOrderForm from "../pages/laboratory/LabOrderForm";
 
 const { Content } = Layout;
 
@@ -107,6 +108,14 @@ export const MyAppRouter = () => {
               element={
                 <PrivateRoute>
                   <ProfilePage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/lab-order-form"
+              element={
+                <PrivateRoute>
+                  <LabOrderForm />
                 </PrivateRoute>
               }
             />
