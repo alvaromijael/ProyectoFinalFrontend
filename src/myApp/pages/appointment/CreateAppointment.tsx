@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Form,
   Input,
-  Select,
   Button,
   Card,
   Space,
@@ -24,7 +23,6 @@ import {
   SaveOutlined,
   ArrowLeftOutlined,
   FileTextOutlined,
-  MedicineBoxOutlined,
   ExperimentOutlined,
   PlusOutlined,
   SearchOutlined
@@ -33,8 +31,8 @@ import dayjs from 'dayjs';
 
 import PatientService from '../../services/PatientService';
 import AppointmentService from '../../services/AppointmentService';
-import dataCIE10 from '../../../assets/dataCIE10.json';
 import RecipeTable from '../../components/RecipeTable';
+import DiagnosisTable from '../../components/DiagnosisTable';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -74,6 +72,14 @@ interface Recipe {
   observations: string;
 }
 
+interface Diagnosis {
+  key: string;
+  diagnosis_code: string;
+  diagnosis_description: string;
+  diagnosis_type: 'primary' | 'secondary';
+  observations?: string;
+}
+
 export default function AppointmentCreate(): JSX.Element {
   const navigate = useNavigate();
   const [form] = Form.useForm();
@@ -85,6 +91,7 @@ export default function AppointmentCreate(): JSX.Element {
   const [searchValue, setSearchValue] = useState('');
   const [patientOptions, setPatientOptions] = useState<any[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
 
   // Debounce del valor de búsqueda
   const debouncedSearchValue = useDebounce(searchValue, 500);
@@ -181,6 +188,17 @@ export default function AppointmentCreate(): JSX.Element {
     }
   };
 
+  // Función para convertir diagnósticos de tabla a formato API
+  const buildDiagnosesForAPI = (diagnosesTable: Diagnosis[]) => {
+    return diagnosesTable
+      .filter(diag => diag.diagnosis_code && diag.diagnosis_description)
+      .map(diag => ({
+        diagnosis_code: diag.diagnosis_code,
+        diagnosis_description: diag.diagnosis_description,
+        diagnosis_type: diag.diagnosis_type
+      }));
+  };
+
   const onFinish = async (values: any) => {
     if (!selectedPatient || !selectedPatient.id) {
       message.error('Debe seleccionar un paciente válido');
@@ -189,6 +207,13 @@ export default function AppointmentCreate(): JSX.Element {
 
     if (!values.fecha || !values.hora) {
       message.error('Fecha y hora son obligatorias');
+      return;
+    }
+
+    // Validar que hay al menos un diagnóstico válido
+    const validDiagnoses = diagnoses.filter(diag => diag.diagnosis_code && diag.diagnosis_description);
+    if (validDiagnoses.length === 0) {
+      message.error('Debe agregar al menos un diagnóstico válido');
       return;
     }
 
@@ -206,6 +231,9 @@ export default function AppointmentCreate(): JSX.Element {
         heightInMeters = (heightInCm / 100).toString();
       }
 
+      // Preparar los diagnósticos para la API
+      const diagnosesArray = buildDiagnosesForAPI(diagnoses);
+
       // Preparar datos para crear la nueva cita
       const appointmentData = {
         patient_id: selectedPatient.id,
@@ -213,12 +241,6 @@ export default function AppointmentCreate(): JSX.Element {
         appointment_time: values.hora.format('HH:mm:ss'),
         current_illness: values.enfermedadActual || '',
         physical_examination: values.examenFisico || '',
-        diagnosis_code: values.diagnostico || '',
-        diagnosis_description: values.observacionesDiagnostico || (
-          values.diagnostico ? 
-          dataCIE10.find(item => item.code === values.diagnostico)?.description || '' : 
-          ''
-        ),
         observations: values.observaciones || '',
         laboratory_tests: values.examenes || '',
         temperature: values.temperatura || '',
@@ -227,6 +249,7 @@ export default function AppointmentCreate(): JSX.Element {
         oxygen_saturation: values.saturacionO2 || '',
         weight: values.peso || '',
         height: heightInMeters,
+        diagnoses: diagnosesArray,
         recipes: recipes.filter(recipe => 
           (recipe.medicine && recipe.medicine.trim()) || 
           (recipe.amount && recipe.amount.trim()) || 
@@ -259,16 +282,6 @@ export default function AppointmentCreate(): JSX.Element {
     }
   };
 
-  // Opciones del CIE-10 con validación
-  const cie10Options = Array.isArray(dataCIE10) 
-    ? dataCIE10
-        .filter(item => item && item.code && item.description && (item.level > 0))
-        .map(item => ({
-          value: item.code,
-          label: `${item.code} - ${item.description}`
-        }))
-    : [];
-
   const goBack = () => {
     navigate('/appointments');
   };
@@ -284,6 +297,7 @@ export default function AppointmentCreate(): JSX.Element {
     setSearchValue('');
     setPatientOptions([]);
     setRecipes([]);
+    setDiagnoses([]);
     
     // Reestablecer valores por defecto
     const now = dayjs();
@@ -565,7 +579,7 @@ export default function AppointmentCreate(): JSX.Element {
 
               {/* Examen Físico */}
               <Col xs={24} lg={12}>
-                <Card title={<><MedicineBoxOutlined /> Examen Físico</>} style={{ marginBottom: '24px' }}>
+                <Card title={<><FileTextOutlined /> Examen Físico</>} style={{ marginBottom: '24px' }}>
                   <Form.Item
                     name="examenFisico"
                     rules={[{ required: true, message: 'Ingrese los hallazgos del examen físico' }]}
@@ -578,36 +592,25 @@ export default function AppointmentCreate(): JSX.Element {
                 </Card>
               </Col>
 
-              {/* Diagnóstico */}
+              {/* Observaciones */}
               <Col xs={24} lg={12}>
-                <Card title="Diagnóstico (CIE-10)" style={{ marginBottom: '24px' }}>
+                <Card title="Observaciones Generales" style={{ marginBottom: '24px' }}>
                   <Form.Item
-                    label="Buscar Diagnóstico"
-                    name="diagnostico"
-                    rules={[{ required: true, message: 'Seleccione un diagnóstico' }]}
-                  >
-                    <Select
-                      showSearch
-                      placeholder="Buscar por código o descripción"
-                      optionFilterProp="label"
-                      options={cie10Options}
-                      filterOption={(input, option) =>
-                        option?.label?.toLowerCase().includes(input.toLowerCase()) || false
-                      }
-                      notFoundContent="No se encontraron diagnósticos"
-                    />
-                  </Form.Item>
-                  
-                  <Form.Item
-                    label="Observaciones del Diagnóstico"
-                    name="observacionesDiagnostico"
+                    name="observaciones"
+                    rules={[{ required: true, message: 'Ingrese las observaciones' }]}
                   >
                     <TextArea
-                      rows={4}
-                      placeholder="Observaciones adicionales sobre el diagnóstico, plan de tratamiento, recomendaciones..."
+                      rows={8}
+                      placeholder="Plan de tratamiento, medicamentos prescritos, recomendaciones, seguimiento..."
                     />
                   </Form.Item>
                 </Card>
+              </Col>
+              <Col xs={24}>
+                <DiagnosisTable 
+                  diagnoses={diagnoses}
+                  setDiagnoses={setDiagnoses}
+                />
               </Col>
 
               {/* Receta Médica */}
@@ -618,23 +621,8 @@ export default function AppointmentCreate(): JSX.Element {
                 />
               </Col>
 
-              {/* Observaciones */}
-              <Col xs={24} lg={12}>
-                <Card title="Observaciones Generales" style={{ marginBottom: '24px' }}>
-                  <Form.Item
-                    name="observaciones"
-                    rules={[{ required: true, message: 'Ingrese las observaciones' }]}
-                  >
-                    <TextArea
-                      rows={6}
-                      placeholder="Plan de tratamiento, medicamentos prescritos, recomendaciones, seguimiento..."
-                    />
-                  </Form.Item>
-                </Card>
-              </Col>
-
               {/* Exámenes */}
-              <Col xs={24} lg={12}>
+              <Col xs={24}>
                 <Card title={<><ExperimentOutlined /> Exámenes Solicitados</>} style={{ marginBottom: '24px' }}>
                   <Form.Item
                     name="examenes"

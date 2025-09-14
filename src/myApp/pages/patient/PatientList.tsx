@@ -33,8 +33,9 @@ import {
 
 import { useNavigate } from "react-router-dom";
 import PatientService from '../../services/PatientService';
+import dayjs from 'dayjs';
+import { calculateAge } from './utils';
 
-// Interfaz del Patient
 interface Patient {
   id?: number;
   first_name: string;
@@ -69,7 +70,6 @@ const { Content } = Layout;
 export default function PatientList() {
   const navigate = useNavigate();
 
-  // Estados simplificados
   const [patients, setPatients] = useState<Patient[]>([]);
   const [displayedPatients, setDisplayedPatients] = useState<Patient[]>([]);
   const [searchText, setSearchText] = useState('');
@@ -146,22 +146,18 @@ export default function PatientList() {
           }
         } else {
           message.error(response.message);
-          // En caso de error, mantener la lista actual
           setDisplayedPatients(patients);
         }
       }  catch (error) {
           console.error('❌ Error completo:', error);      
-        // En caso de error, mantener la lista actual
         setDisplayedPatients(patients);
       } finally {
         setSearchLoading(false);
         setTableLoading(false);
       }
     } else if (trimmedValue.length === 0) {
-      // Si no hay texto de búsqueda, mostrar todos los pacientes
       setDisplayedPatients(patients);
     } else {
-      // Si hay texto pero menos de 3 caracteres, filtrar localmente
       const localFiltered = patients.filter(patient => {
         const searchTerm = trimmedValue.toLowerCase();
         const firstName = (patient.first_name || '').toLowerCase();
@@ -192,7 +188,6 @@ export default function PatientList() {
       const response = await PatientService.deletePatient(patientId);
       if (response.success) {
         message.success(response.message);
-        // Recargar la lista después de eliminar
         await loadPatients();
       } else {
         message.error(response.message);
@@ -210,19 +205,8 @@ export default function PatientList() {
     setIsDetailModalVisible(true);
   };
 
-  // Función para calcular la edad
-  const calculateAge = (birthDate: string): number => {
-    if (!birthDate) return 0;
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
-  };
 
+ 
   const columns = [
     {
       title: 'Paciente',
@@ -252,7 +236,7 @@ export default function PatientList() {
       render: (_: unknown, record: Patient) => (
         <Space direction="vertical" size="small">
           <Text>
-            {record.birth_date ? calculateAge(record.birth_date) : record.age || 'N/A'} años - 
+            {record.birth_date ? calculateAge(record.birth_date): 'N/A'} - 
             {record.gender === 'M' ? ' Masculino' : record.gender === 'F' ? ' Femenino' : ' N/A'}
           </Text>
           {record.birth_date && (
@@ -497,7 +481,7 @@ export default function PatientList() {
                         <Text><strong>Apellidos:</strong> {selectedPatient.last_name || 'N/A'}</Text>
                         <Text><strong>Cédula:</strong> {selectedPatient.document_id || 'N/A'}</Text>
                         <Text><strong>Fecha de Nacimiento:</strong> {selectedPatient.birth_date || 'N/A'}</Text>
-                        <Text><strong>Edad:</strong> {selectedPatient.age || calculateAge(selectedPatient.birth_date || '')} años</Text>
+                        <Text><strong>Edad:</strong> {calculateAge(selectedPatient.birth_date || '')}</Text>
                         <Text><strong>Sexo:</strong> {selectedPatient.gender === 'M' ? 'Masculino' : selectedPatient.gender === 'F' ? 'Femenino' : 'N/A'}</Text>
                         <Text><strong>Estado Civil:</strong> {selectedPatient.marital_status || 'N/A'}</Text>
                         <Text><strong>Ocupación:</strong> {selectedPatient.occupation || 'N/A'}</Text>
