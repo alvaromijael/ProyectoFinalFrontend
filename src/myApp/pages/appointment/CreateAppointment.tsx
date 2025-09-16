@@ -22,8 +22,6 @@ import {
   UserOutlined,  
   SaveOutlined,
   ArrowLeftOutlined,
-  FileTextOutlined,
-  ExperimentOutlined,
   PlusOutlined,
   SearchOutlined
 } from '@ant-design/icons';
@@ -31,12 +29,9 @@ import dayjs from 'dayjs';
 
 import PatientService from '../../services/PatientService';
 import AppointmentService from '../../services/AppointmentService';
-import RecipeTable from '../../components/RecipeTable';
-import DiagnosisTable from '../../components/DiagnosisTable';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
-const { TextArea } = Input;
 
 // Función helper para debounce
 const useDebounce = (value: string, delay: number) => {
@@ -64,22 +59,6 @@ interface Patient {
   medical_history?: string;
 }
 
-interface Recipe {
-  key: string;
-  medicine: string;
-  amount: string;
-  instructions: string;
-  observations: string;
-}
-
-interface Diagnosis {
-  key: string;
-  diagnosis_code: string;
-  diagnosis_description: string;
-  diagnosis_type: 'primary' | 'secondary';
-  observations?: string;
-}
-
 export default function AppointmentCreate(): JSX.Element {
   const navigate = useNavigate();
   const [form] = Form.useForm();
@@ -90,8 +69,6 @@ export default function AppointmentCreate(): JSX.Element {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [searchValue, setSearchValue] = useState('');
   const [patientOptions, setPatientOptions] = useState<any[]>([]);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
 
   // Debounce del valor de búsqueda
   const debouncedSearchValue = useDebounce(searchValue, 500);
@@ -180,23 +157,11 @@ export default function AppointmentCreate(): JSX.Element {
         searchPatient: value,
         nombres: patient.first_name || '',
         apellidos: patient.last_name || '',
-        cedula: patient.document_id || '',
-        antecedentes: patient.medical_history || 'Sin antecedentes médicos registrados'
+        cedula: patient.document_id || ''
       });
       
-      message.success('Paciente seleccionado. Antecedentes cargados automáticamente.');
+      message.success('Paciente seleccionado correctamente.');
     }
-  };
-
-  // Función para convertir diagnósticos de tabla a formato API
-  const buildDiagnosesForAPI = (diagnosesTable: Diagnosis[]) => {
-    return diagnosesTable
-      .filter(diag => diag.diagnosis_code && diag.diagnosis_description)
-      .map(diag => ({
-        diagnosis_code: diag.diagnosis_code,
-        diagnosis_description: diag.diagnosis_description,
-        diagnosis_type: diag.diagnosis_type
-      }));
   };
 
   const onFinish = async (values: any) => {
@@ -207,13 +172,6 @@ export default function AppointmentCreate(): JSX.Element {
 
     if (!values.fecha || !values.hora) {
       message.error('Fecha y hora son obligatorias');
-      return;
-    }
-
-    // Validar que hay al menos un diagnóstico válido
-    const validDiagnoses = diagnoses.filter(diag => diag.diagnosis_code && diag.diagnosis_description);
-    if (validDiagnoses.length === 0) {
-      message.error('Debe agregar al menos un diagnóstico válido');
       return;
     }
 
@@ -231,36 +189,17 @@ export default function AppointmentCreate(): JSX.Element {
         heightInMeters = (heightInCm / 100).toString();
       }
 
-      // Preparar los diagnósticos para la API
-      const diagnosesArray = buildDiagnosesForAPI(diagnoses);
-
       // Preparar datos para crear la nueva cita
       const appointmentData = {
         patient_id: selectedPatient.id,
         appointment_date: values.fecha.format('YYYY-MM-DD'),
         appointment_time: values.hora.format('HH:mm:ss'),
-        current_illness: values.enfermedadActual || '',
-        physical_examination: values.examenFisico || '',
-        observations: values.observaciones || '',
-        laboratory_tests: values.examenes || '',
         temperature: values.temperatura || '',
         blood_pressure: values.presionArterial || '',
         heart_rate: values.frecuenciaCardiaca || '',
         oxygen_saturation: values.saturacionO2 || '',
         weight: values.peso || '',
-        height: heightInMeters,
-        diagnoses: diagnosesArray,
-        recipes: recipes.filter(recipe => 
-          (recipe.medicine && recipe.medicine.trim()) || 
-          (recipe.amount && recipe.amount.trim()) || 
-          (recipe.instructions && recipe.instructions.trim()) || 
-          (recipe.observations && recipe.observations.trim())
-        ).map(recipe => ({
-          medicine: recipe.medicine ? recipe.medicine.trim() : '',
-          amount: recipe.amount ? recipe.amount.trim() : '',
-          instructions: recipe.instructions ? recipe.instructions.trim() : '',
-          observations: recipe.observations ? recipe.observations.trim() : ''
-        }))
+        height: heightInMeters
       };
 
       console.log('Datos a enviar:', appointmentData);
@@ -296,8 +235,6 @@ export default function AppointmentCreate(): JSX.Element {
     setSelectedPatient(null);
     setSearchValue('');
     setPatientOptions([]);
-    setRecipes([]);
-    setDiagnoses([]);
     
     // Reestablecer valores por defecto
     const now = dayjs();
@@ -399,8 +336,7 @@ export default function AppointmentCreate(): JSX.Element {
                             form.setFieldsValue({
                               nombres: '',
                               apellidos: '',
-                              cedula: '',
-                              antecedentes: ''
+                              cedula: ''
                             });
                           }}
                         />
@@ -457,39 +393,6 @@ export default function AppointmentCreate(): JSX.Element {
                           style={{ width: '100%' }}
                           format="HH:mm"
                           placeholder="Seleccionar hora"
-                        />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </Card>
-              </Col>
-
-              {/* Anamnesis */}
-              <Col xs={24}>
-                <Card title={<><FileTextOutlined /> Anamnesis</>} style={{ marginBottom: '24px' }}>
-                  <Row gutter={[16, 16]}>
-                    <Col xs={24}>
-                      <Form.Item
-                        label="Antecedentes (Cargados automáticamente del paciente)"
-                        name="antecedentes"
-                        rules={[{ required: true, message: 'Los antecedentes son obligatorios' }]}
-                      >
-                        <TextArea
-                          rows={4}
-                          placeholder="Los antecedentes se cargan automáticamente al seleccionar un paciente..."
-                          disabled
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24}>
-                      <Form.Item
-                        label="Enfermedad Actual"
-                        name="enfermedadActual"
-                        rules={[{ required: true, message: 'Ingrese la descripción de la enfermedad actual' }]}
-                      >
-                        <TextArea
-                          rows={4}
-                          placeholder="Motivo de consulta, historia de la enfermedad actual, síntomas, evolución..."
                         />
                       </Form.Item>
                     </Col>
@@ -574,64 +477,6 @@ export default function AppointmentCreate(): JSX.Element {
                       </Form.Item>
                     </Col>
                   </Row>
-                </Card>
-              </Col>
-
-              {/* Examen Físico */}
-              <Col xs={24} lg={12}>
-                <Card title={<><FileTextOutlined /> Examen Físico</>} style={{ marginBottom: '24px' }}>
-                  <Form.Item
-                    name="examenFisico"
-                    rules={[{ required: true, message: 'Ingrese los hallazgos del examen físico' }]}
-                  >
-                    <TextArea
-                      rows={8}
-                      placeholder="Descripción del examen físico: apariencia general, signos vitales, examen por sistemas..."
-                    />
-                  </Form.Item>
-                </Card>
-              </Col>
-
-              {/* Observaciones */}
-              <Col xs={24} lg={12}>
-                <Card title="Observaciones Generales" style={{ marginBottom: '24px' }}>
-                  <Form.Item
-                    name="observaciones"
-                    rules={[{ required: true, message: 'Ingrese las observaciones' }]}
-                  >
-                    <TextArea
-                      rows={8}
-                      placeholder="Plan de tratamiento, medicamentos prescritos, recomendaciones, seguimiento..."
-                    />
-                  </Form.Item>
-                </Card>
-              </Col>
-              <Col xs={24}>
-                <DiagnosisTable 
-                  diagnoses={diagnoses}
-                  setDiagnoses={setDiagnoses}
-                />
-              </Col>
-
-              {/* Receta Médica */}
-              <Col xs={24}>
-                <RecipeTable 
-                  recipes={recipes}
-                  setRecipes={setRecipes}
-                />
-              </Col>
-
-              {/* Exámenes */}
-              <Col xs={24}>
-                <Card title={<><ExperimentOutlined /> Exámenes Solicitados</>} style={{ marginBottom: '24px' }}>
-                  <Form.Item
-                    name="examenes"
-                  >
-                    <TextArea
-                      rows={6}
-                      placeholder="Laboratorios, imágenes, estudios especiales solicitados..."
-                    />
-                  </Form.Item>
                 </Card>
               </Col>
 

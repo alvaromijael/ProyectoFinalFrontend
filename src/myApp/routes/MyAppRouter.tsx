@@ -20,6 +20,10 @@ import Laboratory from "../pages/landing/Laboratory";
 import PrivateRoute from "../components/PrivateRoute";
 import AppointmentEdit from "../pages/appointment/AppointmentEdit";
 import { ProfilePage } from "../pages/ProfilePage";
+import AppointmentManage from "../pages/manageAppointment/AppointmentManageCreate";
+import AppointmentManageList from "../pages/manageAppointment/AppointmentManageList";
+import AppointmentManageEdit from "../pages/manageAppointment/AppointmentManageEdit";
+import AppointmentManageCreate from "../pages/manageAppointment/AppointmentManageCreate";
 
 const { Content } = Layout;
 
@@ -94,6 +98,33 @@ export const MyAppRouter = () => {
                 </PrivateRoute>
               }
             />
+              <Route
+              path="/manageAppointmentList"
+              element={
+                <PrivateRoute>
+                  <AppointmentManageList />
+                </PrivateRoute>
+              }
+            />
+
+              <Route
+              path="/manageAppointmentCreate"
+              element={
+                <PrivateRoute>
+                  <AppointmentManageCreate />
+                </PrivateRoute>
+              }
+            />
+
+              <Route
+              path="/manageAppointmentEdit/:id"
+              element={
+                <PrivateRoute>
+                  <AppointmentManageEdit />
+                </PrivateRoute>
+              }
+            />
+
             <Route
               path="/all-users"
               element={
