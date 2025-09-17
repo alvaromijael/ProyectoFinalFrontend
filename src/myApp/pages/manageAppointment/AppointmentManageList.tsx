@@ -42,7 +42,7 @@ const { Title, Text } = Typography;
 const { Content } = Layout;
 const { RangePicker } = DatePicker;
 
-export default function AppointmentList() {
+export default function AppointmentManageList() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
 
@@ -218,11 +218,11 @@ export default function AppointmentList() {
   };
 
   const goToCreateAppointment = () => {
-    navigate("/createAppointment");
+    navigate("/manageAppointmentCreate");
   };
 
   const handleEdit = (appointment: Appointment) => {
-    navigate(`/appointmentEdit/${appointment.id}`);
+    navigate(`/manageAppointmentEdit/${appointment.id}`);
   };
 
   const handleDelete = async (appointmentId: number) => {
@@ -297,6 +297,31 @@ export default function AppointmentList() {
             {dayjs(record.appointment_date).isAfter(dayjs(), 'day') ? 'Próxima' : 'Pasada'}
           </Tag>
         </Space>
+      ),
+    },
+    {
+      title: 'Diagnóstico',
+      key: 'diagnosis',
+      width: 250,
+      render: (_: unknown, record: Appointment) => (
+        <Space direction="vertical" size="small">
+          {record.diagnosis_code && (
+            <Tag color="blue">{record.diagnosis_code}</Tag>
+          )}
+          <Text style={{ fontSize: '12px' }}>
+            {record.diagnosis_description || 'Sin diagnóstico'}
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'Enfermedad Actual',
+      key: 'illness',
+      width: 200,
+      render: (_: unknown, record: Appointment) => (
+        <Text style={{ fontSize: '12px' }}>
+          {record.current_illness || 'No especificada'}
+        </Text>
       ),
     },
     {
@@ -497,7 +522,7 @@ export default function AppointmentList() {
               dataSource={displayedAppointments}
               rowKey="id"
               loading={tableLoading}
-              scroll={{ x: 800 }}
+              scroll={{ x: 1200 }}
               pagination={{
                 total: displayedAppointments.length,
                 pageSize: 10,
@@ -552,7 +577,24 @@ export default function AppointmentList() {
                       </Space>
                     </Card>
                   </Col>
-              
+                  <Col xs={24} sm={12}>
+                    <Card size="small" title="Diagnóstico">
+                      <Space direction="vertical" style={{ width: '100%' }}>
+                        <Text><strong>Código:</strong> {selectedAppointment.diagnosis_code || 'N/A'}</Text>
+                        <Text><strong>Descripción:</strong> {selectedAppointment.diagnosis_description || 'N/A'}</Text>
+                        <Text><strong>Enfermedad Actual:</strong> {selectedAppointment.current_illness || 'N/A'}</Text>
+                      </Space>
+                    </Card>
+                  </Col>
+                  <Col xs={24}>
+                    <Card size="small" title="Examen Físico y Observaciones">
+                      <Space direction="vertical" style={{ width: '100%' }}>
+                        <Text><strong>Examen Físico:</strong> {selectedAppointment.physical_examination || 'No realizado'}</Text>
+                        <Text><strong>Observaciones:</strong> {selectedAppointment.observations || 'Sin observaciones'}</Text>
+                        <Text><strong>Exámenes de Laboratorio:</strong> {selectedAppointment.laboratory_tests || 'No solicitados'}</Text>
+                      </Space>
+                    </Card>
+                  </Col>
                   <Col xs={24}>
                     <Card size="small" title="Signos Vitales">
                       <Row gutter={[16, 8]}>
@@ -576,6 +618,44 @@ export default function AppointmentList() {
                         </Col>
                       </Row>
                     </Card>
+                    <Card size="small" title="Recetas Médicas" style={{ marginTop: 16 }}>
+  {selectedAppointment.recipes && selectedAppointment.recipes.length > 0 ? (
+    <Table 
+      dataSource={selectedAppointment.recipes} 
+      pagination={false}
+      size="small"
+      rowKey={(_, index) => index!} 
+      columns={[
+        {
+          title: 'Medicamento',
+          dataIndex: 'medicine',
+          key: 'medicine',
+          width: '25%',
+        },
+        {
+          title: 'Cantidad',
+          dataIndex: 'amount',
+          key: 'amount',
+          width: '15%',
+        },
+        {
+          title: 'Instrucciones',
+          dataIndex: 'instructions',
+          key: 'instructions',
+          width: '25%',
+        },
+        {
+          title: 'Observaciones',
+          dataIndex: 'observations',
+          key: 'observations',
+          width: '35%',
+        },
+      ]}
+    />
+  ) : (
+    <Text type="secondary">No hay recetas médicas registradas</Text>
+  )}
+</Card>
                   </Col>
                 </Row>
               </div>

@@ -21,6 +21,13 @@ import PrivateRoute from "../components/PrivateRoute";
 import AppointmentEdit from "../pages/appointment/AppointmentEdit";
 import { ProfilePage } from "../pages/ProfilePage";
 
+import LabOrderForm from "../pages/laboratory/LabOrderForm";
+import AppointmentManage from "../pages/manageAppointment/AppointmentManageCreate";
+import AppointmentManageList from "../pages/manageAppointment/AppointmentManageList";
+import AppointmentManageEdit from "../pages/manageAppointment/AppointmentManageEdit";
+import AppointmentManageCreate from "../pages/manageAppointment/AppointmentManageCreate";
+
+
 const { Content } = Layout;
 
 export const MyAppRouter = () => {
@@ -94,6 +101,33 @@ export const MyAppRouter = () => {
                 </PrivateRoute>
               }
             />
+              <Route
+              path="/manageAppointmentList"
+              element={
+                <PrivateRoute>
+                  <AppointmentManageList />
+                </PrivateRoute>
+              }
+            />
+
+              <Route
+              path="/manageAppointmentCreate"
+              element={
+                <PrivateRoute>
+                  <AppointmentManageCreate />
+                </PrivateRoute>
+              }
+            />
+
+              <Route
+              path="/manageAppointmentEdit/:id"
+              element={
+                <PrivateRoute>
+                  <AppointmentManageEdit />
+                </PrivateRoute>
+              }
+            />
+
             <Route
               path="/all-users"
               element={
@@ -107,6 +141,14 @@ export const MyAppRouter = () => {
               element={
                 <PrivateRoute>
                   <ProfilePage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/lab-order-form"
+              element={
+                <PrivateRoute>
+                  <LabOrderForm />
                 </PrivateRoute>
               }
             />

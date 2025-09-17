@@ -17,7 +17,8 @@ import {
   Avatar,
   Layout,
   Collapse,
-  Spin
+  Spin,
+  Divider
 } from 'antd';
 import {
   UserOutlined,
@@ -31,7 +32,8 @@ import {
   SaveOutlined,
   CloseOutlined,
   CaretRightOutlined,
-  LockOutlined
+  LockOutlined,
+  ContactsOutlined
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -48,8 +50,8 @@ import type { PatientUpdate } from '../../services/PatientService';
 
 import dataEcuador from '../../../assets/dataEcuador';
 import dayjs, { Dayjs } from 'dayjs';
+import { calculateAge } from './utils';
 
-// Interfaces locales
 interface ContactForm {
   id?: number;
   first_name: string;
@@ -136,75 +138,72 @@ export default function PatientEdit() {
   const provincias = Object.keys(dataEcuador as DataEcuador);
   const ciudades = formData.province ? (dataEcuador as DataEcuador)[formData.province] : [];
 
-useEffect(() => {
-  const loadPatientData = async (): Promise<void> => {
-    if (!id) return;
-    
-    setInitialLoading(true);
-    try {
-      const response = await PatientService.getPatientById(id);
+  useEffect(() => {
+    const loadPatientData = async (): Promise<void> => {
+      if (!id) return;
       
-      if (response.success && response.data) {
-        const patient: Patient = response.data;
-        setOriginalData(patient);
+      setInitialLoading(true);
+      try {
+        const response = await PatientService.getPatientById(id);
         
-        setFormData({
-          last_name: patient.last_name || '',
-          first_name: patient.first_name || '',
-          birth_date: patient.birth_date ? dayjs(patient.birth_date) : null,
-          age: patient.age || '',
-          gender: patient.gender || '',
-          document_id: patient.document_id || '',
-          marital_status: patient.marital_status || '',
-          occupation: patient.occupation || '',
-          education: patient.education || '',
-          origin: patient.origin || '',
-          province: patient.province || '',
-          city: patient.city || '',
-          medical_history: patient.medical_history || '',
-          notes: patient.notes || '',
-          neighborhood: patient.neighborhood || '',
-          street: patient.street || '',
-          house_number: patient.house_number || '',
-          contacts: (patient.contacts || []).map((contact, index) => ({
-            id: contact.id || Date.now() + index,
-            first_name: contact.first_name,
-            last_name: contact.last_name,
-            phone: contact.phone,
-            email: contact.email || '',
-            relationship_type: contact.relationship_type
-          }))
-        });
-        
-        message.success('Datos del paciente cargados correctamente');
-      } else {
-        message.error(response.message || 'Error al cargar los datos del paciente');
+        if (response.success && response.data) {
+          const patient: Patient = response.data;
+          setOriginalData(patient);
+          
+          setFormData({
+            last_name: patient.last_name || '',
+            first_name: patient.first_name || '',
+            birth_date: patient.birth_date ? dayjs(patient.birth_date) : null,
+            age: calculateAge(patient.birth_date || ''),
+            gender: patient.gender || '',
+            document_id: patient.document_id || '',
+            marital_status: patient.marital_status || '',
+            occupation: patient.occupation || '',
+            education: patient.education || '',
+            origin: patient.origin || '',
+            province: patient.province || '',
+            city: patient.city || '',
+            medical_history: patient.medical_history || '',
+            notes: patient.notes || '',
+            neighborhood: patient.neighborhood || '',
+            street: patient.street || '',
+            house_number: patient.house_number || '',
+            contacts: (patient.contacts || []).map((contact, index) => ({
+              id: contact.id || Date.now() + index,
+              first_name: contact.first_name,
+              last_name: contact.last_name,
+              phone: contact.phone,
+              email: contact.email || '',
+              relationship_type: contact.relationship_type
+            }))
+          });
+          
+          message.success('Datos del paciente cargados correctamente');
+        } else {
+          message.error(response.message || 'Error al cargar los datos del paciente');
+          navigate('/patientList');
+        }
+      } catch (error) {
+        message.error('Error al cargar los datos del paciente');
+        console.error('Error:', error);
         navigate('/patientList');
+      } finally {
+        setInitialLoading(false);
       }
-    } catch (error) {
-      message.error('Error al cargar los datos del paciente');
-      console.error('Error:', error);
-      navigate('/patientList');
-    } finally {
-      setInitialLoading(false);
+    };
+    
+    if (id) {
+      loadPatientData();
     }
-  };
-  
-  if (id) {
-    loadPatientData();
-  }
-}, [id, navigate]); 
-
+  }, [id, navigate]); 
 
   const goToPatientList = (): void => {
     navigate("/patientList");
   };
 
-  // Función para verificar si hay cambios
   const hasChanges = (): boolean => {
     if (!originalData) return false;
     
-    // Comparar datos básicos
     if (
       formData.first_name !== originalData.first_name ||
       formData.last_name !== originalData.last_name ||
@@ -225,7 +224,6 @@ useEffect(() => {
       return true;
     }
 
-    // Comparar fecha de nacimiento
     const originalDate = originalData.birth_date ? dayjs(originalData.birth_date) : null;
     const currentDate = formData.birth_date;
     if (
@@ -236,7 +234,6 @@ useEffect(() => {
       return true;
     }
 
-    // Comparar contactos
     const originalContacts = originalData.contacts || [];
     if (formData.contacts.length !== originalContacts.length) {
       return true;
@@ -261,7 +258,6 @@ useEffect(() => {
   };
 
   const handleInputChange = (field: keyof FormData, value: string): void => {
-    // Prevenir cambios en la cédula
     if (field === 'document_id') {
       message.warning('La cédula no puede ser modificada');
       return;
@@ -373,7 +369,6 @@ useEffect(() => {
       return;
     }
 
-    // Verificar si hay cambios antes de enviar
     if (!hasChanges()) {
       message.info('No hay cambios para guardar');
       return;
@@ -386,7 +381,6 @@ useEffect(() => {
         first_name: formData.first_name,
         last_name: formData.last_name,
         birth_date: formData.birth_date.format('YYYY-MM-DD'),
-        age: formData.age.toString(),
         gender: formData.gender,
         marital_status: formData.marital_status || undefined,
         occupation: formData.occupation || undefined,
@@ -534,7 +528,6 @@ useEffect(() => {
                     </Text>
                   </div>
                 )}
-                {/* Indicador de cambios */}
                 {originalData && hasChanges() && (
                   <div style={{ marginTop: '8px' }}>
                     <Text type="warning" style={{ fontSize: '12px' }}>
@@ -561,282 +554,350 @@ useEffect(() => {
             style={{ marginBottom: '24px' }}
             size="large"
           >
-            {/* Panel 1: Datos del Paciente */}
+            {/* Panel 1: Datos de Filiación (Combinado) */}
             <Panel
               header={
                 <Space>
-                  <UserOutlined style={{ color: '#1890ff' }} />
-                  <Text strong>Datos del Paciente</Text>
+                  <ContactsOutlined style={{ color: '#1890ff' }} />
+                  <Text strong>Datos de Filiación</Text>
+                  {formData.contacts.length > 0 && (
+                    <span style={{ 
+                      background: '#722ed1', 
+                      color: 'white', 
+                      padding: '2px 8px', 
+                      borderRadius: '10px',
+                      fontSize: '12px',
+                      marginLeft: '8px'
+                    }}>
+                      {formData.contacts.length} contactos
+                    </span>
+                  )}
                 </Space>
               }
               key="1"
             >
-              <Row gutter={[24, 16]}>
-                <Col xs={24} sm={12} lg={8}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>
-                      Apellidos <Text type="danger">*</Text>
-                    </Text>
-                    <Input
-                      placeholder="Ingrese los apellidos"
-                      value={formData.last_name}
-                      onChange={(e) => handleInputChange('last_name', e.target.value)}
-                      size="large"
-                    />
-                  </Space>
-                </Col>
-                
-                <Col xs={24} sm={12} lg={8}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>
-                      Nombres <Text type="danger">*</Text>
-                    </Text>
-                    <Input
-                      placeholder="Ingrese los nombres"
-                      value={formData.first_name}
-                      onChange={(e) => handleInputChange('first_name', e.target.value)}
-                      size="large"
-                    />
-                  </Space>
-                </Col>
-                
-                <Col xs={24} sm={12} lg={8}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>
-                      <LockOutlined /> Cédula (No editable)
-                    </Text>
-                    <Input
-                      placeholder="Cédula"
-                      value={formData.document_id}
-                      disabled
-                      size="large"
-                      style={{ 
-                        backgroundColor: '#f5f5f5',
-                        color: '#666',
-                        cursor: 'not-allowed'
-                      }}
-                      addonBefore={<LockOutlined style={{ color: '#999' }} />}
-                    />
-                  </Space>
-                </Col>
-                
-                <Col xs={24} sm={12} lg={8}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>
-                      Edad <Text type="danger">*</Text>
-                    </Text>
-                    <InputNumber
-                      min={0}
-                      max={20}
-                      placeholder="Edad"
-                      style={{ width: '100%' }}
-                      value={formData.age ? parseInt(formData.age) : undefined}
-                      onChange={(value) => handleInputChange('age', value?.toString() || '')}
-                      size="large"
-                    />
-                  </Space>
-                </Col>
-
-                <Col xs={24} sm={12} lg={8}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>
-                      Fecha de Nacimiento <Text type="danger">*</Text>
-                    </Text>
-                    <DatePicker
-                      placeholder="Seleccione la fecha"
-                      style={{ width: '100%' }}
-                      format="DD/MM/YYYY"
-                      value={formData.birth_date}
-                     onChange={(value) =>
-                        handleInputChange(
-                          'birth_date',
-                          value ? value.format('YYYY-MM-DD') : ''
-                        )
-                      }
-                      size="large"
-                    />
-                  </Space>
-                </Col>
-                
-                <Col xs={24} sm={12} lg={8}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>
-                      Sexo <Text type="danger">*</Text>
-                    </Text>
-                    <Select
-                      placeholder="Seleccionar..."
-                      value={formData.gender}
-                      onChange={(value) => handleInputChange('gender', value)}
-                      style={{ width: '100%' }}
-                      size="large"
-                    >
-                      <Option value="M">Masculino</Option>
-                      <Option value="F">Femenino</Option>
-                    </Select>
-                  </Space>
-                </Col>
-                
-                <Col xs={24} sm={12} lg={8}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Estado Civil</Text>
-                    <Select
-                      placeholder="Seleccionar..."
-                      value={formData.marital_status}
-                      onChange={(value) => handleInputChange('marital_status', value)}
-                      style={{ width: '100%' }}
-                      size="large"
-                    >
-                      <Option value="Soltero">Soltero</Option>
-                      <Option value="Casado">Casado</Option>
-                      <Option value="Divorciado">Divorciado</Option>
-                      <Option value="Viudo">Viudo</Option>
-                      <Option value="Union Libre">Unión Libre</Option>
-                    </Select>
-                  </Space>
-                </Col>
-              </Row>
-            </Panel>
-
-            {/* Panel 2: Información Adicional */}
-            <Panel
-              header={
-                <Space>
-                  <EnvironmentOutlined style={{ color: '#52c41a' }} />
-                  <Text strong>Información Adicional</Text>
+              {/* Información Personal Básica */}
+              <div style={{ marginBottom: '32px' }}>
+                <Space style={{ marginBottom: '16px' }}>
+                  <UserOutlined style={{ color: '#1890ff' }} />
+                  <Text strong style={{ fontSize: '16px' }}>Información Personal</Text>
                 </Space>
-              }
-              key="2"
-            >
-              <Row gutter={[24, 16]}>
-                <Col xs={24} sm={12} lg={6}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Ocupación</Text>
-                    <Select
-                      placeholder="Seleccionar..."
-                      value={formData.occupation}
-                      onChange={(value) => handleInputChange('occupation', value)}
-                      style={{ width: '100%' }}
+                <Row gutter={[24, 16]}>
+                  <Col xs={24} sm={12} lg={8}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>
+                        Apellidos <Text type="danger">*</Text>
+                      </Text>
+                      <Input
+                        placeholder="Ingrese los apellidos"
+                        value={formData.last_name}
+                        onChange={(e) => handleInputChange('last_name', e.target.value)}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
+                  
+                  <Col xs={24} sm={12} lg={8}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>
+                        Nombres <Text type="danger">*</Text>
+                      </Text>
+                      <Input
+                        placeholder="Ingrese los nombres"
+                        value={formData.first_name}
+                        onChange={(e) => handleInputChange('first_name', e.target.value)}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
+                  
+                  <Col xs={24} sm={12} lg={8}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>
+                        <LockOutlined /> Cédula (No editable)
+                      </Text>
+                      <Input
+                        placeholder="Cédula"
+                        value={formData.document_id}
+                        disabled
+                        size="large"
+                        style={{ 
+                          backgroundColor: '#f5f5f5',
+                          color: '#666',
+                          cursor: 'not-allowed'
+                        }}
+                        addonBefore={<LockOutlined style={{ color: '#999' }} />}
+                      />
+                    </Space>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={8}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>
+                        Fecha de Nacimiento <Text type="danger">*</Text>
+                      </Text>
+                      <DatePicker
+                        placeholder="Seleccione la fecha"
+                        style={{ width: '100%' }}
+                        format="DD/MM/YYYY"
+                        value={formData.birth_date}
+                        onChange={(value) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            birth_date: value,
+                            age: value ? calculateAge(value.format('YYYY-MM-DD')) : ''
+                          }));
+                        }}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
+                  
+                  <Col xs={24} sm={12} lg={8}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>
+                        Edad <Text type="danger">*</Text>
+                      </Text>
+                      <Input
+                        placeholder="Se calcula automáticamente"
+                        value={formData.age}
+                        readOnly
+                        style={{ 
+                          backgroundColor: '#f5f5f5',
+                          cursor: 'default'
+                        }}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
+                  
+                  <Col xs={24} sm={12} lg={8}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>
+                        Sexo <Text type="danger">*</Text>
+                      </Text>
+                      <Select
+                        placeholder="Seleccionar..."
+                        value={formData.gender}
+                        onChange={(value) => handleInputChange('gender', value)}
+                        style={{ width: '100%' }}
+                        size="large"
+                      >
+                        <Option value="M">Masculino</Option>
+                        <Option value="F">Femenino</Option>
+                      </Select>
+                    </Space>
+                  </Col>
+                  
+                  <Col xs={24} sm={12} lg={8}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>Estado Civil</Text>
+                      <Select
+                        placeholder="Seleccionar..."
+                        value={formData.marital_status}
+                        onChange={(value) => handleInputChange('marital_status', value)}
+                        style={{ width: '100%' }}
+                        size="large"
+                      >
+                        <Option value="Soltero">Soltero</Option>
+                        <Option value="Casado">Casado</Option>
+                        <Option value="Divorciado">Divorciado</Option>
+                        <Option value="Viudo">Viudo</Option>
+                        <Option value="Union Libre">Unión Libre</Option>
+                      </Select>
+                    </Space>
+                  </Col>
+                </Row>
+              </div>
+
+              <Divider />
+
+              {/* Información Socioeconómica y Ubicación */}
+              <div style={{ marginBottom: '32px' }}>
+                <Space style={{ marginBottom: '16px' }}>
+                  <EnvironmentOutlined style={{ color: '#52c41a' }} />
+                  <Text strong style={{ fontSize: '16px' }}>Información Socioeconómica y Ubicación</Text>
+                </Space>
+                <Row gutter={[24, 16]}>
+                  <Col xs={24} sm={12} lg={6}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>Ocupación</Text>
+                      <Select
+                        placeholder="Seleccionar..."
+                        value={formData.occupation}
+                        onChange={(value) => handleInputChange('occupation', value)}
+                        style={{ width: '100%' }}
+                        size="large"
+                      >
+                        <Option value="Dependiente">Trabajador Dependiente</Option>
+                        <Option value="Independiente">Trabajador Independiente</Option>
+                        <Option value="Estudiante">Estudiante</Option>
+                        <Option value="Jubilado">Jubilado</Option>
+                        <Option value="Desempleado">Desempleado</Option>
+                      </Select>
+                    </Space>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={6}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>Instrucción</Text>
+                      <Select
+                        placeholder="Seleccionar..."
+                        value={formData.education}
+                        onChange={(value) => handleInputChange('education', value)}
+                        style={{ width: '100%' }}
+                        size="large"
+                      >
+                        <Option value="Primaria">Primaria</Option>
+                        <Option value="Secundaria">Secundaria</Option>
+                        <Option value="Bachillerato">Bachillerato</Option>
+                        <Option value="Superior">Superior</Option>
+                        <Option value="Ninguna">Ninguna</Option>
+                        <Option value="N/A">No Aplica</Option>
+                      </Select>
+                    </Space>
+                  </Col>
+                  
+                  <Col xs={24} sm={12} lg={6}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>Procedencia</Text>
+                      <Select
+                        placeholder="Seleccionar..."
+                        value={formData.origin}
+                        onChange={(value) => handleInputChange('origin', value)}
+                        style={{ width: '100%' }}
+                        size="large"
+                      >
+                        <Option value="Urbana">Urbana</Option>
+                        <Option value="Rural">Rural</Option>
+                      </Select>
+                    </Space>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={6}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>Provincia</Text>
+                      <Select
+                        placeholder="Seleccionar..."
+                        value={formData.province}
+                        onChange={handleProvinciaChange}
+                        style={{ width: '100%' }}
+                        size="large"
+                      >
+                        {provincias.map(prov => (
+                          <Option key={prov} value={prov}>{prov}</Option>
+                        ))}
+                      </Select>
+                    </Space>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={6}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>Ciudad</Text>
+                      <Select
+                        placeholder="Seleccionar..."
+                        disabled={!formData.province}
+                        value={formData.city}
+                        onChange={(value) => handleInputChange('city', value)}
+                        style={{ width: '100%' }}
+                        size="large"
+                      >
+                        {ciudades.map(ciudad => (
+                          <Option key={ciudad} value={ciudad}>{ciudad}</Option>
+                        ))}
+                      </Select>
+                    </Space>
+                  </Col>
+                  
+                  <Col xs={24} sm={12} lg={6}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>Sector o Barrio</Text>
+                      <Input
+                        placeholder="Ingrese el sector o barrio"
+                        value={formData.neighborhood}
+                        onChange={(e) => handleInputChange('neighborhood', e.target.value)}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={6}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>Calle</Text>
+                      <Input
+                        placeholder="Ingrese la calle"
+                        value={formData.street}
+                        onChange={(e) => handleInputChange('street', e.target.value)}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={6}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>Número de Casa</Text>
+                      <Input
+                        placeholder="Ingrese el número"
+                        value={formData.house_number}
+                        onChange={(e) => handleInputChange('house_number', e.target.value)}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
+                </Row>
+              </div>
+
+              <Divider />
+
+              {/* Contactos de Emergencia */}
+              <div>
+                <Row justify="space-between" align="middle" style={{ marginBottom: '16px' }}>
+                  <Col>
+                    <Space>
+                      <PhoneOutlined style={{ color: '#722ed1' }} />
+                      <Text strong style={{ fontSize: '16px' }}>Contactos de Emergencia</Text>
+                    </Space>
+                  </Col>
+                  <Col>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={openAddContactModal}
                       size="large"
                     >
-                      <Option value="Dependiente">Trabajador Dependiente</Option>
-                      <Option value="Independiente">Trabajador Independiente</Option>
-                      <Option value="Estudiante">Estudiante</Option>
-                      <Option value="Jubilado">Jubilado</Option>
-                      <Option value="Desempleado">Desempleado</Option>
-                    </Select>
-                  </Space>
-                </Col>
+                      Agregar Contacto
+                    </Button>
+                  </Col>
+                </Row>
 
-                <Col xs={24} sm={12} lg={6}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Instrucción</Text>
-                    <Select
-                      placeholder="Seleccionar..."
-                      value={formData.education}
-                      onChange={(value) => handleInputChange('education', value)}
-                      style={{ width: '100%' }}
-                      size="large"
-                    >
-                      <Option value="Primaria">Primaria</Option>
-                      <Option value="Secundaria">Secundaria</Option>
-                      <Option value="Bachillerato">Bachillerato</Option>
-                      <Option value="Superior">Superior</Option>
-                      <Option value="Ninguna">Ninguna</Option>
-                      <Option value="N/A">No Aplica</Option>
-                    </Select>
-                  </Space>
-                </Col>
-                
-                <Col xs={24} sm={12} lg={6}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Procedencia</Text>
-                    <Select
-                      placeholder="Seleccionar..."
-                      value={formData.origin}
-                      onChange={(value) => handleInputChange('origin', value)}
-                      style={{ width: '100%' }}
-                      size="large"
-                    >
-                      <Option value="Urbana">Urbana</Option>
-                      <Option value="Rural">Rural</Option>
-                    </Select>
-                  </Space>
-                </Col>
-
-                <Col xs={24} sm={12} lg={6}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Provincia</Text>
-                    <Select
-                      placeholder="Seleccionar..."
-                      value={formData.province}
-                      onChange={handleProvinciaChange}
-                      style={{ width: '100%' }}
-                      size="large"
-                    >
-                      {provincias.map(prov => (
-                        <Option key={prov} value={prov}>{prov}</Option>
-                      ))}
-                    </Select>
-                  </Space>
-                </Col>
-
-                <Col xs={24} sm={12} lg={6}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Ciudad</Text>
-                    <Select
-                      placeholder="Seleccionar..."
-                      disabled={!formData.province}
-                      value={formData.city}
-                      onChange={(value) => handleInputChange('city', value)}
-                      style={{ width: '100%' }}
-                      size="large"
-                    >
-                      {ciudades.map(ciudad => (
-                        <Option key={ciudad} value={ciudad}>{ciudad}</Option>
-                      ))}
-                    </Select>
-                  </Space>
-                </Col>
-                
-                <Col xs={24} sm={12} lg={6}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Sector o Barrio</Text>
-                    <Input
-                      placeholder="Ingrese el sector o barrio"
-                      value={formData.neighborhood}
-                      onChange={(e) => handleInputChange('neighborhood', e.target.value)}
-                      size="large"
-                    />
-                  </Space>
-                </Col>
-
-                <Col xs={24} sm={12} lg={6}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Calle</Text>
-                    <Input
-                      placeholder="Ingrese la calle"
-                      value={formData.street}
-                      onChange={(e) => handleInputChange('street', e.target.value)}
-                      size="large"
-                    />
-                  </Space>
-                </Col>
-
-                <Col xs={24} sm={12} lg={6}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Número de Casa</Text>
-                    <Input
-                      placeholder="Ingrese el número"
-                      value={formData.house_number}
-                      onChange={(e) => handleInputChange('house_number', e.target.value)}
-                      size="large"
-                    />
-                  </Space>
-                </Col>
-              </Row>
+                {formData.contacts.length > 0 ? (
+                  <Table
+                    columns={contactColumns}
+                    dataSource={formData.contacts}
+                    rowKey="id"
+                    pagination={false}
+                    size="middle"
+                    scroll={{ x: 800 }}
+                    bordered
+                  />
+                ) : (
+                  <div style={{ 
+                    textAlign: 'center', 
+                    padding: '40px 0', 
+                    color: '#999',
+                    background: '#fafafa',
+                    borderRadius: '8px',
+                    border: '2px dashed #d9d9d9'
+                  }}>
+                    <PhoneOutlined style={{ fontSize: '48px', marginBottom: '16px', color: '#d9d9d9' }} />
+                    <Title level={4} type="secondary">No hay contactos agregados</Title>
+                    <Text type="secondary">Haga clic en "Agregar Contacto" para añadir contactos de emergencia</Text>
+                  </div>
+                )}
+              </div>
             </Panel>
 
-            {/* Panel 3: Información Médica */}
+            {/* Panel 2: Información Médica */}
             <Panel
               header={
                 <Space>
@@ -844,7 +905,7 @@ useEffect(() => {
                   <Text strong>Información Médica</Text>
                 </Space>
               }
-              key="3"
+              key="2"
             >
               <Row gutter={[24, 16]}>
                 <Col xs={24} sm={12}>
@@ -871,68 +932,6 @@ useEffect(() => {
                   </Space>
                 </Col>
               </Row>
-            </Panel>
-
-            {/* Panel 4: Contactos */}
-            <Panel
-              header={
-                <Space>
-                  <PhoneOutlined style={{ color: '#722ed1' }} />
-                  <Text strong>Contactos de Emergencia</Text>
-                  {formData.contacts.length > 0 && (
-                    <span style={{ 
-                      background: '#722ed1', 
-                      color: 'white', 
-                      padding: '2px 8px', 
-                      borderRadius: '10px',
-                      fontSize: '12px',
-                      marginLeft: '8px'
-                    }}>
-                      {formData.contacts.length}
-                    </span>
-                  )}
-                </Space>
-              }
-              key="4"
-            >
-              <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                <Row justify="end">
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={openAddContactModal}
-                    size="large"
-                    style={{ marginBottom: '16px' }}
-                  >
-                    Agregar Contacto
-                  </Button>
-                </Row>
-
-                {formData.contacts.length > 0 ? (
-                  <Table
-                    columns={contactColumns}
-                    dataSource={formData.contacts}
-                    rowKey="id"
-                    pagination={false}
-                    size="middle"
-                    scroll={{ x: 800 }}
-                    bordered
-                  />
-                ) : (
-                  <div style={{ 
-                    textAlign: 'center', 
-                    padding: '60px 0', 
-                    color: '#999',
-                    background: '#fafafa',
-                    borderRadius: '8px',
-                    border: '2px dashed #d9d9d9'
-                  }}>
-                    <PhoneOutlined style={{ fontSize: '64px', marginBottom: '24px', color: '#d9d9d9' }} />
-                    <Title level={4} type="secondary">No hay contactos agregados</Title>
-                    <Text type="secondary">Haga clic en "Agregar Contacto" para añadir contactos de emergencia</Text>
-                  </div>
-                )}
-              </Space>
             </Panel>
           </Collapse>
 
