@@ -48,6 +48,7 @@ const Sidebar: React.FC = () => {
         >
           <Menu.Item key="patientList">Pacientes</Menu.Item>
           <Menu.Item key="appointmentList">Citas</Menu.Item>
+          <Menu.Item key="manageAppointmentList">Gestión de Citas</Menu.Item>
           <Menu.Item key="resultados-med">Recetas</Menu.Item>
         </Menu.SubMenu>
 

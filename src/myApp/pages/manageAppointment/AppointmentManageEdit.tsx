@@ -22,6 +22,8 @@ import {
   UserOutlined,  
   SaveOutlined,
   ArrowLeftOutlined,
+  FileTextOutlined,
+  ExperimentOutlined,
   EditOutlined,
   SearchOutlined
 } from '@ant-design/icons';
@@ -29,9 +31,20 @@ import dayjs, { Dayjs } from 'dayjs';
 
 import PatientService from '../../services/PatientService';
 import AppointmentService from '../../services/AppointmentService';
+import RecipeTable from '../../components/RecipeTable';
+import DiagnosisTable from '../../components/DiagnosisTable';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
+const { TextArea } = Input;
+
+export interface Diagnosis {
+  key: string;
+  diagnosis_code: string;
+  diagnosis_description: string;
+  diagnosis_type: 'primary' | 'secondary';
+  observations: string;
+}
 
 // Custom hook for debounce with proper typing
 const useDebounce = (value: string, delay: number): string => {
@@ -59,17 +72,46 @@ interface Patient {
   medical_history?: string;
 }
 
+
+interface Recipe {
+  key: string;
+  medicine: string;
+  amount: string;
+  instructions: string;
+  observations: string;
+}
+
+interface AppointmentDiagnosis {
+  id?: number;
+  diagnosis_code: string;
+  diagnosis_description: string;
+  diagnosis_type: 'primary' | 'secondary';
+}
+
+interface APIRecipe {
+  medicine?: string;
+  amount?: string;
+  instructions?: string;
+  observations?: string;
+}
+
 interface Appointment {
   id?: number;
   patient_id: number;
   appointment_date: string;
   appointment_time: string;
+  current_illness?: string;
+  physical_examination?: string;
   temperature?: string;
   blood_pressure?: string;
   heart_rate?: string;
   oxygen_saturation?: string;
   weight?: string;
   height?: string;
+  observations?: string;
+  laboratory_tests?: string;
+  recipes?: APIRecipe[];
+  diagnoses?: AppointmentDiagnosis[];
 }
 
 interface PatientOption {
@@ -85,18 +127,25 @@ interface FormValues {
   cedula: string;
   fecha: Dayjs;
   hora: Dayjs;
+  antecedentes: string;
+  enfermedadActual: string;
   temperatura: string;
   presionArterial: string;
   frecuenciaCardiaca: string;
   saturacionO2: string;
   peso: string;
   talla: string;
+  examenFisico: string;
+  observaciones: string;
+  examenes: string;
 }
 
 interface OriginalData {
   formData: Partial<FormValues>;
+  recipes: Recipe[];
   patient: Patient;
   appointment: Appointment;
+  diagnoses: Diagnosis[];
 }
 
 interface APIResponse<T = any> {
@@ -109,15 +158,30 @@ interface AppointmentUpdateData {
   patient_id: number;
   appointment_date: string;
   appointment_time: string;
+  current_illness: string;
+  physical_examination: string;
+  observations: string;
+  laboratory_tests: string;
   temperature: string;
   blood_pressure: string;
   heart_rate: string;
   oxygen_saturation: string;
   weight: string;
   height: string;
+  diagnoses: Array<{
+    diagnosis_code: string;
+    diagnosis_description: string;
+    diagnosis_type: 'primary' | 'secondary';
+  }>;
+  recipes: Array<{
+    medicine: string;
+    amount: string;
+    instructions: string;
+    observations: string;
+  }>;
 }
 
-export default function AppointmentEdit(): JSX.Element {
+export default function AppointmentManageEdit(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [form] = Form.useForm<FormValues>();
@@ -130,6 +194,8 @@ export default function AppointmentEdit(): JSX.Element {
   const [searchValue, setSearchValue] = useState<string>('');
   const [patientOptions, setPatientOptions] = useState<PatientOption[]>([]);
   const [appointment, setAppointment] = useState<Appointment | null>(null);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [originalData, setOriginalData] = useState<OriginalData | null>(null);
 
   // Debounce del valor de búsqueda
@@ -189,10 +255,32 @@ export default function AppointmentEdit(): JSX.Element {
     loadAppointmentData();
   }, [id]);
 
+  // Función para convertir diagnósticos de la API a formato de tabla
+  const convertDiagnosesToTable = (apiDiagnoses: AppointmentDiagnosis[]): Diagnosis[] => {
+    return apiDiagnoses.map((diag: AppointmentDiagnosis, index: number) => ({
+      key: `diagnosis-${index}-${Date.now()}`,
+      diagnosis_code: diag.diagnosis_code,
+      diagnosis_description: diag.diagnosis_description,
+      diagnosis_type: diag.diagnosis_type,
+      observations: ''
+    }));
+  };
+
+  // Función para convertir diagnósticos de tabla a formato API
+  const buildDiagnosesForAPI = (diagnosesTable: Diagnosis[]): AppointmentUpdateData['diagnoses'] => {
+    return diagnosesTable
+      .filter((diag: Diagnosis) => diag.diagnosis_code && diag.diagnosis_description)
+      .map((diag: Diagnosis) => ({
+        diagnosis_code: diag.diagnosis_code,
+        diagnosis_description: diag.diagnosis_description,
+        diagnosis_type: diag.diagnosis_type
+      }));
+  };
+
   const loadAppointmentData = async (): Promise<void> => {
     if (!id) {
       message.error('ID de cita no válido');
-      navigate('/appointments');
+      navigate('/manageAppointmentList');
       return;
     }
 
@@ -211,6 +299,12 @@ export default function AppointmentEdit(): JSX.Element {
             setSelectedPatient(patient);
             
             const patientDisplayValue = `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}`;
+            
+            const tableDiagnoses = appointmentData.diagnoses 
+              ? convertDiagnosesToTable(appointmentData.diagnoses)
+              : [];
+            
+            setDiagnoses(tableDiagnoses);
 
             const formData: Partial<FormValues> = {
               searchPatient: patientDisplayValue,
@@ -219,35 +313,56 @@ export default function AppointmentEdit(): JSX.Element {
               cedula: patient.document_id || '',
               fecha: appointmentData.appointment_date ? dayjs(appointmentData.appointment_date) : undefined,
               hora: appointmentData.appointment_time ? dayjs(appointmentData.appointment_time, 'HH:mm:ss') : undefined,
+              antecedentes: patient.medical_history || 'Sin antecedentes médicos registrados',
+              enfermedadActual: appointmentData.current_illness || '',
               temperatura: appointmentData.temperature || '',
               presionArterial: appointmentData.blood_pressure || '',
               frecuenciaCardiaca: appointmentData.heart_rate || '',
               saturacionO2: appointmentData.oxygen_saturation || '',
               peso: appointmentData.weight || '',
-              talla: appointmentData.height ? Math.round(parseFloat(appointmentData.height) * 100).toString() : ''
+              talla: appointmentData.height ? Math.round(parseFloat(appointmentData.height) * 100).toString() : '',
+              examenFisico: appointmentData.physical_examination || '',
+              observaciones: appointmentData.observations || '',
+              examenes: appointmentData.laboratory_tests || ''
             };
+
+            let processedRecipes: Recipe[] = [];
+            if (appointmentData.recipes && Array.isArray(appointmentData.recipes) && appointmentData.recipes.length > 0) {
+              processedRecipes = appointmentData.recipes
+                .filter((recipe: APIRecipe) => recipe && (recipe.medicine || recipe.amount || recipe.instructions || recipe.observations))
+                .map((recipe: APIRecipe, index: number) => ({
+                  key: `recipe-${index}-${Date.now()}`,
+                  medicine: recipe.medicine ? recipe.medicine.trim() : '',
+                  amount: recipe.amount ? recipe.amount.trim() : '',
+                  instructions: recipe.instructions ? recipe.instructions.trim() : '',
+                  observations: recipe.observations ? recipe.observations.trim() : ''
+                }));
+            }
             
             const originalDataObj: OriginalData = {
               formData,
+              recipes: processedRecipes,
               patient,
-              appointment: appointmentData
+              appointment: appointmentData,
+              diagnoses: tableDiagnoses
             };
             
             setOriginalData(originalDataObj);
             
             form.setFieldsValue(formData);
+            setRecipes(processedRecipes);
             setSearchValue(patientDisplayValue);
             message.success('Datos de la cita médica cargados correctamente');
           }
         }
       } else {
         message.error('Error al cargar la cita médica');
-        navigate('/appointments');
+        navigate('/manageAppointmentList');
       }
     } catch (error) {
       message.error('Error inesperado al cargar los datos');
       console.error('Error loading appointment data:', error);
-      navigate('/appointments');
+      navigate('/manageAppointmentList');
     } finally {
       setLoadingData(false);
     }
@@ -270,10 +385,11 @@ export default function AppointmentEdit(): JSX.Element {
         searchPatient: value,
         nombres: patient.first_name,
         apellidos: patient.last_name,
-        cedula: patient.document_id
+        cedula: patient.document_id,
+        antecedentes: patient.medical_history || 'Sin antecedentes médicos registrados'
       });
       
-      message.success('Paciente seleccionado correctamente.');
+      message.success('Paciente seleccionado. Antecedentes cargados automáticamente.');
     }
   };
 
@@ -288,30 +404,46 @@ export default function AppointmentEdit(): JSX.Element {
       return;
     }
 
+    // Validar que hay al menos un diagnóstico válido
+    const validDiagnoses = diagnoses.filter((diag: Diagnosis) => diag.diagnosis_code && diag.diagnosis_description);
+    if (validDiagnoses.length === 0) {
+      message.error('Debe agregar al menos un diagnóstico válido');
+      return;
+    }
+
     setLoading(true);
     try {
-      // Validar altura
-      let heightInMeters = '';
-      if (values.talla) {
-        const heightInCm = parseFloat(values.talla);
-        if (isNaN(heightInCm) || heightInCm <= 0) {
-          message.error('Talla debe ser un número válido');
-          setLoading(false);
-          return;
-        }
-        heightInMeters = (heightInCm / 100).toString();
-      }
+      const validRecipes = recipes.filter((recipe: Recipe) => 
+        (recipe.medicine && recipe.medicine.trim()) || 
+        (recipe.amount && recipe.amount.trim()) || 
+        (recipe.instructions && recipe.instructions.trim()) || 
+        (recipe.observations && recipe.observations.trim())
+      ).map((recipe: Recipe) => ({
+        medicine: recipe.medicine ? recipe.medicine.trim() : '',
+        amount: recipe.amount ? recipe.amount.trim() : '',
+        instructions: recipe.instructions ? recipe.instructions.trim() : '',
+        observations: recipe.observations ? recipe.observations.trim() : ''
+      }));
+
+      // Preparar los diagnósticos para la API
+      const diagnosesArray = buildDiagnosesForAPI(diagnoses);
 
       const appointmentData: AppointmentUpdateData = {
         patient_id: selectedPatient.id!,
         appointment_date: values.fecha.format('YYYY-MM-DD'),
         appointment_time: values.hora.format('HH:mm:ss'),
+        current_illness: values.enfermedadActual,
+        physical_examination: values.examenFisico,
+        observations: values.observaciones,
+        laboratory_tests: values.examenes || '',
         temperature: values.temperatura,
         blood_pressure: values.presionArterial,
         heart_rate: values.frecuenciaCardiaca,
         oxygen_saturation: values.saturacionO2,
         weight: values.peso,
-        height: heightInMeters
+        height: values.talla ? (parseFloat(values.talla) / 100).toString() : '',
+        diagnoses: diagnosesArray,
+        recipes: validRecipes
       };
 
       console.log('Datos de la cita a actualizar:', appointmentData);
@@ -320,7 +452,7 @@ export default function AppointmentEdit(): JSX.Element {
       
       if (response.success) {
         message.success('Cita médica actualizada exitosamente');
-        navigate('/appointments');
+        navigate('/manageAppointmentList');
       } else {
         message.error(response.message || 'Error al actualizar la cita');
       }
@@ -333,18 +465,20 @@ export default function AppointmentEdit(): JSX.Element {
   };
 
   const goBack = (): void => {
-    navigate('/appointments');
+    navigate('/manageAppointmentList');
   };
 
   const handleCancel = (): void => {
-    navigate('/appointments');
+    navigate('/manageAppointmentList');
   };
 
   const handleClear = (): void => {
     if (originalData) {
       form.setFieldsValue(originalData.formData);
+      setRecipes([...originalData.recipes]); 
       setSelectedPatient(originalData.patient);
       setSearchValue(originalData.formData.searchPatient || '');
+      setDiagnoses([...originalData.diagnoses]);
       message.info('Formulario restaurado a valores originales');
     } else {
       loadAppointmentData();
@@ -451,7 +585,8 @@ export default function AppointmentEdit(): JSX.Element {
                             form.setFieldsValue({
                               nombres: '',
                               apellidos: '',
-                              cedula: ''
+                              cedula: '',
+                              antecedentes: ''
                             });
                           }}
                         />
@@ -591,6 +726,96 @@ export default function AppointmentEdit(): JSX.Element {
                       </Form.Item>
                     </Col>
                   </Row>
+                </Card>
+              </Col>
+              
+              <Col xs={24}>
+                <Card title={<><FileTextOutlined /> Anamnesis</>} style={{ marginBottom: '24px' }}>
+                  <Row gutter={[16, 16]}>
+                    <Col xs={24}>
+                      <Form.Item
+                        label="Antecedentes (Cargados automáticamente del paciente)"
+                        name="antecedentes"
+                        rules={[{ required: true, message: 'Los antecedentes son obligatorios' }]}
+                      >
+                        <TextArea
+                          rows={4}
+                          placeholder="Los antecedentes se cargan automáticamente al seleccionar un paciente..."
+                          disabled
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24}>
+                      <Form.Item
+                        label="Enfermedad Actual"
+                        name="enfermedadActual"
+                        rules={[{ required: true, message: 'Ingrese la descripción de la enfermedad actual' }]}
+                      >
+                        <TextArea
+                          rows={4}
+                          placeholder="Motivo de consulta, historia de la enfermedad actual, síntomas, evolución..."
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
+              
+              
+              
+              <Col xs={24} lg={12}>
+                <Card title={<><FileTextOutlined /> Examen Físico</>} style={{ marginBottom: '24px' }}>
+                  <Form.Item
+                    name="examenFisico"
+                    rules={[{ required: true, message: 'Ingrese los hallazgos del examen físico' }]}
+                  >
+                    <TextArea
+                      rows={8}
+                      placeholder="Descripción del examen físico: apariencia general, signos vitales, examen por sistemas..."
+                    />
+                  </Form.Item>
+                </Card>
+              </Col>
+
+              <Col xs={24} lg={12}>
+                <Card title="Observaciones Generales" style={{ marginBottom: '24px' }}>
+                  <Form.Item
+                    name="observaciones"
+                    rules={[{ required: true, message: 'Ingrese las observaciones' }]}
+                  >
+                    <TextArea
+                      rows={8}
+                      placeholder="Plan de tratamiento, medicamentos prescritos, recomendaciones, seguimiento..."
+                    />
+                  </Form.Item>
+                </Card>
+              </Col>
+
+              {/* Tabla de Diagnósticos */}
+              <Col xs={24}>
+                <DiagnosisTable 
+                  diagnoses={diagnoses}
+                  setDiagnoses={setDiagnoses}
+                />
+              </Col>
+
+              <Col xs={24}>
+                <RecipeTable 
+                  recipes={recipes}
+                  setRecipes={setRecipes}
+                />
+              </Col>
+              
+              <Col xs={24}>
+                <Card title={<><ExperimentOutlined /> Exámenes Solicitados</>} style={{ marginBottom: '24px' }}>
+                  <Form.Item
+                    name="examenes"
+                  >
+                    <TextArea
+                      rows={6}
+                      placeholder="Laboratorios, imágenes, estudios especiales solicitados..."
+                    />
+                  </Form.Item>
                 </Card>
               </Col>
               
