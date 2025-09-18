@@ -192,7 +192,6 @@ export default function AppointmentManageCreate(): JSX.Element {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [searchValue, setSearchValue] = useState<string>('');
   const [patientOptions, setPatientOptions] = useState<PatientOption[]>([]);
-  const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [originalData, setOriginalData] = useState<OriginalData | null>(null);
@@ -289,7 +288,6 @@ export default function AppointmentManageCreate(): JSX.Element {
       
       if (appointmentResponse.success) {
         const appointmentData = appointmentResponse.data;
-        setAppointment(appointmentData);
 
         if (appointmentData.patient_id) {
           const patientResponse: APIResponse<Patient> = await PatientService.getPatientById(appointmentData.patient_id);

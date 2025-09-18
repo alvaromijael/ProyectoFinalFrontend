@@ -129,7 +129,7 @@ export default function AppointmentEdit(): JSX.Element {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [searchValue, setSearchValue] = useState<string>('');
   const [patientOptions, setPatientOptions] = useState<PatientOption[]>([]);
-  const [appointment, setAppointment] = useState<Appointment | null>(null);
+  //const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [originalData, setOriginalData] = useState<OriginalData | null>(null);
 
   // Debounce del valor de búsqueda
@@ -202,7 +202,7 @@ export default function AppointmentEdit(): JSX.Element {
       
       if (appointmentResponse.success) {
         const appointmentData = appointmentResponse.data;
-        setAppointment(appointmentData);
+        //setAppointment(appointmentData);
 
         if (appointmentData.patient_id) {
           const patientResponse: APIResponse<Patient> = await PatientService.getPatientById(appointmentData.patient_id);

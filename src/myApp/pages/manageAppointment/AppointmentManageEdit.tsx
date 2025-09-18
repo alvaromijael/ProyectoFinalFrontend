@@ -72,7 +72,6 @@ interface Patient {
   medical_history?: string;
 }
 
-
 interface Recipe {
   key: string;
   medicine: string;
@@ -193,7 +192,6 @@ export default function AppointmentManageEdit(): JSX.Element {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [searchValue, setSearchValue] = useState<string>('');
   const [patientOptions, setPatientOptions] = useState<PatientOption[]>([]);
-  const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [originalData, setOriginalData] = useState<OriginalData | null>(null);
@@ -290,7 +288,6 @@ export default function AppointmentManageEdit(): JSX.Element {
       
       if (appointmentResponse.success) {
         const appointmentData = appointmentResponse.data;
-        setAppointment(appointmentData);
 
         if (appointmentData.patient_id) {
           const patientResponse: APIResponse<Patient> = await PatientService.getPatientById(appointmentData.patient_id);
@@ -760,8 +757,6 @@ export default function AppointmentManageEdit(): JSX.Element {
                   </Row>
                 </Card>
               </Col>
-              
-              
               
               <Col xs={24} lg={12}>
                 <Card title={<><FileTextOutlined /> Examen Físico</>} style={{ marginBottom: '24px' }}>
