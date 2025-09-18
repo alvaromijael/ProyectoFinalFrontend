@@ -1,5 +1,5 @@
 // LabOrderForm.tsx
-import React, { useState, type JSX } from "react";
+import React, { useState, useEffect, type JSX } from "react";
 import labFields from "../../../assets/labFields.json";
 import type { LabFields, OrderData, PatientData, PatientField, SelectedTests, TestCategory } from "../../interfaces/LaboratoryData";
 
@@ -17,6 +17,23 @@ const LabOrderForm: React.FC = () => {
   );
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [showError, setShowError] = useState<string>("");
+  const [windowWidth, setWindowWidth] = useState<number>(
+    typeof window !== 'undefined' ? window.innerWidth : 1200
+  );
+
+  // Hook para manejar el responsive
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Función para determinar el número de columnas basado en el ancho de ventana
+  const getGridColumns = (): string => {
+    if (windowWidth <= 768) return "1fr";
+    if (windowWidth <= 1200) return "repeat(2, 1fr)";
+    return "repeat(3, 1fr)";
+  };
 
   const handleInputChange = (field: string, value: string): void => {
     setPatientData((prev) => ({
@@ -63,8 +80,8 @@ const LabOrderForm: React.FC = () => {
     }
 
     const selectedTestsList = Object.entries(selectedTests)
-      .filter(([key, value]) => value)
-      .map(([key, value]) => key.replace(/_/g, " - "));
+      .filter(([, value]) => value) // Cambiado de [key, value] a [, value] ya que key no se usa
+      .map(([key]) => key.replace(/_/g, " - ")); // Solo usar key aquí
 
     const orderData: OrderData = {
       selectedTests: selectedTestsList,
@@ -427,7 +444,7 @@ const LabOrderForm: React.FC = () => {
           </span>
         </div>
 
-        {/* Selección de Exámenes - 3 columnas */}
+        {/* Selección de Exámenes - Responsive */}
         <div
           style={{
             backgroundColor: "white",
@@ -453,14 +470,8 @@ const LabOrderForm: React.FC = () => {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)", // 3 columnas fijas
+              gridTemplateColumns: getGridColumns(), // Función para responsive
               gap: "16px",
-              '@media (max-width: 1200px)': {
-                gridTemplateColumns: "repeat(2, 1fr)", // 2 columnas en pantallas medianas
-              },
-              '@media (max-width: 768px)': {
-                gridTemplateColumns: "1fr", // 1 columna en móviles
-              }
             }}
           >
             {Object.entries((labFields as LabFields).categories).map(

@@ -22,9 +22,11 @@
 }
 
 .gradient-text {
-  background: linear-gradient(to right, #ffffff, #d0d0ff);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+    background: linear-gradient(to right, #ffffff, #ad00ff);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
 }
 
 .home-image img {
