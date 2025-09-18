@@ -22,7 +22,7 @@ import AppointmentEdit from "../pages/appointment/AppointmentEdit";
 import { ProfilePage } from "../pages/ProfilePage";
 
 import LabOrderForm from "../pages/laboratory/LabOrderForm";
-import AppointmentManage from "../pages/manageAppointment/AppointmentManageCreate";
+// import AppointmentManage from "../pages/manageAppointment/AppointmentManageCreate";
 import AppointmentManageList from "../pages/manageAppointment/AppointmentManageList";
 import AppointmentManageEdit from "../pages/manageAppointment/AppointmentManageEdit";
 import AppointmentManageCreate from "../pages/manageAppointment/AppointmentManageCreate";

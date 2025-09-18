@@ -33,7 +33,7 @@ import {
 
 import { useNavigate } from "react-router-dom";
 import PatientService from '../../services/PatientService';
-import dayjs from 'dayjs';
+// import dayjs from 'dayjs';
 import { calculateAge } from './utils';
 
 interface Patient {
