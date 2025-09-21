@@ -36,7 +36,8 @@ interface Appointment {
   blood_pressure?: string;
   heart_rate?: string;
   oxygen_saturation?: string;
-  weight?: string;
+  weight?: number; // Cambio: number en lugar de string
+  weight_unit?: string; // Nuevo campo
   height?: string;
   recipes?: Recipe[]; // ← Agregar recetas
   created_at?: string;
@@ -58,7 +59,8 @@ interface AppointmentCreate {
   blood_pressure?: string;
   heart_rate?: string;
   oxygen_saturation?: string;
-  weight?: string;
+  weight?: number; // Cambio: number en lugar de string
+  weight_unit?: string; // Nuevo campo
   height?: string;
   recipes?: Recipe[]; // ← Agregar recetas
 }
@@ -77,7 +79,8 @@ interface AppointmentUpdate {
   blood_pressure?: string;
   heart_rate?: string;
   oxygen_saturation?: string;
-  weight?: string;
+  weight?: number; // Cambio: number en lugar de string
+  weight_unit?: string; // Nuevo campo
   height?: string;
   recipes?: Recipe[]; // ← Agregar recetas
 }
@@ -356,6 +359,89 @@ class AppointmentService {
     if (!appointmentDateTime) return false;
     
     return appointmentDateTime > new Date();
+  }
+
+  // Nuevos métodos utilitarios para peso con unidades
+  static formatWeight(weight?: number, unit?: string): string {
+    if (!weight) return '';
+    
+    const unitSymbol = unit || 'kg';
+    return `${weight} ${unitSymbol}`;
+  }
+
+  static convertWeight(weight: number, fromUnit: string, toUnit: string): number {
+    if (fromUnit === toUnit) return weight;
+    
+    // Convertir todo a kg primero
+    let weightInKg: number;
+    switch (fromUnit.toLowerCase()) {
+      case 'g':
+        weightInKg = weight / 1000;
+        break;
+      case 'lb':
+        weightInKg = weight * 0.453592;
+        break;
+      case 'kg':
+      default:
+        weightInKg = weight;
+        break;
+    }
+    
+    // Convertir de kg a la unidad destino
+    switch (toUnit.toLowerCase()) {
+      case 'g':
+        return weightInKg * 1000;
+      case 'lb':
+        return weightInKg / 0.453592;
+      case 'kg':
+      default:
+        return weightInKg;
+    }
+  }
+
+  static validateWeight(weight: number, unit: string): { isValid: boolean; message?: string } {
+    if (weight <= 0) {
+      return { isValid: false, message: 'El peso debe ser mayor a 0' };
+    }
+
+    switch (unit.toLowerCase()) {
+      case 'kg':
+        if (weight > 500) {
+          return { isValid: false, message: 'Peso en kg no puede exceder 500 kg' };
+        }
+        if (weight < 0.1) {
+          return { isValid: false, message: 'Peso en kg no puede ser menor a 0.1 kg' };
+        }
+        break;
+      case 'lb':
+        if (weight > 1100) {
+          return { isValid: false, message: 'Peso en lb no puede exceder 1100 lb' };
+        }
+        if (weight < 0.22) {
+          return { isValid: false, message: 'Peso en lb no puede ser menor a 0.22 lb' };
+        }
+        break;
+      case 'g':
+        if (weight > 500000) {
+          return { isValid: false, message: 'Peso en g no puede exceder 500,000 g' };
+        }
+        if (weight < 100) {
+          return { isValid: false, message: 'Peso en g no puede ser menor a 100 g' };
+        }
+        break;
+      default:
+        return { isValid: false, message: 'Unidad de peso no válida' };
+    }
+
+    return { isValid: true };
+  }
+
+  static getWeightUnitOptions(): Array<{ value: string; label: string; suffix: string }> {
+    return [
+      { value: 'kg', label: 'Kilogramos (kg)', suffix: 'kg' },
+      { value: 'lb', label: 'Libras (lb)', suffix: 'lb' },
+      { value: 'g', label: 'Gramos (g)', suffix: 'g' }
+    ];
   }
 
   // Manejo de errores

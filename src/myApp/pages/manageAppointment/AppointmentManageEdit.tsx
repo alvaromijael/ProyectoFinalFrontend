@@ -16,7 +16,8 @@ import {
   message,
   Divider,
   AutoComplete,
-  Spin
+  Spin,
+  Select
 } from 'antd';
 import {
   UserOutlined,  
@@ -25,7 +26,8 @@ import {
   FileTextOutlined,
   ExperimentOutlined,
   EditOutlined,
-  SearchOutlined
+  SearchOutlined,
+  MedicineBoxOutlined
 } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
 
@@ -37,6 +39,7 @@ import DiagnosisTable from '../../components/DiagnosisTable';
 const { Title, Text } = Typography;
 const { Content } = Layout;
 const { TextArea } = Input;
+const { Option } = Select;
 
 export interface Diagnosis {
   key: string;
@@ -77,6 +80,7 @@ interface Recipe {
   medicine: string;
   amount: string;
   instructions: string;
+  lunchTime: string;
   observations: string;
 }
 
@@ -91,6 +95,7 @@ interface APIRecipe {
   medicine?: string;
   amount?: string;
   instructions?: string;
+  lunchTime?: string;
   observations?: string;
 }
 
@@ -105,10 +110,12 @@ interface Appointment {
   blood_pressure?: string;
   heart_rate?: string;
   oxygen_saturation?: string;
-  weight?: string;
+  weight?: number; // Cambio: number en lugar de string
+  weight_unit?: string; // Nuevo campo
   height?: string;
   observations?: string;
   laboratory_tests?: string;
+  medical_preinscription?: string; // CORREGIDO: nombre consistente
   recipes?: APIRecipe[];
   diagnoses?: AppointmentDiagnosis[];
 }
@@ -133,7 +140,9 @@ interface FormValues {
   frecuenciaCardiaca: string;
   saturacionO2: string;
   peso: string;
+  pesoUnidad: string; // Nuevo campo
   talla: string;
+  medical_preinscription: string; 
   examenFisico: string;
   observaciones: string;
   examenes: string;
@@ -165,8 +174,10 @@ interface AppointmentUpdateData {
   blood_pressure: string;
   heart_rate: string;
   oxygen_saturation: string;
-  weight: string;
+  weight: number; // Cambio: number en lugar de string
+  weight_unit: string; // Nuevo campo
   height: string;
+  medical_preinscription: string; // CORREGIDO: nombre consistente
   diagnoses: Array<{
     diagnosis_code: string;
     diagnosis_description: string;
@@ -179,6 +190,13 @@ interface AppointmentUpdateData {
     observations: string;
   }>;
 }
+
+// Opciones de unidades de peso
+const WEIGHT_UNITS = [
+  { value: 'kg', label: 'Kilogramos (kg)', suffix: 'kg' },
+  { value: 'lb', label: 'Libras (lb)', suffix: 'lb' },
+  { value: 'g', label: 'Gramos (g)', suffix: 'g' }
+];
 
 export default function AppointmentManageEdit(): JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -195,6 +213,7 @@ export default function AppointmentManageEdit(): JSX.Element {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [originalData, setOriginalData] = useState<OriginalData | null>(null);
+  const [weightUnit, setWeightUnit] = useState<string>('kg');
 
   // Debounce del valor de búsqueda
   const debouncedSearchValue = useDebounce(searchValue, 500);
@@ -288,6 +307,9 @@ export default function AppointmentManageEdit(): JSX.Element {
       
       if (appointmentResponse.success) {
         const appointmentData = appointmentResponse.data;
+        
+        console.log('Appointment data loaded:', appointmentData);
+        console.log('Medical preinscription value:', appointmentData.medical_preinscription);
 
         if (appointmentData.patient_id) {
           const patientResponse: APIResponse<Patient> = await PatientService.getPatientById(appointmentData.patient_id);
@@ -303,6 +325,10 @@ export default function AppointmentManageEdit(): JSX.Element {
             
             setDiagnoses(tableDiagnoses);
 
+            // Establecer unidad de peso
+            const weightUnitValue = appointmentData.weight_unit || 'kg';
+            setWeightUnit(weightUnitValue);
+
             const formData: Partial<FormValues> = {
               searchPatient: patientDisplayValue,
               nombres: patient.first_name || '',
@@ -316,12 +342,17 @@ export default function AppointmentManageEdit(): JSX.Element {
               presionArterial: appointmentData.blood_pressure || '',
               frecuenciaCardiaca: appointmentData.heart_rate || '',
               saturacionO2: appointmentData.oxygen_saturation || '',
-              peso: appointmentData.weight || '',
+              peso: appointmentData.weight ? appointmentData.weight.toString() : '',
+              pesoUnidad: weightUnitValue,
               talla: appointmentData.height ? Math.round(parseFloat(appointmentData.height) * 100).toString() : '',
+              medical_preinscription: appointmentData.medical_preinscription || '', // CORREGIDO
               examenFisico: appointmentData.physical_examination || '',
               observaciones: appointmentData.observations || '',
               examenes: appointmentData.laboratory_tests || ''
             };
+
+            console.log('Form data to set:', formData);
+            console.log('Medical preinscription in formData:', formData.medical_preinscription);
 
             let processedRecipes: Recipe[] = [];
             if (appointmentData.recipes && Array.isArray(appointmentData.recipes) && appointmentData.recipes.length > 0) {
@@ -332,6 +363,7 @@ export default function AppointmentManageEdit(): JSX.Element {
                   medicine: recipe.medicine ? recipe.medicine.trim() : '',
                   amount: recipe.amount ? recipe.amount.trim() : '',
                   instructions: recipe.instructions ? recipe.instructions.trim() : '',
+                  lunchTime: recipe.lunchTime ? recipe.lunchTime.trim() : '', 
                   observations: recipe.observations ? recipe.observations.trim() : ''
                 }));
             }
@@ -349,6 +381,12 @@ export default function AppointmentManageEdit(): JSX.Element {
             form.setFieldsValue(formData);
             setRecipes(processedRecipes);
             setSearchValue(patientDisplayValue);
+            
+            setTimeout(() => {
+              console.log('Current form values:', form.getFieldsValue());
+              console.log('Medical preinscription field value:', form.getFieldValue('medical_preinscription'));
+            }, 100);
+            
             message.success('Datos de la cita médica cargados correctamente');
           }
         }
@@ -390,6 +428,38 @@ export default function AppointmentManageEdit(): JSX.Element {
     }
   };
 
+  const onWeightUnitChange = (value: string): void => {
+    setWeightUnit(value);
+    form.setFieldsValue({ pesoUnidad: value });
+  };
+
+  const getWeightSuffix = (): string => {
+    const unit = WEIGHT_UNITS.find(u => u.value === weightUnit);
+    return unit ? unit.suffix : 'kg';
+  };
+
+  const getWeightPlaceholder = (): string => {
+    switch (weightUnit) {
+      case 'kg':
+        return '65.5';
+      case 'lb':
+        return '144.4';
+      case 'g':
+        return '3200';
+      default:
+        return '65.5';
+    }
+  };
+
+  const getWeightValidationPattern = (): RegExp => {
+    switch (weightUnit) {
+      case 'g':
+        return /^\d{1,6}(\.\d{1,2})?$/; // Para gramos (hasta 6 dígitos)
+      default:
+        return /^\d{1,3}(\.\d{1,2})?$/; // Para kg y lb
+    }
+  };
+
   const onFinish = async (values: FormValues): Promise<void> => {
     if (!selectedPatient) {
       message.error('Debe seleccionar un paciente');
@@ -413,17 +483,35 @@ export default function AppointmentManageEdit(): JSX.Element {
       const validRecipes = recipes.filter((recipe: Recipe) => 
         (recipe.medicine && recipe.medicine.trim()) || 
         (recipe.amount && recipe.amount.trim()) || 
-        (recipe.instructions && recipe.instructions.trim()) || 
+        (recipe.instructions && recipe.instructions.trim()) ||
+        (recipe.lunchTime && recipe.lunchTime.trim()) || 
         (recipe.observations && recipe.observations.trim())
       ).map((recipe: Recipe) => ({
         medicine: recipe.medicine ? recipe.medicine.trim() : '',
         amount: recipe.amount ? recipe.amount.trim() : '',
         instructions: recipe.instructions ? recipe.instructions.trim() : '',
+        lunchTime:  recipe.lunchTime ? recipe.lunchTime.trim() : '',
         observations: recipe.observations ? recipe.observations.trim() : ''
       }));
 
       // Preparar los diagnósticos para la API
       const diagnosesArray = buildDiagnosesForAPI(diagnoses);
+
+      // Validar peso
+      const weightValue = parseFloat(values.peso);
+      if (isNaN(weightValue) || weightValue <= 0) {
+        message.error('El peso debe ser un número válido');
+        setLoading(false);
+        return;
+      }
+
+      // Validar peso según unidad usando el servicio
+      const weightValidation = AppointmentService.validateWeight(weightValue, values.pesoUnidad);
+      if (!weightValidation.isValid) {
+        message.error(weightValidation.message);
+        setLoading(false);
+        return;
+      }
 
       const appointmentData: AppointmentUpdateData = {
         patient_id: selectedPatient.id!,
@@ -437,13 +525,16 @@ export default function AppointmentManageEdit(): JSX.Element {
         blood_pressure: values.presionArterial,
         heart_rate: values.frecuenciaCardiaca,
         oxygen_saturation: values.saturacionO2,
-        weight: values.peso,
+        weight: weightValue,
+        weight_unit: values.pesoUnidad,
         height: values.talla ? (parseFloat(values.talla) / 100).toString() : '',
+        medical_preinscription: values.medical_preinscription || '', // CORREGIDO
         diagnoses: diagnosesArray,
         recipes: validRecipes
       };
 
       console.log('Datos de la cita a actualizar:', appointmentData);
+      console.log('Medical preinscription a enviar:', appointmentData.medical_preinscription);
       
       const response: APIResponse = await AppointmentService.updateAppointment(id, appointmentData);
       
@@ -471,11 +562,13 @@ export default function AppointmentManageEdit(): JSX.Element {
 
   const handleClear = (): void => {
     if (originalData) {
+      console.log('Restoring original data:', originalData.formData);
       form.setFieldsValue(originalData.formData);
       setRecipes([...originalData.recipes]); 
       setSelectedPatient(originalData.patient);
       setSearchValue(originalData.formData.searchPatient || '');
       setDiagnoses([...originalData.diagnoses]);
+      setWeightUnit(originalData.formData.pesoUnidad || 'kg');
       message.info('Formulario restaurado a valores originales');
     } else {
       loadAppointmentData();
@@ -698,16 +791,38 @@ export default function AppointmentManageEdit(): JSX.Element {
                         <Input placeholder="98" addonAfter="%" />
                       </Form.Item>
                     </Col>
-                    <Col xs={24} sm={12} md={8} lg={4}>
+                    <Col xs={24} sm={12} md={6} lg={3}>
                       <Form.Item
-                        label="Peso (kg)"
+                        label="Unidad de Peso"
+                        name="pesoUnidad"
+                        rules={[{ required: true, message: 'Seleccione unidad' }]}
+                      >
+                        <Select
+                          value={weightUnit}
+                          onChange={onWeightUnitChange}
+                          placeholder="Unidad"
+                        >
+                          {WEIGHT_UNITS.map(unit => (
+                            <Option key={unit.value} value={unit.value}>
+                              {unit.label}
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12} md={6} lg={3}>
+                      <Form.Item
+                        label={`Peso (${getWeightSuffix()})`}
                         name="peso"
                         rules={[
                           { required: true, message: 'Ingrese el peso' },
-                          { pattern: /^\d{1,3}(\.\d{1,2})?$/, message: 'Formato inválido' }
+                          { pattern: getWeightValidationPattern(), message: 'Formato inválido' }
                         ]}
                       >
-                        <Input placeholder="65.5" addonAfter="kg" />
+                        <Input 
+                          placeholder={getWeightPlaceholder()} 
+                          addonAfter={getWeightSuffix()} 
+                        />
                       </Form.Item>
                     </Col>
                     <Col xs={24} sm={12} md={8} lg={4}>
@@ -786,6 +901,24 @@ export default function AppointmentManageEdit(): JSX.Element {
                 </Card>
               </Col>
 
+              {/* Prescripción Médica */}
+              <Col xs={24}>
+                <Card title={<><MedicineBoxOutlined /> Prescripción Médica</>} style={{ marginBottom: '24px' }}>
+                  <Form.Item
+                    label="Prescripción médica para hospitalización, cirugías u otros procedimientos"
+                    name="medical_preinscription" // CORREGIDO: nombre consistente
+                    extra="Campo opcional para prescripciones médicas especiales"
+                  >
+                    <TextArea
+                      rows={6}
+                      placeholder="Escriba aquí la prescripción médica para hospitalización, cirugías u otros procedimientos médicos especiales..."
+                      showCount
+                      maxLength={2000}
+                    />
+                  </Form.Item>
+                </Card>
+              </Col>
+
               {/* Tabla de Diagnósticos */}
               <Col xs={24}>
                 <DiagnosisTable 
@@ -804,11 +937,15 @@ export default function AppointmentManageEdit(): JSX.Element {
               <Col xs={24}>
                 <Card title={<><ExperimentOutlined /> Exámenes Solicitados</>} style={{ marginBottom: '24px' }}>
                   <Form.Item
+                    label="Laboratorios, imágenes y estudios especiales"
                     name="examenes"
+                    extra="Detalle los exámenes de laboratorio, imágenes y estudios especiales solicitados"
                   >
                     <TextArea
                       rows={6}
                       placeholder="Laboratorios, imágenes, estudios especiales solicitados..."
+                      showCount
+                      maxLength={1500}
                     />
                   </Form.Item>
                 </Card>

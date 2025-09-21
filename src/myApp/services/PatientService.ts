@@ -183,6 +183,19 @@ class PatientService {
     }
   }
 
+   static async managePatient(patientId: string | number, patientData: PatientUpdate): Promise<ApiResponse<Patient>> {
+    try {
+      const response: AxiosResponse<Patient> = await api.put<Patient>(`/patients/manage/${patientId}`, patientData);
+      return {
+        success: true,
+        data: response.data,
+        message: 'Paciente actualizado exitosamente'
+      };
+    } catch (error) {
+      return this.handleError<Patient>(error, 'Error al actualizar el paciente');
+    }
+  }
+
   static async deletePatient(patientId: string | number): Promise<ApiResponse<DeleteResponse>> {
     try {
       const response: AxiosResponse<DeleteResponse> = await api.delete<DeleteResponse>(`/patients/${patientId}`);

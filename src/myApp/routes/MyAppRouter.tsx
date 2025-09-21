@@ -22,18 +22,18 @@ import AppointmentEdit from "../pages/appointment/AppointmentEdit";
 import { ProfilePage } from "../pages/ProfilePage";
 
 import LabOrderForm from "../pages/laboratory/LabOrderForm";
-// import AppointmentManage from "../pages/manageAppointment/AppointmentManageCreate";
 import AppointmentManageList from "../pages/manageAppointment/AppointmentManageList";
 import AppointmentManageEdit from "../pages/manageAppointment/AppointmentManageEdit";
-import AppointmentManageCreate from "../pages/manageAppointment/AppointmentManageCreate";
+import PatientManageList from "../pages/managePatient/PatientManageList";
+import PatientManageEdit from "../pages/managePatient/PatientManageEdit";
 
 
 const { Content } = Layout;
 
 export const MyAppRouter = () => {
-  const { user, loading } = useAuthContext(); // 👈 usamos tu hook
+  const { user, loading } = useAuthContext(); 
 
-  if (loading) return null; // o un spinner si prefieres
+  if (loading) return null; 
 
   return (
     <>
@@ -77,6 +77,24 @@ export const MyAppRouter = () => {
                 </PrivateRoute>
               }
             />
+
+            <Route
+              path="/patientManageList"
+              element={
+                <PrivateRoute>
+                  <PatientManageList />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/patientManageEdit/:id"
+              element={
+                <PrivateRoute>
+                  <PatientManageEdit />
+                </PrivateRoute>
+              }
+            />
+
             <Route
               path="/appointmentList"
               element={
@@ -110,15 +128,7 @@ export const MyAppRouter = () => {
               }
             />
 
-              <Route
-              path="/manageAppointmentCreate"
-              element={
-                <PrivateRoute>
-                  <AppointmentManageCreate />
-                </PrivateRoute>
-              }
-            />
-
+    
               <Route
               path="/manageAppointmentEdit/:id"
               element={

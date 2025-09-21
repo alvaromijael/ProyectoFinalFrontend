@@ -16,7 +16,8 @@ import {
   message,
   Divider,
   AutoComplete,
-  Spin
+  Spin,
+  Select
 } from 'antd';
 import {
   UserOutlined,  
@@ -32,6 +33,7 @@ import AppointmentService from '../../services/AppointmentService';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
+const { Option } = Select;
 
 // Custom hook for debounce with proper typing
 const useDebounce = (value: string, delay: number): string => {
@@ -68,7 +70,8 @@ interface Appointment {
   blood_pressure?: string;
   heart_rate?: string;
   oxygen_saturation?: string;
-  weight?: string;
+  weight?: number;
+  weight_unit?: string;
   height?: string;
 }
 
@@ -90,6 +93,7 @@ interface FormValues {
   frecuenciaCardiaca: string;
   saturacionO2: string;
   peso: string;
+  pesoUnidad: string;
   talla: string;
 }
 
@@ -113,24 +117,31 @@ interface AppointmentUpdateData {
   blood_pressure: string;
   heart_rate: string;
   oxygen_saturation: string;
-  weight: string;
+  weight: number;
+  weight_unit: string;
   height: string;
 }
+
+// Opciones de unidades de peso
+const WEIGHT_UNITS = [
+  { value: 'kg', label: 'Kilogramos (kg)', suffix: 'kg' },
+  { value: 'lb', label: 'Libras (lb)', suffix: 'lb' },
+  { value: 'g', label: 'Gramos (g)', suffix: 'g' }
+];
 
 export default function AppointmentEdit(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [form] = Form.useForm<FormValues>();
   
-  // Estados con tipos específicos
   const [loading, setLoading] = useState<boolean>(false);
   const [loadingData, setLoadingData] = useState<boolean>(true);
   const [searchLoading, setSearchLoading] = useState<boolean>(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [searchValue, setSearchValue] = useState<string>('');
   const [patientOptions, setPatientOptions] = useState<PatientOption[]>([]);
-  //const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [originalData, setOriginalData] = useState<OriginalData | null>(null);
+  const [weightUnit, setWeightUnit] = useState<string>('kg');
 
   // Debounce del valor de búsqueda
   const debouncedSearchValue = useDebounce(searchValue, 500);
@@ -202,7 +213,6 @@ export default function AppointmentEdit(): JSX.Element {
       
       if (appointmentResponse.success) {
         const appointmentData = appointmentResponse.data;
-        //setAppointment(appointmentData);
 
         if (appointmentData.patient_id) {
           const patientResponse: APIResponse<Patient> = await PatientService.getPatientById(appointmentData.patient_id);
@@ -211,6 +221,10 @@ export default function AppointmentEdit(): JSX.Element {
             setSelectedPatient(patient);
             
             const patientDisplayValue = `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}`;
+
+            // Establecer unidad de peso
+            const weightUnitValue = appointmentData.weight_unit || 'kg';
+            setWeightUnit(weightUnitValue);
 
             const formData: Partial<FormValues> = {
               searchPatient: patientDisplayValue,
@@ -223,7 +237,8 @@ export default function AppointmentEdit(): JSX.Element {
               presionArterial: appointmentData.blood_pressure || '',
               frecuenciaCardiaca: appointmentData.heart_rate || '',
               saturacionO2: appointmentData.oxygen_saturation || '',
-              peso: appointmentData.weight || '',
+              peso: appointmentData.weight ? appointmentData.weight.toString() : '',
+              pesoUnidad: weightUnitValue,
               talla: appointmentData.height ? Math.round(parseFloat(appointmentData.height) * 100).toString() : ''
             };
             
@@ -277,6 +292,38 @@ export default function AppointmentEdit(): JSX.Element {
     }
   };
 
+  const onWeightUnitChange = (value: string): void => {
+    setWeightUnit(value);
+    form.setFieldsValue({ pesoUnidad: value });
+  };
+
+  const getWeightSuffix = (): string => {
+    const unit = WEIGHT_UNITS.find(u => u.value === weightUnit);
+    return unit ? unit.suffix : 'kg';
+  };
+
+  const getWeightPlaceholder = (): string => {
+    switch (weightUnit) {
+      case 'kg':
+        return '65.5';
+      case 'lb':
+        return '144.4';
+      case 'g':
+        return '3200';
+      default:
+        return '65.5';
+    }
+  };
+
+  const getWeightValidationPattern = (): RegExp => {
+    switch (weightUnit) {
+      case 'g':
+        return /^\d{1,6}(\.\d{1,2})?$/; // Para gramos (hasta 6 dígitos)
+      default:
+        return /^\d{1,3}(\.\d{1,2})?$/; // Para kg y lb
+    }
+  };
+
   const onFinish = async (values: FormValues): Promise<void> => {
     if (!selectedPatient) {
       message.error('Debe seleccionar un paciente');
@@ -302,6 +349,14 @@ export default function AppointmentEdit(): JSX.Element {
         heightInMeters = (heightInCm / 100).toString();
       }
 
+      // Validar peso
+      const weightValue = parseFloat(values.peso);
+      if (isNaN(weightValue) || weightValue <= 0) {
+        message.error('El peso debe ser un número válido');
+        setLoading(false);
+        return;
+      }
+
       const appointmentData: AppointmentUpdateData = {
         patient_id: selectedPatient.id!,
         appointment_date: values.fecha.format('YYYY-MM-DD'),
@@ -310,7 +365,8 @@ export default function AppointmentEdit(): JSX.Element {
         blood_pressure: values.presionArterial,
         heart_rate: values.frecuenciaCardiaca,
         oxygen_saturation: values.saturacionO2,
-        weight: values.peso,
+        weight: weightValue,
+        weight_unit: values.pesoUnidad,
         height: heightInMeters
       };
 
@@ -320,7 +376,7 @@ export default function AppointmentEdit(): JSX.Element {
       
       if (response.success) {
         message.success('Cita médica actualizada exitosamente');
-        navigate('/appointments');
+        navigate('/appointmentList');
       } else {
         message.error(response.message || 'Error al actualizar la cita');
       }
@@ -333,11 +389,11 @@ export default function AppointmentEdit(): JSX.Element {
   };
 
   const goBack = (): void => {
-    navigate('/appointments');
+    navigate('/appointmentList');
   };
 
   const handleCancel = (): void => {
-    navigate('/appointments');
+    navigate('/appointmentList');
   };
 
   const handleClear = (): void => {
@@ -345,6 +401,7 @@ export default function AppointmentEdit(): JSX.Element {
       form.setFieldsValue(originalData.formData);
       setSelectedPatient(originalData.patient);
       setSearchValue(originalData.formData.searchPatient || '');
+      setWeightUnit(originalData.formData.pesoUnidad || 'kg');
       message.info('Formulario restaurado a valores originales');
     } else {
       loadAppointmentData();
@@ -566,16 +623,38 @@ export default function AppointmentEdit(): JSX.Element {
                         <Input placeholder="98" addonAfter="%" />
                       </Form.Item>
                     </Col>
-                    <Col xs={24} sm={12} md={8} lg={4}>
+                    <Col xs={24} sm={12} md={6} lg={3}>
                       <Form.Item
-                        label="Peso (kg)"
+                        label="Unidad de Peso"
+                        name="pesoUnidad"
+                        rules={[{ required: true, message: 'Seleccione unidad' }]}
+                      >
+                        <Select
+                          value={weightUnit}
+                          onChange={onWeightUnitChange}
+                          placeholder="Unidad"
+                        >
+                          {WEIGHT_UNITS.map(unit => (
+                            <Option key={unit.value} value={unit.value}>
+                              {unit.label}
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12} md={6} lg={3}>
+                      <Form.Item
+                        label={`Peso (${getWeightSuffix()})`}
                         name="peso"
                         rules={[
                           { required: true, message: 'Ingrese el peso' },
-                          { pattern: /^\d{1,3}(\.\d{1,2})?$/, message: 'Formato inválido' }
+                          { pattern: getWeightValidationPattern(), message: 'Formato inválido' }
                         ]}
                       >
-                        <Input placeholder="65.5" addonAfter="kg" />
+                        <Input 
+                          placeholder={getWeightPlaceholder()} 
+                          addonAfter={getWeightSuffix()} 
+                        />
                       </Form.Item>
                     </Col>
                     <Col xs={24} sm={12} md={8} lg={4}>

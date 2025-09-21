@@ -10,7 +10,8 @@ import {
   Col,
   message,
   Popconfirm,
-  Modal
+  Modal,
+  Select
 } from 'antd';
 import {
   PlusOutlined,
@@ -27,6 +28,7 @@ interface Recipe {
   medicine: string;
   amount: string;
   instructions: string;
+  lunchTime: string;
   observations: string;
 }
 
@@ -69,6 +71,14 @@ const RecipeTable: React.FC<RecipeTableProps> = ({ recipes, setRecipes }) => {
       key: 'observations',
       width: '25%'
     },
+
+    {
+      title: 'Hora de comida',
+      dataIndex: 'lunchTime',
+      key: 'lunchTime',
+      width: '25%'
+    },
+
     {
       title: 'Acciones',
       key: 'actions',
@@ -234,6 +244,22 @@ const RecipeTable: React.FC<RecipeTableProps> = ({ recipes, setRecipes }) => {
                 <Input placeholder="Ej: Cada 8 horas por 7 días" />
               </Form.Item>
             </Col>
+
+            <Col xs={24}>
+  <Form.Item
+    label="Hora de comida"
+    name="lunchTime"
+    rules={[
+      { required: true, message: 'Seleccione la hora de comida' }
+    ]}
+  >
+    <Select placeholder="Seleccione una opción">
+      <Select.Option value="desayuno">Desayuno</Select.Option>
+      <Select.Option value="almuerzo">Almuerzo</Select.Option>
+      <Select.Option value="merienda">Merienda</Select.Option>
+    </Select>
+  </Form.Item>
+</Col>
             <Col xs={24}>
               <Form.Item
                 label="Observaciones"

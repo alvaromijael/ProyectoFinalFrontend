@@ -26,7 +26,6 @@ import {
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
-  PlusOutlined,
   CalendarOutlined,
   ClearOutlined,
   FilterOutlined,
@@ -46,7 +45,7 @@ export default function AppointmentManageList() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
 
-  // Estados
+  
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [displayedAppointments, setDisplayedAppointments] = useState<Appointment[]>([]);
   const [searchText, setSearchText] = useState('');
@@ -62,7 +61,6 @@ export default function AppointmentManageList() {
     loadAppointments();
   }, []);
 
-  // Cargar todas las citas inicialmente
   const loadAppointments = async () => {
     setTableLoading(true);
     try {
@@ -82,12 +80,10 @@ export default function AppointmentManageList() {
     }
   };
 
-  // Función de búsqueda avanzada que llama al API
   const handleAdvancedSearch = async () => {
     const trimmedSearch = searchText.trim();
     const hasDateFilter = dateRange && dateRange[0] && dateRange[1];
     
-    // Si no hay filtros, mostrar todas las citas
     if (!trimmedSearch && !hasDateFilter) {
       setDisplayedAppointments(appointments);
       setHasActiveFilters(false);
@@ -105,7 +101,6 @@ export default function AppointmentManageList() {
         end_date: hasDateFilter ? dateRange![1].format('YYYY-MM-DD') : undefined
       });
 
-      // Preparar parámetros para el API
       const searchParams: any = {
         limit: 1000
       };
@@ -119,7 +114,6 @@ export default function AppointmentManageList() {
         searchParams.end_date = dateRange![1].format('YYYY-MM-DD');
       }
 
-      // Llamar al endpoint de búsqueda avanzada
       const response = await AppointmentService.searchAppointmentsAdvanced(searchParams);
 
       if (response.success) {
@@ -146,7 +140,6 @@ export default function AppointmentManageList() {
     }
   };
 
-  // Búsqueda en tiempo real solo por texto (local para menos de 3 caracteres, API para 3+)
   const handleTextSearch = async (value: string) => {
     setSearchText(value);
     const trimmedValue = value.trim();
@@ -157,7 +150,6 @@ export default function AppointmentManageList() {
     }
 
     if (trimmedValue.length >= 3) {
-      // Búsqueda en servidor para 3+ caracteres
       setSearchLoading(true);
       setTableLoading(true);
       setHasActiveFilters(true);
@@ -208,17 +200,12 @@ export default function AppointmentManageList() {
     }
   };
 
-  // Limpiar todos los filtros
   const clearAllFilters = () => {
     setSearchText('');
     setDateRange(null);
     setDisplayedAppointments(appointments);
     setHasActiveFilters(false);
     form.resetFields();
-  };
-
-  const goToCreateAppointment = () => {
-    navigate("/manageAppointmentCreate");
   };
 
   const handleEdit = (appointment: Appointment) => {
@@ -260,6 +247,13 @@ export default function AppointmentManageList() {
     } catch {
       return `${date} ${time}`;
     }
+  };
+
+  // Formatear peso con unidad
+  const formatWeight = (weight?: number, unit?: string) => {
+    if (!weight) return 'N/A';
+    const unitDisplay = unit || 'kg';
+    return `${weight} ${unitDisplay}`;
   };
 
   const columns = [
@@ -333,6 +327,7 @@ export default function AppointmentManageList() {
           {record.temperature && <Text style={{ fontSize: '11px' }}>Temp: {record.temperature}°C</Text>}
           {record.blood_pressure && <Text style={{ fontSize: '11px' }}>PA: {record.blood_pressure}</Text>}
           {record.heart_rate && <Text style={{ fontSize: '11px' }}>FC: {record.heart_rate} bpm</Text>}
+          {record.weight && <Text style={{ fontSize: '11px' }}>Peso: {formatWeight(record.weight, record.weight_unit)}</Text>}
         </Space>
       ),
     },
@@ -404,14 +399,7 @@ export default function AppointmentManageList() {
                     style={{ backgroundColor: '#722ed1' }}
                     icon={<MedicineBoxOutlined />}
                   />
-                  <Button
-                    type="primary"
-                    size="large"
-                    icon={<PlusOutlined />}
-                    onClick={goToCreateAppointment}
-                  >
-                    Nueva Cita
-                  </Button>
+                
                 </Space>
               </Col>
             </Row>
@@ -611,51 +599,51 @@ export default function AppointmentManageList() {
                           <Text><strong>Saturación O2:</strong> {selectedAppointment.oxygen_saturation || 'N/A'}%</Text>
                         </Col>
                         <Col xs={12} sm={6}>
-                          <Text><strong>Peso:</strong> {selectedAppointment.weight || 'N/A'} kg</Text>
+                          <Text><strong>Peso:</strong> {formatWeight(selectedAppointment.weight, selectedAppointment.weight_unit)}</Text>
                         </Col>
                         <Col xs={12} sm={6}>
-                          <Text><strong>Altura:</strong> {selectedAppointment.height || 'N/A'} cm</Text>
+                          <Text><strong>Altura:</strong> {selectedAppointment.height ? `${(parseFloat(selectedAppointment.height) * 100).toFixed(0)} cm` : 'N/A'}</Text>
                         </Col>
                       </Row>
                     </Card>
                     <Card size="small" title="Recetas Médicas" style={{ marginTop: 16 }}>
-  {selectedAppointment.recipes && selectedAppointment.recipes.length > 0 ? (
-    <Table 
-      dataSource={selectedAppointment.recipes} 
-      pagination={false}
-      size="small"
-      rowKey={(_, index) => index!} 
-      columns={[
-        {
-          title: 'Medicamento',
-          dataIndex: 'medicine',
-          key: 'medicine',
-          width: '25%',
-        },
-        {
-          title: 'Cantidad',
-          dataIndex: 'amount',
-          key: 'amount',
-          width: '15%',
-        },
-        {
-          title: 'Instrucciones',
-          dataIndex: 'instructions',
-          key: 'instructions',
-          width: '25%',
-        },
-        {
-          title: 'Observaciones',
-          dataIndex: 'observations',
-          key: 'observations',
-          width: '35%',
-        },
-      ]}
-    />
-  ) : (
-    <Text type="secondary">No hay recetas médicas registradas</Text>
-  )}
-</Card>
+                      {selectedAppointment.recipes && selectedAppointment.recipes.length > 0 ? (
+                        <Table 
+                          dataSource={selectedAppointment.recipes} 
+                          pagination={false}
+                          size="small"
+                          rowKey={(_, index) => index!} 
+                          columns={[
+                            {
+                              title: 'Medicamento',
+                              dataIndex: 'medicine',
+                              key: 'medicine',
+                              width: '25%',
+                            },
+                            {
+                              title: 'Cantidad',
+                              dataIndex: 'amount',
+                              key: 'amount',
+                              width: '15%',
+                            },
+                            {
+                              title: 'Instrucciones',
+                              dataIndex: 'instructions',
+                              key: 'instructions',
+                              width: '25%',
+                            },
+                            {
+                              title: 'Observaciones',
+                              dataIndex: 'observations',
+                              key: 'observations',
+                              width: '35%',
+                            },
+                          ]}
+                        />
+                      ) : (
+                        <Text type="secondary">No hay recetas médicas registradas</Text>
+                      )}
+                    </Card>
                   </Col>
                 </Row>
               </div>
