@@ -15,6 +15,25 @@ interface Recipe {
   observations: string;
 }
 
+interface User {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  birth_date: string;
+  role: string;
+  created_at: string;
+  is_active: boolean;
+}
+
+interface UserAppointmentParams extends SearchParams {
+  query?: string;
+  start_date?: string;
+  end_date?: string;
+  include_recipes?: boolean;
+  include_diagnoses?: boolean;
+}
+
 interface AdvancedSearchParams extends SearchParams {
   query?: string;
   start_date?: string;
@@ -24,29 +43,7 @@ interface AdvancedSearchParams extends SearchParams {
 interface Appointment {
   id?: number;
   patient_id: number;
-  appointment_date: string; // ISO date string (YYYY-MM-DD)
-  appointment_time: string; // Time string (HH:MM:SS)
-  current_illness?: string;
-  physical_examination?: string;
-  diagnosis_code?: string;
-  diagnosis_description?: string;
-  observations?: string;
-  laboratory_tests?: string;
-  temperature?: string;
-  blood_pressure?: string;
-  heart_rate?: string;
-  oxygen_saturation?: string;
-  weight?: number; // Cambio: number en lugar de string
-  weight_unit?: string; // Nuevo campo
-  height?: string;
-  recipes?: Recipe[]; // ← Agregar recetas
-  created_at?: string;
-  updated_at?: string;
-  patient?: Patient;
-}
-
-interface AppointmentCreate {
-  patient_id: number;
+  user_id: number;
   appointment_date: string;
   appointment_time: string;
   current_illness?: string;
@@ -59,14 +56,40 @@ interface AppointmentCreate {
   blood_pressure?: string;
   heart_rate?: string;
   oxygen_saturation?: string;
-  weight?: number; // Cambio: number en lugar de string
-  weight_unit?: string; // Nuevo campo
+  weight?: number;
+  weight_unit?: string;
   height?: string;
-  recipes?: Recipe[]; // ← Agregar recetas
+  recipes?: Recipe[];
+  created_at?: string;
+  updated_at?: string;
+  patient?: Patient;
+  user?: User;
+}
+
+interface AppointmentCreate {
+  patient_id: number;
+  user_id: number;
+  appointment_date: string;
+  appointment_time: string;
+  current_illness?: string;
+  physical_examination?: string;
+  diagnosis_code?: string;
+  diagnosis_description?: string;
+  observations?: string;
+  laboratory_tests?: string;
+  temperature?: string;
+  blood_pressure?: string;
+  heart_rate?: string;
+  oxygen_saturation?: string;
+  weight?: number;
+  weight_unit?: string;
+  height?: string;
+  recipes?: Recipe[];
 }
 
 interface AppointmentUpdate {
   patient_id?: number;
+  user_id?: number;
   appointment_date?: string;
   appointment_time?: string;
   current_illness?: string;
@@ -79,10 +102,10 @@ interface AppointmentUpdate {
   blood_pressure?: string;
   heart_rate?: string;
   oxygen_saturation?: string;
-  weight?: number; // Cambio: number en lugar de string
-  weight_unit?: string; // Nuevo campo
+  weight?: number;
+  weight_unit?: string;
   height?: string;
-  recipes?: Recipe[]; // ← Agregar recetas
+  recipes?: Recipe[];
 }
 
 interface ApiResponse<T> {
@@ -135,7 +158,6 @@ const api = axios.create({
 
 class AppointmentService {
   
-  // Crear nueva cita
   static async createAppointment(appointmentData: AppointmentCreate): Promise<ApiResponse<Appointment>> {
     try {
       console.log("appointmen", appointmentData)
@@ -150,7 +172,6 @@ class AppointmentService {
     }
   }
 
-  // Obtener todas las citas
   static async getAppointments(params: SearchParams = {}): Promise<ApiResponse<Appointment[]>> {
     try {
       const { skip = 0, limit = 100, include_patient = true }: SearchParams = params;
@@ -168,7 +189,6 @@ class AppointmentService {
     }
   }
 
-  // Obtener cita por ID
   static async getAppointmentById(appointmentId: string | number): Promise<ApiResponse<Appointment>> {
     try {
       const response: AxiosResponse<Appointment> = await api.get<Appointment>(`/appointments/${appointmentId}`);
@@ -182,7 +202,6 @@ class AppointmentService {
     }
   }
 
-  // Obtener citas de hoy
   static async getTodayAppointments(): Promise<ApiResponse<Appointment[]>> {
     try {
       const response: AxiosResponse<Appointment[]> = await api.get<Appointment[]>('/appointments/today');
@@ -196,7 +215,6 @@ class AppointmentService {
     }
   }
 
-  // Obtener próximas citas
   static async getUpcomingAppointments(params: UpcomingAppointmentsParams = {}): Promise<ApiResponse<Appointment[]>> {
     try {
       const { skip = 0, limit = 100, days_ahead = 7 }: UpcomingAppointmentsParams = params;
@@ -214,7 +232,6 @@ class AppointmentService {
     }
   }
 
-  // Buscar citas
   static async searchAppointments(params: AppointmentSearchParams): Promise<ApiResponse<Appointment[]>> {
     try {
       const { query, skip = 0, limit = 100 }: AppointmentSearchParams = params;
@@ -232,7 +249,6 @@ class AppointmentService {
     }
   }
 
-  // Obtener citas por rango de fechas
   static async getAppointmentsByDateRange(params: DateRangeParams): Promise<ApiResponse<Appointment[]>> {
     try {
       const { start_date, end_date, skip = 0, limit = 100 }: DateRangeParams = params;
@@ -250,7 +266,6 @@ class AppointmentService {
     }
   }
 
-  // Obtener citas por estado
   static async getAppointmentsByStatus(status: string, params: SearchParams = {}): Promise<ApiResponse<Appointment[]>> {
     try {
       const { skip = 0, limit = 100 }: SearchParams = params;
@@ -268,7 +283,6 @@ class AppointmentService {
     }
   }
 
-  // Obtener citas de un paciente
   static async getAppointmentsByPatient(patientId: string | number, params: SearchParams = {}): Promise<ApiResponse<Appointment[]>> {
     try {
       const { skip = 0, limit = 100 }: SearchParams = params;
@@ -286,7 +300,6 @@ class AppointmentService {
     }
   }
 
-  // Contar citas de un paciente
   static async getAppointmentCountByPatient(patientId: string | number): Promise<ApiResponse<AppointmentCountResponse>> {
     try {
       const response: AxiosResponse<AppointmentCountResponse> = await api.get<AppointmentCountResponse>(
@@ -303,7 +316,53 @@ class AppointmentService {
     }
   }
 
-  // Actualizar cita
+  static async getAppointmentsByUser(
+    userId: number,
+    params: UserAppointmentParams = {}
+  ): Promise<ApiResponse<Appointment[]>> {
+    try {
+      const { 
+        skip = 0, 
+        limit = 100, 
+        include_patient = true,
+        include_recipes = true,
+        include_diagnoses = true,
+        query,
+        start_date,
+        end_date
+      } = params;
+
+      const searchParams = new URLSearchParams();
+      searchParams.append('skip', skip.toString());
+      searchParams.append('limit', limit.toString());
+      searchParams.append('include_patient', include_patient.toString());
+      searchParams.append('include_recipes', include_recipes.toString());
+      searchParams.append('include_diagnoses', include_diagnoses.toString());
+
+      if (query && query.trim()) {
+        searchParams.append('query', query.trim());
+      }
+      if (start_date) {
+        searchParams.append('start_date', start_date);
+      }
+      if (end_date) {
+        searchParams.append('end_date', end_date);
+      }
+
+      const response: AxiosResponse<Appointment[]> = await api.get<Appointment[]>(
+        `/appointments/user/${userId}?${searchParams.toString()}`
+      );
+
+      return {
+        success: true,
+        data: response.data,
+        message: `${response.data.length} citas encontradas para el médico`
+      };
+    } catch (error) {
+      return this.handleError<Appointment[]>(error, 'Error al obtener las citas del médico');
+    }
+  }
+
   static async updateAppointment(appointmentId: string | number, appointmentData: AppointmentUpdate): Promise<ApiResponse<Appointment>> {
     try {
       const response: AxiosResponse<Appointment> = await api.put<Appointment>(`/appointments/${appointmentId}`, appointmentData);
@@ -317,7 +376,6 @@ class AppointmentService {
     }
   }
 
-  // Eliminar cita
   static async deleteAppointment(appointmentId: string | number): Promise<ApiResponse<DeleteResponse>> {
     try {
       const response: AxiosResponse<DeleteResponse> = await api.delete<DeleteResponse>(`/appointments/${appointmentId}`);
@@ -331,13 +389,25 @@ class AppointmentService {
     }
   }
 
-  // Métodos utilitarios
+  static async getUsers(): Promise<ApiResponse<User[]>> {
+    try {
+      const response: AxiosResponse<{message: string, data: User[]}> = await api.get<{message: string, data: User[]}>('/users/');
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message
+      };
+    } catch (error) {
+      return this.handleError<User[]>(error, 'Error al obtener los usuarios');
+    }
+  }
+
   static formatDate(date: Date): string {
-    return date.toISOString().split('T')[0]; // YYYY-MM-DD
+    return date.toISOString().split('T')[0];
   }
 
   static formatTime(date: Date): string {
-    return date.toTimeString().split(' ')[0]; // HH:MM:SS
+    return date.toTimeString().split(' ')[0];
   }
 
   static parseAppointmentDateTime(appointment: Appointment): Date | null {
@@ -361,7 +431,6 @@ class AppointmentService {
     return appointmentDateTime > new Date();
   }
 
-  // Nuevos métodos utilitarios para peso con unidades
   static formatWeight(weight?: number, unit?: string): string {
     if (!weight) return '';
     
@@ -372,7 +441,6 @@ class AppointmentService {
   static convertWeight(weight: number, fromUnit: string, toUnit: string): number {
     if (fromUnit === toUnit) return weight;
     
-    // Convertir todo a kg primero
     let weightInKg: number;
     switch (fromUnit.toLowerCase()) {
       case 'g':
@@ -387,7 +455,6 @@ class AppointmentService {
         break;
     }
     
-    // Convertir de kg a la unidad destino
     switch (toUnit.toLowerCase()) {
       case 'g':
         return weightInKg * 1000;
@@ -444,7 +511,6 @@ class AppointmentService {
     ];
   }
 
-  // Manejo de errores
   private static handleError<T>(error: unknown, defaultMessage: string): ApiResponse<T> {
     let errorMessage: string = defaultMessage;
 
@@ -473,7 +539,6 @@ class AppointmentService {
     try {
       const { query, start_date, end_date, skip = 0, limit = 100 }: AdvancedSearchParams = params;
       
-      // Construir parámetros de consulta
       const searchParams = new URLSearchParams();
       searchParams.append('skip', skip.toString());
       searchParams.append('limit', limit.toString());
@@ -509,7 +574,8 @@ export type {
   AppointmentCreate, 
   AppointmentUpdate,
   Patient,
-  Recipe, // ← Exportar nueva interfaz
+  Recipe,
+  User,
   ApiResponse, 
   SearchParams,
   DateRangeParams,
@@ -517,5 +583,6 @@ export type {
   AppointmentSearchParams,
   ApiErrorResponse,
   DeleteResponse,
-  AppointmentCountResponse
+  AppointmentCountResponse,
+  UserAppointmentParams
 };

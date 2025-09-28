@@ -232,7 +232,6 @@ export default function AppointmentList() {
       if (response.success) {
         message.success(response.message);
         await loadAppointments();
-        // Reaplica filtros si están activos
         if (hasActiveFilters) {
           handleAdvancedSearch();
         }
@@ -252,7 +251,6 @@ export default function AppointmentList() {
     setIsDetailModalVisible(true);
   };
 
-  // Formatear fecha y hora
   const formatDateTime = (date: string, time: string) => {
     try {
       const datetime = dayjs(`${date} ${time}`);
@@ -361,7 +359,6 @@ export default function AppointmentList() {
     <Layout style={{ minHeight: '100vh', background: '#f0f2f5', maxWidth: '87%' }}>
       <Content style={{ padding: '24px' }}>
         <div style={{ maxWidth: '100%', margin: '0 auto' }}>
-          {/* Header */}
           <Card style={{ marginBottom: '24px' }}>
             <Row justify="space-between" align="middle">
               <Col>
@@ -392,7 +389,6 @@ export default function AppointmentList() {
             </Row>
           </Card>
 
-          {/* Panel de Filtros Avanzados */}
           <Card style={{ marginBottom: '24px' }}>
             <Form form={form} layout="vertical">
               <Row gutter={[16, 16]}>
@@ -449,7 +445,6 @@ export default function AppointmentList() {
               </Row>
             </Form>
 
-            {/* Indicadores de filtros activos */}
             {hasActiveFilters && (
               <>
                 <Divider style={{ margin: '16px 0 8px' }} />
@@ -475,7 +470,7 @@ export default function AppointmentList() {
               </>
             )}
 
-            {/* Ayuda contextual */}
+
             <div style={{ marginTop: '8px' }}>
               {searchText && searchText.length > 0 && searchText.length < 3 && (
                 <Text type="warning" style={{ fontSize: '12px' }}>
@@ -490,7 +485,6 @@ export default function AppointmentList() {
             </div>
           </Card>
 
-          {/* Tabla de Citas */}
           <Card>
             <Table
               columns={columns}
@@ -510,7 +504,6 @@ export default function AppointmentList() {
             />
           </Card>
 
-          {/* Modal de Detalles */}
           <Modal
             title={
               <Space>
@@ -549,6 +542,7 @@ export default function AppointmentList() {
                         <Text><strong>Nombre:</strong> {selectedAppointment.patient ? `${selectedAppointment.patient.first_name} ${selectedAppointment.patient.last_name}` : 'N/A'}</Text>
                         <Text><strong>Cédula:</strong> {selectedAppointment.patient?.document_id || 'N/A'}</Text>
                         <Text><strong>Fecha y Hora:</strong> {formatDateTime(selectedAppointment.appointment_date, selectedAppointment.appointment_time)}</Text>
+                       <Text><strong>Doctor:</strong> {selectedAppointment.user?.last_name + " " + selectedAppointment.user?.first_name}</Text>
                       </Space>
                     </Card>
                   </Col>

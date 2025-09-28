@@ -29,23 +29,32 @@ import {
   CalendarOutlined,
   ClearOutlined,
   FilterOutlined,
-  MedicineBoxOutlined
+  MedicineBoxOutlined,
+  LoginOutlined
 } from '@ant-design/icons';
 
 import { useNavigate } from "react-router-dom";
 import AppointmentService from '../../services/AppointmentService';
-import type { Appointment } from '../../services/AppointmentService';
+import type { Appointment, UserAppointmentParams } from '../../services/AppointmentService';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
 const { RangePicker } = DatePicker;
 
-export default function AppointmentManageList() {
+interface UserData {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role?: string;
+}
+
+export default function MyAppointmentsList() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
 
-  
+  const [currentUser, setCurrentUser] = useState<UserData | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [displayedAppointments, setDisplayedAppointments] = useState<Appointment[]>([]);
   const [searchText, setSearchText] = useState('');
@@ -58,22 +67,60 @@ export default function AppointmentManageList() {
   const [hasActiveFilters, setHasActiveFilters] = useState(false);
 
   useEffect(() => {
-    loadAppointments();
+    initializeUser();
   }, []);
 
-  const loadAppointments = async () => {
+  useEffect(() => {
+    if (currentUser) {
+      loadMyAppointments();
+    }
+  }, [currentUser]);
+
+  const initializeUser = () => {
+    try {
+      const userData = localStorage.getItem('authUser');
+      if (!userData) {
+        message.error('No se encontró información del usuario. Por favor, inicie sesión.');
+        navigate('/login');
+        return;
+      }
+
+      const user: UserData = JSON.parse(userData);
+      if (!user.id) {
+        message.error('Datos de usuario inválidos. Por favor, inicie sesión nuevamente.');
+        navigate('/login');
+        return;
+      }
+
+      setCurrentUser(user);
+    } catch (error) {
+      console.error('Error al cargar datos del usuario:', error);
+      message.error('Error al cargar datos del usuario. Por favor, inicie sesión nuevamente.');
+      navigate('/login');
+    }
+  };
+
+  const loadMyAppointments = async () => {
+    if (!currentUser) return;
+
     setTableLoading(true);
     try {
-      const response = await AppointmentService.getAppointments({ limit: 1000 });
+      const response = await AppointmentService.getAppointmentsByUser(currentUser.id, { 
+        limit: 1000,
+        include_patient: true,
+        include_recipes: true,
+        include_diagnoses: true
+      });
+
       if (response.success) {
         setAppointments(response.data);
         setDisplayedAppointments(response.data);
-        message.success(response.message);
+        message.success(`${response.data.length} citas cargadas`);
       } else {
         message.error(response.message);
       }
     } catch (error) {
-      message.error('Error al cargar las citas');
+      message.error('Error al cargar mis citas');
       console.error('Error:', error);
     } finally {
       setTableLoading(false);
@@ -81,6 +128,8 @@ export default function AppointmentManageList() {
   };
 
   const handleAdvancedSearch = async () => {
+    if (!currentUser) return;
+
     const trimmedSearch = searchText.trim();
     const hasDateFilter = dateRange && dateRange[0] && dateRange[1];
     
@@ -95,14 +144,11 @@ export default function AppointmentManageList() {
     setHasActiveFilters(true);
 
     try {
-      console.log('Búsqueda avanzada:', {
-        query: trimmedSearch,
-        start_date: hasDateFilter ? dateRange![0].format('YYYY-MM-DD') : undefined,
-        end_date: hasDateFilter ? dateRange![1].format('YYYY-MM-DD') : undefined
-      });
-
-      const searchParams: any = {
-        limit: 1000
+      const searchParams: UserAppointmentParams = {
+        limit: 1000,
+        include_patient: true,
+        include_recipes: true,
+        include_diagnoses: true
       };
 
       if (trimmedSearch) {
@@ -114,7 +160,7 @@ export default function AppointmentManageList() {
         searchParams.end_date = dateRange![1].format('YYYY-MM-DD');
       }
 
-      const response = await AppointmentService.searchAppointmentsAdvanced(searchParams);
+      const response = await AppointmentService.getAppointmentsByUser(currentUser.id, searchParams);
 
       if (response.success) {
         setDisplayedAppointments(response.data);
@@ -141,12 +187,13 @@ export default function AppointmentManageList() {
   };
 
   const handleTextSearch = async (value: string) => {
+    if (!currentUser) return;
+
     setSearchText(value);
     const trimmedValue = value.trim();
 
-    // Si hay rango de fechas activo, siempre usar búsqueda avanzada
     if (dateRange && dateRange[0] && dateRange[1]) {
-      return; // No hacer búsqueda automática, esperar a que presione buscar
+      return;
     }
 
     if (trimmedValue.length >= 3) {
@@ -155,9 +202,12 @@ export default function AppointmentManageList() {
       setHasActiveFilters(true);
 
       try {
-        const response = await AppointmentService.searchAppointmentsAdvanced({
+        const response = await AppointmentService.getAppointmentsByUser(currentUser.id, {
           query: trimmedValue,
-          limit: 1000
+          limit: 1000,
+          include_patient: true,
+          include_recipes: true,
+          include_diagnoses: true
         });
 
         if (response.success) {
@@ -176,11 +226,9 @@ export default function AppointmentManageList() {
         setTableLoading(false);
       }
     } else if (trimmedValue.length === 0) {
-      // Sin filtros, mostrar todas las citas
       setDisplayedAppointments(appointments);
       setHasActiveFilters(false);
     } else {
-      // Filtro local para menos de 3 caracteres
       const localFiltered = appointments.filter(appointment => {
         const patient = appointment.patient;
         if (!patient) return false;
@@ -218,8 +266,7 @@ export default function AppointmentManageList() {
       const response = await AppointmentService.deleteAppointment(appointmentId);
       if (response.success) {
         message.success(response.message);
-        await loadAppointments();
-        // Reaplica filtros si están activos
+        await loadMyAppointments();
         if (hasActiveFilters) {
           handleAdvancedSearch();
         }
@@ -239,7 +286,6 @@ export default function AppointmentManageList() {
     setIsDetailModalVisible(true);
   };
 
-  // Formatear fecha y hora
   const formatDateTime = (date: string, time: string) => {
     try {
       const datetime = dayjs(`${date} ${time}`);
@@ -249,12 +295,34 @@ export default function AppointmentManageList() {
     }
   };
 
-  // Formatear peso con unidad
   const formatWeight = (weight?: number, unit?: string) => {
     if (!weight) return 'N/A';
     const unitDisplay = unit || 'kg';
     return `${weight} ${unitDisplay}`;
   };
+
+  if (!currentUser) {
+    return (
+      <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+        <Content style={{ padding: '24px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <Card style={{ textAlign: 'center', padding: '48px' }}>
+            <LoginOutlined style={{ fontSize: '48px', color: '#1890ff', marginBottom: '16px' }} />
+            <Title level={3}>Sesión Requerida</Title>
+            <Text>Por favor, inicie sesión para ver sus citas médicas.</Text>
+            <br />
+            <Button 
+              type="primary" 
+              size="large" 
+              style={{ marginTop: '16px' }}
+              onClick={() => navigate('/login')}
+            >
+              Iniciar Sesión
+            </Button>
+          </Card>
+        </Content>
+      </Layout>
+    );
+  }
 
   const columns = [
     {
@@ -381,7 +449,6 @@ export default function AppointmentManageList() {
     <Layout style={{ minHeight: '100vh', background: '#f0f2f5', maxWidth: '87%' }}>
       <Content style={{ padding: '24px' }}>
         <div style={{ maxWidth: '100%', margin: '0 auto' }}>
-          {/* Header */}
           <Card style={{ marginBottom: '24px' }}>
             <Row justify="space-between" align="middle">
               <Col>
@@ -389,28 +456,35 @@ export default function AppointmentManageList() {
                   FENIX
                 </Title>
                 <Text style={{ color: '#722ed1', fontSize: '18px', fontWeight: 500 }}>
-                  Lista de Citas Médicas
+                  Mis Citas Médicas
+                </Text>
+                <br />
+                <Text type="secondary" style={{ fontSize: '14px' }}>
+                  Dr. {currentUser.first_name} {currentUser.last_name}
                 </Text>
               </Col>
               <Col>
                 <Space>
-                  <Avatar
-                    size={64}
-                    style={{ backgroundColor: '#722ed1' }}
-                    icon={<MedicineBoxOutlined />}
-                  />
-                
+                  <div style={{ textAlign: 'center' }}>
+                    <Avatar
+                      size={64}
+                      style={{ backgroundColor: '#722ed1' }}
+                      icon={<MedicineBoxOutlined />}
+                    />
+                    <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+                      {displayedAppointments.length} citas
+                    </div>
+                  </div>
                 </Space>
               </Col>
             </Row>
           </Card>
 
-          {/* Panel de Filtros Avanzados */}
           <Card style={{ marginBottom: '24px' }}>
             <Form form={form} layout="vertical">
               <Row gutter={[16, 16]}>
                 <Col xs={24} md={12} lg={10}>
-                  <Form.Item label="Buscar Paciente" style={{ margin: 0 }}>
+                  <Form.Item label="Buscar en mis Pacientes" style={{ margin: 0 }}>
                     <Tooltip title="Busca por nombres, apellidos o cédula del paciente">
                       <Input
                         placeholder="Nombre, apellido o cédula del paciente..."
@@ -462,7 +536,6 @@ export default function AppointmentManageList() {
               </Row>
             </Form>
 
-            {/* Indicadores de filtros activos */}
             {hasActiveFilters && (
               <>
                 <Divider style={{ margin: '16px 0 8px' }} />
@@ -488,7 +561,6 @@ export default function AppointmentManageList() {
               </>
             )}
 
-            {/* Ayuda contextual */}
             <div style={{ marginTop: '8px' }}>
               {searchText && searchText.length > 0 && searchText.length < 3 && (
                 <Text type="warning" style={{ fontSize: '12px' }}>
@@ -497,13 +569,12 @@ export default function AppointmentManageList() {
               )}
               {!hasActiveFilters && (
                 <Text type="secondary" style={{ fontSize: '12px' }}>
-                  💡 Tip: Use los filtros para encontrar citas específicas. La búsqueda de texto funciona desde 3 caracteres.
+                  💡 Tip: Use los filtros para encontrar sus citas específicas. La búsqueda de texto funciona desde 3 caracteres.
                 </Text>
               )}
             </div>
           </Card>
 
-          {/* Tabla de Citas */}
           <Card>
             <Table
               columns={columns}
@@ -517,18 +588,17 @@ export default function AppointmentManageList() {
                 showSizeChanger: true,
                 showQuickJumper: true,
                 showTotal: (total, range) => 
-                  `${range[0]}-${range[1]} de ${total} citas`,
+                  `${range[0]}-${range[1]} de ${total} mis citas`,
               }}
               size="middle"
             />
           </Card>
 
-          {/* Modal de Detalles */}
           <Modal
             title={
               <Space>
                 <MedicineBoxOutlined style={{ color: '#1890ff' }} />
-                Detalles de la Cita Médica
+                Detalles de mi Cita Médica
               </Space>
             }
             open={isDetailModalVisible}
@@ -562,6 +632,7 @@ export default function AppointmentManageList() {
                         <Text><strong>Nombre:</strong> {selectedAppointment.patient ? `${selectedAppointment.patient.first_name} ${selectedAppointment.patient.last_name}` : 'N/A'}</Text>
                         <Text><strong>Cédula:</strong> {selectedAppointment.patient?.document_id || 'N/A'}</Text>
                         <Text><strong>Fecha y Hora:</strong> {formatDateTime(selectedAppointment.appointment_date, selectedAppointment.appointment_time)}</Text>
+                        <Text><strong>Doctor:</strong> {selectedAppointment.user?.last_name + " " + selectedAppointment.user?.first_name}</Text>
                       </Space>
                     </Card>
                   </Col>

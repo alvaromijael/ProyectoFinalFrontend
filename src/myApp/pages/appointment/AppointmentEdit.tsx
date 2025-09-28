@@ -24,18 +24,18 @@ import {
   SaveOutlined,
   ArrowLeftOutlined,
   EditOutlined,
-  SearchOutlined
+  SearchOutlined,
+  MedicineBoxOutlined
 } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
 
 import PatientService from '../../services/PatientService';
-import AppointmentService from '../../services/AppointmentService';
+import AppointmentService, { type User } from '../../services/AppointmentService';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
 const { Option } = Select;
 
-// Custom hook for debounce with proper typing
 const useDebounce = (value: string, delay: number): string => {
   const [debouncedValue, setDebouncedValue] = useState<string>(value);
 
@@ -52,7 +52,6 @@ const useDebounce = (value: string, delay: number): string => {
   return debouncedValue;
 };
 
-// Interfaces
 interface Patient {
   id?: number;
   first_name?: string;
@@ -64,6 +63,7 @@ interface Patient {
 interface Appointment {
   id?: number;
   patient_id: number;
+  user_id?: number;
   appointment_date: string;
   appointment_time: string;
   temperature?: string;
@@ -73,6 +73,7 @@ interface Appointment {
   weight?: number;
   weight_unit?: string;
   height?: string;
+  user?: User;
 }
 
 interface PatientOption {
@@ -101,6 +102,7 @@ interface OriginalData {
   formData: Partial<FormValues>;
   patient: Patient;
   appointment: Appointment;
+  assignedDoctor?: User;
 }
 
 interface APIResponse<T = any> {
@@ -122,7 +124,6 @@ interface AppointmentUpdateData {
   height: string;
 }
 
-// Opciones de unidades de peso
 const WEIGHT_UNITS = [
   { value: 'kg', label: 'Kilogramos (kg)', suffix: 'kg' },
   { value: 'lb', label: 'Libras (lb)', suffix: 'lb' },
@@ -138,15 +139,14 @@ export default function AppointmentEdit(): JSX.Element {
   const [loadingData, setLoadingData] = useState<boolean>(true);
   const [searchLoading, setSearchLoading] = useState<boolean>(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [assignedDoctor, setAssignedDoctor] = useState<User | null>(null);
   const [searchValue, setSearchValue] = useState<string>('');
   const [patientOptions, setPatientOptions] = useState<PatientOption[]>([]);
   const [originalData, setOriginalData] = useState<OriginalData | null>(null);
   const [weightUnit, setWeightUnit] = useState<string>('kg');
 
-  // Debounce del valor de búsqueda
   const debouncedSearchValue = useDebounce(searchValue, 500);
 
-  // Función para buscar pacientes con tipos apropiados
   const searchPatients = useCallback(async (query: string): Promise<void> => {
     if (!query || query.length < 2) {
       setPatientOptions([]);
@@ -214,6 +214,10 @@ export default function AppointmentEdit(): JSX.Element {
       if (appointmentResponse.success) {
         const appointmentData = appointmentResponse.data;
 
+        if (appointmentData.user) {
+          setAssignedDoctor(appointmentData.user);
+        }
+
         if (appointmentData.patient_id) {
           const patientResponse: APIResponse<Patient> = await PatientService.getPatientById(appointmentData.patient_id);
           if (patientResponse.success) {
@@ -222,7 +226,6 @@ export default function AppointmentEdit(): JSX.Element {
             
             const patientDisplayValue = `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}`;
 
-            // Establecer unidad de peso
             const weightUnitValue = appointmentData.weight_unit || 'kg';
             setWeightUnit(weightUnitValue);
 
@@ -245,7 +248,8 @@ export default function AppointmentEdit(): JSX.Element {
             const originalDataObj: OriginalData = {
               formData,
               patient,
-              appointment: appointmentData
+              appointment: appointmentData,
+              assignedDoctor: appointmentData.user
             };
             
             setOriginalData(originalDataObj);
@@ -318,9 +322,9 @@ export default function AppointmentEdit(): JSX.Element {
   const getWeightValidationPattern = (): RegExp => {
     switch (weightUnit) {
       case 'g':
-        return /^\d{1,6}(\.\d{1,2})?$/; // Para gramos (hasta 6 dígitos)
+        return /^\d{1,6}(\.\d{1,2})?$/;
       default:
-        return /^\d{1,3}(\.\d{1,2})?$/; // Para kg y lb
+        return /^\d{1,3}(\.\d{1,2})?$/;
     }
   };
 
@@ -337,7 +341,6 @@ export default function AppointmentEdit(): JSX.Element {
 
     setLoading(true);
     try {
-      // Validar altura
       let heightInMeters = '';
       if (values.talla) {
         const heightInCm = parseFloat(values.talla);
@@ -349,7 +352,6 @@ export default function AppointmentEdit(): JSX.Element {
         heightInMeters = (heightInCm / 100).toString();
       }
 
-      // Validar peso
       const weightValue = parseFloat(values.peso);
       if (isNaN(weightValue) || weightValue <= 0) {
         message.error('El peso debe ser un número válido');
@@ -400,6 +402,7 @@ export default function AppointmentEdit(): JSX.Element {
     if (originalData) {
       form.setFieldsValue(originalData.formData);
       setSelectedPatient(originalData.patient);
+      setAssignedDoctor(originalData.assignedDoctor || null);
       setSearchValue(originalData.formData.searchPatient || '');
       setWeightUnit(originalData.formData.pesoUnidad || 'kg');
       message.info('Formulario restaurado a valores originales');
@@ -469,14 +472,15 @@ export default function AppointmentEdit(): JSX.Element {
           >
             <Row gutter={[24, 0]}>
               <Col xs={24}>
-                <Card title={<><UserOutlined /> Información del Paciente</>} style={{ marginBottom: '24px' }}>
-                  <Row gutter={[16, 0]}>
+                <Card title={<><UserOutlined /> Información del Paciente y Médico</>} style={{ marginBottom: '24px' }}>
+                  <Row gutter={[24, 16]} style={{ marginBottom: '20px' }}>
                     <Col xs={24} lg={12}>
                       <Form.Item
                         label="Buscar Paciente"
                         name="searchPatient"
                         rules={[{ required: true, message: 'Debe seleccionar un paciente' }]}
                         extra="Busque por apellidos, nombres o número de cédula"
+                        style={{ marginBottom: selectedPatient ? '8px' : '24px' }}
                       >
                         <AutoComplete
                           value={searchValue}
@@ -484,6 +488,7 @@ export default function AppointmentEdit(): JSX.Element {
                           onSearch={onPatientSearch}
                           onSelect={onPatientSelect}
                           placeholder="Escriba apellidos, nombres o cédula..."
+                          size="large"
                           notFoundContent={
                             searchLoading ? (
                               <div style={{ padding: '12px', textAlign: 'center' }}>
@@ -515,34 +520,86 @@ export default function AppointmentEdit(): JSX.Element {
                       </Form.Item>
                       {selectedPatient && (
                         <div style={{ 
-                          marginTop: '8px', 
-                          padding: '8px', 
+                          marginBottom: '16px',
+                          padding: '12px', 
                           background: '#f6ffed', 
                           border: '1px solid #b7eb8f',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          color: '#52c41a'
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          fontWeight: 500
                         }}>
-                          ✓ Paciente seleccionado: {selectedPatient.first_name} {selectedPatient.last_name}
+                          <div style={{ color: '#52c41a', marginBottom: '4px' }}>
+                            ✓ Paciente seleccionado
+                          </div>
+                          <div style={{ color: '#389e0d' }}>
+                            {selectedPatient.first_name} {selectedPatient.last_name}
+                          </div>
+                          <div style={{ color: '#73d13d', fontSize: '12px' }}>
+                            CI: {selectedPatient.document_id}
+                          </div>
                         </div>
                       )}
                     </Col>
-                    <Col xs={24} lg={6}>
+
+                    <Col xs={24} lg={12}>
+                      <Form.Item
+                        label="Médico Responsable"
+                        extra="Médico asignado a esta cita (no editable)"
+                      >
+                        <Input
+                          disabled
+                          size="large"
+                          value={assignedDoctor ? `Dr. ${assignedDoctor.first_name} ${assignedDoctor.last_name}` : 'No asignado'}
+                          prefix={<MedicineBoxOutlined style={{ color: '#52c41a' }} />}
+                          style={{ backgroundColor: '#f0f0f0', fontWeight: 500 }}
+                        />
+                      </Form.Item>
+                      {assignedDoctor && (
+                        <div style={{ 
+                          marginBottom: '16px',
+                          padding: '12px', 
+                          background: '#e6f7ff', 
+                          border: '1px solid #91d5ff',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          fontWeight: 500
+                        }}>
+                          <div style={{ color: '#1890ff', marginBottom: '4px' }}>
+                            👨‍⚕️ Médico asignado
+                          </div>
+                          <div style={{ color: '#096dd9' }}>
+                            Dr. {assignedDoctor.first_name} {assignedDoctor.last_name}
+                          </div>
+                          <div style={{ color: '#40a9ff', fontSize: '12px' }}>
+                            {assignedDoctor.email}
+                          </div>
+                        </div>
+                      )}
+                    </Col>
+                  </Row>
+
+                  <Divider style={{ margin: '20px 0' }} />
+
+                  <Row gutter={[16, 16]}>
+                    <Col xs={24} sm={12} md={8}>
                       <Form.Item label="Nombres" name="nombres">
-                        <Input disabled placeholder="Nombres del paciente" />
+                        <Input disabled placeholder="Nombres del paciente" style={{ backgroundColor: '#f9f9f9' }} />
                       </Form.Item>
                     </Col>
-                    <Col xs={24} lg={6}>
+                    <Col xs={24} sm={12} md={8}>
                       <Form.Item label="Apellidos" name="apellidos">
-                        <Input disabled placeholder="Apellidos del paciente" />
+                        <Input disabled placeholder="Apellidos del paciente" style={{ backgroundColor: '#f9f9f9' }} />
                       </Form.Item>
                     </Col>
-                    <Col xs={24} lg={6}>
+                    <Col xs={24} sm={12} md={8}>
                       <Form.Item label="Cédula" name="cedula">
-                        <Input disabled placeholder="Cédula del paciente" />
+                        <Input disabled placeholder="Cédula del paciente" style={{ backgroundColor: '#f9f9f9' }} />
                       </Form.Item>
                     </Col>
-                    <Col xs={24} lg={6}>
+                  </Row>
+
+                  <Row gutter={[16, 16]} style={{ marginTop: '8px' }}>
+                    <Col xs={24} sm={12}>
                       <Form.Item
                         label="Fecha de Cita"
                         name="fecha"
@@ -552,10 +609,11 @@ export default function AppointmentEdit(): JSX.Element {
                           style={{ width: '100%' }}
                           placeholder="Seleccionar fecha"
                           format="DD/MM/YYYY"
+                          size="large"
                         />
                       </Form.Item>
                     </Col>
-                    <Col xs={24} lg={6}>
+                    <Col xs={24} sm={12}>
                       <Form.Item
                         label="Hora de Cita"
                         name="hora"
@@ -565,6 +623,7 @@ export default function AppointmentEdit(): JSX.Element {
                           style={{ width: '100%' }}
                           format="HH:mm"
                           placeholder="Seleccionar hora"
+                          size="large"
                         />
                       </Form.Item>
                     </Col>
