@@ -26,6 +26,7 @@ import AppointmentManageList from "../pages/manageAppointment/AppointmentManageL
 import AppointmentManageEdit from "../pages/manageAppointment/AppointmentManageEdit";
 import PatientManageList from "../pages/managePatient/PatientManageList";
 import PatientManageEdit from "../pages/managePatient/PatientManageEdit";
+import Unauthorized from "../components/Unauthorized";
 
 
 const { Content } = Layout;
@@ -56,7 +57,7 @@ export const MyAppRouter = () => {
             <Route
               path="/patientList"
               element={
-                <PrivateRoute>
+                <PrivateRoute roles={["admin", "medic", "nurse","laboratory"]}>
                   <PatientList />
                 </PrivateRoute>
               }
@@ -81,7 +82,7 @@ export const MyAppRouter = () => {
             <Route
               path="/patientManageList"
               element={
-                <PrivateRoute>
+                <PrivateRoute roles={["admin", "medic"]}>
                   <PatientManageList />
                 </PrivateRoute>
               }
@@ -98,7 +99,7 @@ export const MyAppRouter = () => {
             <Route
               path="/appointmentList"
               element={
-                <PrivateRoute>
+                <PrivateRoute >
                   <AppointmentList />
                 </PrivateRoute>
               }
@@ -122,7 +123,7 @@ export const MyAppRouter = () => {
               <Route
               path="/manageAppointmentList"
               element={
-                <PrivateRoute>
+                <PrivateRoute roles={["admin", "medic"]}>
                   <AppointmentManageList />
                 </PrivateRoute>
               }
@@ -141,7 +142,7 @@ export const MyAppRouter = () => {
             <Route
               path="/all-users"
               element={
-                <PrivateRoute>
+                <PrivateRoute roles="admin">
                   <AllUsersPage />
                 </PrivateRoute>
               }
@@ -165,6 +166,7 @@ export const MyAppRouter = () => {
             <Route path="/about-us" element={<AboutUs />} />
             <Route path="/specialities" element={<Specialities />} />
             <Route path="/laboratory" element={<Laboratory />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </Content>
