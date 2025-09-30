@@ -27,6 +27,7 @@ import AppointmentManageEdit from "../pages/manageAppointment/AppointmentManageE
 import PatientManageList from "../pages/managePatient/PatientManageList";
 import PatientManageEdit from "../pages/managePatient/PatientManageEdit";
 import Unauthorized from "../components/Unauthorized";
+import Medical from "../pages/landing/Medical";
 
 
 const { Content } = Layout;
@@ -167,6 +168,7 @@ export const MyAppRouter = () => {
             <Route path="/specialities" element={<Specialities />} />
             <Route path="/laboratory" element={<Laboratory />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route path="/medical" element={<Medical/>} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </Content>

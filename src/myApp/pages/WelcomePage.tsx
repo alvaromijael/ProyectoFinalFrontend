@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import "./HomePage.css";
 import { MapSection } from "../components/MapSection";
 
-
 const { Title, Paragraph } = Typography;
 
 export const WelcomePage = () => {
@@ -18,14 +17,15 @@ export const WelcomePage = () => {
             Renace
           </Title>
           <Paragraph className="home-description">
-            Lorem, ipsum dolor sit amet consectetur adipisicing elit. Illo
-            deserunt labore inventore rerum perferendis doloribus ex officia.
-            Quas tenetur expedita magni in, accusantium quam. Amet veritatis
-            suscipit reiciendis temporibus placeat.
+            Brindamos atención médica integral y especializada, con un enfoque
+            humano y profesional, utilizando tecnología de vanguardia y un
+            equipo multidisciplinario especializado, comprometido con la
+            prevención, diagnóstico y tratamiento oportuno, para mejorar la
+            calidad de vida de nuestros pacientes y sus familias.
           </Paragraph>
           <Button type="primary" size="large">
             <Link
-              to="/auth/register"
+              to="/specialities"
               style={{ color: "white", textDecoration: "none" }}
             >
               Busca tu especialidad
@@ -42,10 +42,10 @@ export const WelcomePage = () => {
         <div className="lifestyle-text">
           <Title level={2}>Tu salud renace</Title>
           <Paragraph>
-            Lorem, ipsum dolor sit amet consectetur adipisicing elit. Provident
-            natus incidunt laboriosam, commodi suscipit repellat, itaque labore
-            nulla dolor pariatur recusandae necessitatibus voluptate expedita
-            placeat ad eum aspernatur rerum fuga.
+            Ser la clínica de especialidades líder y referente en la región,
+            reconocida por su excelencia médica, innovación en servicios de
+            salud y un trato cercano y empático que genere confianza y bienestar
+            en cada paciente.
           </Paragraph>
           <Paragraph strong style={{ color: "#888" }}>
             Conoce nuestros casos de éxito →
@@ -62,7 +62,6 @@ export const WelcomePage = () => {
         </div>
       </div>
       <MapSection />
-      
     </>
   );
 };

@@ -15,6 +15,7 @@ import {
   Progress,
   Tooltip,
   Alert,
+  DatePicker,
 } from "antd";
 import {
   CheckCircleOutlined,
@@ -24,6 +25,7 @@ import {
   EyeInvisibleOutlined,
   EyeTwoTone,
   InfoCircleOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import { useAuthContext } from "../../auth/context/AuthContext";
@@ -85,27 +87,64 @@ export const ProfilePage: React.FC = () => {
       }
 
       const headers = { Authorization: `Bearer ${token}` };
+      
+      // El backend requiere todos estos campos según el schema UserUpdate
       const updatedUserData = {
         first_name: values.firstName,
         last_name: values.lastName,
-        birth_date: values.birthDate?.format("YYYY-MM-DD"),
         email: values.email,
+        role: user?.role?.name || "user",
+        is_active: (user as any)?.is_active !== undefined ? (user as any).is_active : true,
+        birth_date: values.birthDate ? values.birthDate.format("YYYY-MM-DD") : ((user as any)?.birth_date || null)
       };
 
-      const response = await axios.put(`${API_BASE_URL}/users/${user?.uid}`, updatedUserData, { headers });
-      const updatedUser = response.data;
-      updateUser(updatedUser);
-      localStorage.setItem("authUser", JSON.stringify(updatedUser));
+      console.log("=== DEBUG ACTUALIZACIÓN ===");
+      console.log("Usuario actual completo:", user);
+      
+      // El backend usa 'id' no 'uid'
+      const userId = (user as any)?.id || user?.uid;
+      
+      if (!userId) {
+        throw new Error("No se encontró el ID del usuario");
+      }
+      
+      console.log("User ID:", userId);
+      console.log("Datos enviados:", updatedUserData);
+      console.log("URL completa:", `${API_BASE_URL}/users/${userId}`);
+
+      const response = await axios.put(`${API_BASE_URL}/users/${userId}`, updatedUserData, { headers });
+      
+      console.log("Respuesta completa:", response.data);
+      
+      // El backend devuelve { message, data }, necesitamos acceder a .data
+      const updatedUserFromBackend = response.data.data;
+      
+      // Combinar con datos existentes para mantener toda la información
+      const completeUser = {
+        ...user,
+        ...updatedUserFromBackend,
+        first_name: updatedUserFromBackend.first_name,
+        last_name: updatedUserFromBackend.last_name,
+        email: updatedUserFromBackend.email,
+        role: {
+          name: updatedUserFromBackend.role
+        },
+        uid: user?.uid || updatedUserFromBackend.id
+      };
+
+      updateUser(completeUser);
+      localStorage.setItem("authUser", JSON.stringify(completeUser));
 
       message.success({
-        content: "¡Perfil actualizado exitosamente!",
+        content: response.data.message || "¡Perfil actualizado exitosamente!",
         duration: 3,
         icon: <CheckCircleOutlined style={{ color: "#52c41a" }} />,
       });
     } catch (error: any) {
       console.error("Error updating profile:", error);
+      console.error("Error response:", error.response?.data);
       message.error({
-        content: error.response?.data?.message || "Error al actualizar el perfil. Inténtalo de nuevo.",
+        content: error.response?.data?.detail || error.response?.data?.message || "Error al actualizar el perfil. Inténtalo de nuevo.",
         duration: 4,
       });
     } finally {
@@ -123,7 +162,11 @@ export const ProfilePage: React.FC = () => {
       }
 
       const headers = { Authorization: `Bearer ${token}` };
-      await axios.post(
+      
+      console.log("=== DEBUG CAMBIO DE CONTRASEÑA ===");
+      console.log("Enviando petición a:", `${API_BASE_URL}/users/change-password`);
+      
+      const response = await axios.post(
         `${API_BASE_URL}/users/change-password`,
         {
           current_password: values.currentPassword,
@@ -132,17 +175,29 @@ export const ProfilePage: React.FC = () => {
         { headers }
       );
 
+      console.log("Respuesta del servidor:", response.data);
+
       passwordForm.resetFields();
       setPasswordStrength({ strength: 0, label: "", color: "" });
       setIsPasswordModalOpen(false);
-      message.success("¡Contraseña actualizada correctamente!");
+      
+      message.success({
+        content: response.data.message || "¡Contraseña actualizada correctamente!",
+        duration: 3,
+        icon: <CheckCircleOutlined style={{ color: "#52c41a" }} />,
+      });
     } catch (error: any) {
       console.error("Error changing password:", error);
-      const errorMessage = error.response?.data?.message || "Error al cambiar la contraseña";
+      console.error("Error response:", error.response?.data);
+      
+      // FastAPI devuelve el error en 'detail', no en 'message'
+      const errorDetail = error.response?.data?.detail || "Error al cambiar la contraseña";
+      
+      // Mostrar el error en el campo de contraseña actual
       passwordForm.setFields([
         {
           name: "currentPassword",
-          errors: [errorMessage.toLowerCase().includes("incorrect") ? "La contraseña actual es incorrecta" : errorMessage],
+          errors: [errorDetail],
         },
       ]);
     } finally {
@@ -203,6 +258,14 @@ export const ProfilePage: React.FC = () => {
                   <MailOutlined style={{ marginRight: 8 }} />
                   {user?.email}
                 </Text>
+                {(user as any)?.birth_date && (
+                  <div style={{ marginTop: 12 }}>
+                    <Text type="secondary" style={{ fontSize: "14px" }}>
+                      <CalendarOutlined style={{ marginRight: 8 }} />
+                      {dayjs((user as any).birth_date).format("DD/MM/YYYY")}
+                    </Text>
+                  </div>
+                )}
                 {user?.role && (
                   <div style={{ marginTop: 16 }}>
                     <Space>
@@ -271,6 +334,20 @@ export const ProfilePage: React.FC = () => {
                     <Col xs={24} sm={12}>
                       <Form.Item label="Email" name="email" rules={[{ required: true, message: "El email es obligatorio" }, { type: "email", message: "Email inválido" }]}>
                         <Input prefix={<MailOutlined style={{ color: "#bfbfbf" }} />} placeholder="tu@email.com" disabled />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item 
+                        label="Fecha de nacimiento" 
+                        name="birthDate"
+                      >
+                        <DatePicker 
+                          style={{ width: "100%" }} 
+                          format="DD/MM/YYYY"
+                          placeholder="Selecciona tu fecha"
+                          suffixIcon={<CalendarOutlined style={{ color: "#bfbfbf" }} />}
+                          disabledDate={(current) => current && current > dayjs().endOf('day')}
+                        />
                       </Form.Item>
                     </Col>
                   </Row>
