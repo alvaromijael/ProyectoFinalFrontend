@@ -46,49 +46,11 @@ import type { Patient } from '../../services/PatientService';
 import type { PatientUpdate } from '../../services/PatientService';
 
 import dataEcuador from '../../../assets/dataEcuador';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
+import type { FormData, ContactForm, ContactFormState, DataEcuador } from '../../interfaces/Patient';
 import { calculateAge } from './utils';
 
-interface ContactForm {
-  id?: number;
-  first_name: string;
-  last_name: string;
-  phone: string;
-  email?: string;
-  relationship_type: string;
-}
 
-interface FormData {
-  last_name: string;
-  first_name: string;
-  birth_date: Dayjs | null;
-  age: string;
-  gender: string;
-  document_id: string;
-  marital_status: string;
-  occupation: string;
-  education: string;
-  origin: string;
-  province: string;
-  city: string;
-  neighborhood: string;
-  street: string;
-  house_number: string;
-  contacts: ContactForm[];
-}
-
-interface ContactFormState {
-  first_name: string;
-  last_name: string;
-  phone: string;
-  email: string;
-  relationship_type: string;
-}
-
-// Definir el tipo para dataEcuador
-interface DataEcuador {
-  [provincia: string]: string[];
-}
 
 export default function PatientEdit() {
   const navigate = useNavigate();

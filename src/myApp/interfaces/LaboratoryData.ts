@@ -1,4 +1,3 @@
-// Interfaces TypeScript
 export interface TestCategory {
   title: string;
   color: string;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type JSX } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Form,
@@ -29,10 +29,14 @@ import {
   SearchOutlined,
   MedicineBoxOutlined
 } from '@ant-design/icons';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 
 import PatientService from '../../services/PatientService';
-import AppointmentService, { type User } from '../../services/AppointmentService';
+import AppointmentService from '../../services/AppointmentService';
+import type { Patient } from '../../interfaces/Patient';
+import type { Recipe } from '../../interfaces/Recipe';
+import type { Appointment } from '../../interfaces/Appointment';
+import type { UserData as User } from '../../interfaces/UserData';
 import RecipeTable from '../../components/RecipeTable';
 import DiagnosisTable from '../../components/DiagnosisTable';
 
@@ -41,13 +45,21 @@ const { Content } = Layout;
 const { TextArea } = Input;
 const { Option } = Select;
 
-export interface Diagnosis {
-  key: string;
-  diagnosis_code: string;
-  diagnosis_description: string;
-  diagnosis_type: 'primary' | 'secondary';
-  observations: string;
-}
+
+
+import type {
+  Diagnosis,
+  AppointmentDiagnosis,
+  APIRecipe,
+  AppointmentUpdateData
+} from '../../interfaces/Appointment';
+import type {
+  PatientOption,
+  FormValues,
+  OriginalData,
+  APIResponse
+} from '../../interfaces/Appointment';
+
 
 const useDebounce = (value: string, delay: number): string => {
   const [debouncedValue, setDebouncedValue] = useState<string>(value);
@@ -66,132 +78,11 @@ const useDebounce = (value: string, delay: number): string => {
 };
 
 
-interface Patient {
-  id?: number;
-  first_name?: string;
-  last_name?: string;
-  document_id?: string;
-  medical_history?: string;
-}
 
-interface Recipe {
-  key: string;
-  medicine: string;
-  amount: string;
-  instructions: string;
-  lunchTime: string;
-  observations: string;
-}
 
-interface AppointmentDiagnosis {
-  id?: number;
-  diagnosis_code: string;
-  diagnosis_description: string;
-  diagnosis_type: 'primary' | 'secondary';
-}
 
-interface APIRecipe {
-  medicine?: string;
-  amount?: string;
-  instructions?: string;
-  lunchTime?: string;
-  observations?: string;
-}
 
-interface Appointment {
-  id?: number;
-  patient_id: number;
-  user_id: number;
-  appointment_date: string;
-  appointment_time: string;
-  current_illness?: string;
-  physical_examination?: string;
-  temperature?: string;
-  blood_pressure?: string;
-  heart_rate?: string;
-  oxygen_saturation?: string;
-  weight?: number; 
-  weight_unit?: string; 
-  height?: string;
-  observations?: string;
-  laboratory_tests?: string;
-  medical_preinscription?: string; 
-  recipes?: APIRecipe[];
-  diagnoses?: AppointmentDiagnosis[];
-  user?:User;
-}
 
-interface PatientOption {
-  value: string;
-  label: JSX.Element;
-  patient: Patient;
-}
-
-interface FormValues {
-  searchPatient: string;
-  nombres: string;
-  apellidos: string;
-  cedula: string;
-  fecha: Dayjs;
-  hora: Dayjs;
-  antecedentes: string;
-  enfermedadActual: string;
-  temperatura: string;
-  presionArterial: string;
-  frecuenciaCardiaca: string;
-  saturacionO2: string;
-  peso: string;
-  pesoUnidad: string; 
-  talla: string;
-  medical_preinscription: string; 
-  examenFisico: string;
-  observaciones: string;
-  examenes: string;
-}
-
-interface OriginalData {
-  formData: Partial<FormValues>;
-  recipes: Recipe[];
-  patient: Patient;
-  appointment: Appointment;
-  diagnoses: Diagnosis[];
-  assignedDoctor?: User;
-}
-
-interface APIResponse<T = any> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
-
-interface AppointmentUpdateData {
-  patient_id: number;
-  appointment_date: string;
-  appointment_time: string;
-  current_illness: string;
-  physical_examination: string;
-  observations: string;
-  laboratory_tests: string;
-  temperature: string;
-  blood_pressure: string;
-  heart_rate: string;
-  oxygen_saturation: string;
-  weight: number; 
-  weight_unit: string;
-  height: string;
-  medical_preinscription: string; 
-  diagnoses: Array<{
-    diagnosis_code: string;
-    diagnosis_description: string;
-    diagnosis_type: 'primary' | 'secondary';
-  }>;
-  recipes: Array<{
-    medicine: string;
-    amount: string;
-    instructions: string;
-    observations: string;
-  }>;
-}
 
 const WEIGHT_UNITS = [
   { value: 'kg', label: 'Kilogramos (kg)', suffix: 'kg' },
@@ -199,7 +90,9 @@ const WEIGHT_UNITS = [
   { value: 'g', label: 'Gramos (g)', suffix: 'g' }
 ];
 
-export default function AppointmentManageEdit(): JSX.Element {
+import type { FC } from 'react';
+
+const AppointmentManageEdit: FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [form] = Form.useForm<FormValues>();
@@ -210,7 +103,7 @@ export default function AppointmentManageEdit(): JSX.Element {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [searchValue, setSearchValue] = useState<string>('');
   const [patientOptions, setPatientOptions] = useState<PatientOption[]>([]);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recipes, setRecipes] = useState<APIRecipe[]>([]);
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
   const [originalData, setOriginalData] = useState<OriginalData | null>(null);
   const [weightUnit, setWeightUnit] = useState<string>('kg');
@@ -306,7 +199,7 @@ export default function AppointmentManageEdit(): JSX.Element {
         const appointmentData = appointmentResponse.data;
         
         console.log('Appointment data loaded:', appointmentData);
-        console.log('Medical preinscription value:', appointmentData.medical_preinscription);
+  console.log('Medical preinscription value:', (appointmentData as any).medical_preinscription);
 
         if (appointmentData.user) {
           setAssignedDoctor(appointmentData.user);
@@ -320,8 +213,8 @@ export default function AppointmentManageEdit(): JSX.Element {
             
             const patientDisplayValue = `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}`;
             
-            const tableDiagnoses = appointmentData.diagnoses 
-              ? convertDiagnosesToTable(appointmentData.diagnoses)
+            const tableDiagnoses = (appointmentData as any).diagnoses 
+              ? convertDiagnosesToTable((appointmentData as any).diagnoses)
               : [];
             
             setDiagnoses(tableDiagnoses);
@@ -345,7 +238,7 @@ export default function AppointmentManageEdit(): JSX.Element {
               peso: appointmentData.weight ? appointmentData.weight.toString() : '',
               pesoUnidad: weightUnitValue,
               talla: appointmentData.height ? Math.round(parseFloat(appointmentData.height) * 100).toString() : '',
-              medical_preinscription: appointmentData.medical_preinscription || '',
+              medical_preinscription: (appointmentData as any).medical_preinscription || '',
               examenFisico: appointmentData.physical_examination || '',
               observaciones: appointmentData.observations || '',
               examenes: appointmentData.laboratory_tests || ''
@@ -363,7 +256,7 @@ export default function AppointmentManageEdit(): JSX.Element {
                   medicine: recipe.medicine ? recipe.medicine.trim() : '',
                   amount: recipe.amount ? recipe.amount.trim() : '',
                   instructions: recipe.instructions ? recipe.instructions.trim() : '',
-                  lunchTime: recipe.lunchTime ? recipe.lunchTime.trim() : '', 
+                  lunchTime: (recipe as any).lunchTime ? (recipe as any).lunchTime.trim() : '', 
                   observations: recipe.observations ? recipe.observations.trim() : ''
                 }));
             }
@@ -484,13 +377,13 @@ export default function AppointmentManageEdit(): JSX.Element {
         (recipe.medicine && recipe.medicine.trim()) || 
         (recipe.amount && recipe.amount.trim()) || 
         (recipe.instructions && recipe.instructions.trim()) ||
-        (recipe.lunchTime && recipe.lunchTime.trim()) || 
+  ((recipe as any).lunchTime && (recipe as any).lunchTime.trim()) || 
         (recipe.observations && recipe.observations.trim())
       ).map((recipe: Recipe) => ({
         medicine: recipe.medicine ? recipe.medicine.trim() : '',
         amount: recipe.amount ? recipe.amount.trim() : '',
         instructions: recipe.instructions ? recipe.instructions.trim() : '',
-        lunchTime:  recipe.lunchTime ? recipe.lunchTime.trim() : '',
+  lunchTime:  (recipe as any).lunchTime ? (recipe as any).lunchTime.trim() : '',
         observations: recipe.observations ? recipe.observations.trim() : ''
       }));
 
@@ -573,6 +466,7 @@ export default function AppointmentManageEdit(): JSX.Element {
       message.info('Formulario restaurado desde el servidor');
     }
   };
+
 
   if (loadingData) {
     return (
@@ -983,8 +877,8 @@ export default function AppointmentManageEdit(): JSX.Element {
 
               <Col xs={24}>
                 <RecipeTable 
-                  recipes={recipes}
-                  setRecipes={setRecipes}
+                  recipes={recipes as any}
+                  setRecipes={setRecipes as any}
                 />
               </Col>
               
@@ -1049,3 +943,5 @@ export default function AppointmentManageEdit(): JSX.Element {
     </Layout>
   );
 }
+
+export default AppointmentManageEdit;

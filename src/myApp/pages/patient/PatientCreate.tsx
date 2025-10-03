@@ -43,15 +43,9 @@ import PatientService  from '../../services/PatientService';
 import PatientCreate  from '../../services/PatientService';
 import dataEcuador from '../../../assets/dataEcuador';
 import dayjs, { Dayjs } from 'dayjs';
+import type {  ContactForm } from '../../interfaces/Patient';
 
-interface ContactForm {
-  id?: number;
-  first_name: string;
-  last_name: string;
-  phone: string;
-  email?: string;
-  relationship_type: string;
-}
+
 
 export default function PatientCreateC() {
   const navigate = useNavigate();

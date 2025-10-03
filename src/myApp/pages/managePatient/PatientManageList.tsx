@@ -34,33 +34,7 @@ import { useNavigate } from "react-router-dom";
 import PatientService from '../../services/PatientService';
 import { calculateAge } from '../patient/utils';
 
-interface Patient {
-  id?: number;
-  first_name: string;
-  last_name: string;
-  document_id?: string;
-  birth_date?: string;
-  age?: number;
-  gender: string;
-  marital_status?: string;
-  occupation?: string;
-  education?: string;
-  origin?: string;
-  province?: string;
-  city?: string;
-  neighborhood?: string;
-  street?: string;
-  house_number?: string;
-  contacts?: Array<{
-    first_name: string;
-    last_name: string;
-    phone: string;
-    email?: string;
-    relationship_type: string;
-  }>;
-  medical_history?: string;
-  notes?: string;
-}
+import type { Patient } from '../../interfaces/Patient';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;

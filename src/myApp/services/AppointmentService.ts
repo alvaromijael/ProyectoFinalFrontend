@@ -1,151 +1,22 @@
-import axios, {  AxiosError, type AxiosResponse } from 'axios';
 
-interface Patient {
-  id?: number;
-  first_name?: string;
-  last_name?: string;
-  document_id?: string;
-  gender?: string;
-}
+import axios, { AxiosError, type AxiosResponse } from 'axios';
+import type { Appointment, AppointmentCreate, AppointmentUpdate } from '../interfaces/Appointment';
+import type { Recipe } from '../interfaces/Recipe';
+import type { UserData as User } from '../interfaces/UserData';
+import type { Patient } from '../interfaces/Patient';
 
-interface Recipe {
-  medicine: string;
-  amount: string;
-  instructions: string;
-  observations: string;
-}
-
-interface User {
-  id: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  birth_date: string;
-  role: string;
-  created_at: string;
-  is_active: boolean;
-}
-
-interface UserAppointmentParams extends SearchParams {
-  query?: string;
-  start_date?: string;
-  end_date?: string;
-  include_recipes?: boolean;
-  include_diagnoses?: boolean;
-}
-
-interface AdvancedSearchParams extends SearchParams {
-  query?: string;
-  start_date?: string;
-  end_date?: string;
-}
-
-interface Appointment {
-  id?: number;
-  patient_id: number;
-  user_id: number;
-  appointment_date: string;
-  appointment_time: string;
-  current_illness?: string;
-  physical_examination?: string;
-  diagnosis_code?: string;
-  diagnosis_description?: string;
-  observations?: string;
-  laboratory_tests?: string;
-  temperature?: string;
-  blood_pressure?: string;
-  heart_rate?: string;
-  oxygen_saturation?: string;
-  weight?: number;
-  weight_unit?: string;
-  height?: string;
-  recipes?: Recipe[];
-  created_at?: string;
-  updated_at?: string;
-  patient?: Patient;
-  user?: User;
-}
-
-interface AppointmentCreate {
-  patient_id: number;
-  user_id: number;
-  appointment_date: string;
-  appointment_time: string;
-  current_illness?: string;
-  physical_examination?: string;
-  diagnosis_code?: string;
-  diagnosis_description?: string;
-  observations?: string;
-  laboratory_tests?: string;
-  temperature?: string;
-  blood_pressure?: string;
-  heart_rate?: string;
-  oxygen_saturation?: string;
-  weight?: number;
-  weight_unit?: string;
-  height?: string;
-  recipes?: Recipe[];
-}
-
-interface AppointmentUpdate {
-  patient_id?: number;
-  user_id?: number;
-  appointment_date?: string;
-  appointment_time?: string;
-  current_illness?: string;
-  physical_examination?: string;
-  diagnosis_code?: string;
-  diagnosis_description?: string;
-  observations?: string;
-  laboratory_tests?: string;
-  temperature?: string;
-  blood_pressure?: string;
-  heart_rate?: string;
-  oxygen_saturation?: string;
-  weight?: number;
-  weight_unit?: string;
-  height?: string;
-  recipes?: Recipe[];
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message: string;
-}
-
-interface SearchParams {
-  skip?: number;
-  limit?: number;
-  include_patient?: boolean;
-}
-
-interface DateRangeParams extends SearchParams {
-  start_date: string;
-  end_date: string;
-}
-
-interface UpcomingAppointmentsParams extends SearchParams {
-  days_ahead?: number;
-}
-
-interface AppointmentSearchParams extends SearchParams {
-  query: string;
-}
-
-interface ApiErrorResponse {
-  message?: string;
-  detail?: string;
-}
-
-interface DeleteResponse {
-  message: string;
-}
-
-interface AppointmentCountResponse {
-  patient_id: number;
-  appointment_count: number;
-}
+import type {
+  UserAppointmentParams,
+  AdvancedSearchParams,
+  ApiResponse,
+  SearchParams,
+  DateRangeParams,
+  UpcomingAppointmentsParams,
+  AppointmentSearchParams,
+  ApiErrorResponse,
+  DeleteResponse,
+  AppointmentCountResponse
+} from '../interfaces/Appointment';
 
 const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL;
 

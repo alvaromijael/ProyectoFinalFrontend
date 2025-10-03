@@ -1,3 +1,25 @@
+interface FormValues {
+  searchPatient: string;
+  nombres: string;
+  apellidos: string;
+  cedula: string;
+  fecha: Dayjs;
+  hora: Dayjs;
+  temperatura: string;
+  presionArterial: string;
+  frecuenciaCardiaca: string;
+  saturacionO2: string;
+  peso: string;
+  pesoUnidad: string;
+  talla: string;
+}
+
+type OriginalData = {
+  formData: Partial<FormValues>;
+  patient: Patient;
+  appointment: Appointment;
+  assignedDoctor?: UserData;
+};
 import { useState, useEffect, useCallback, type JSX } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -29,8 +51,13 @@ import {
 } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
 
+
 import PatientService from '../../services/PatientService';
-import AppointmentService, { type User } from '../../services/AppointmentService';
+import AppointmentService from '../../services/AppointmentService';
+import type { Patient } from '../../interfaces/Patient';
+import type { Appointment } from '../../interfaces/Appointment';
+import type { UserData } from '../../interfaces/UserData';
+
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -52,29 +79,7 @@ const useDebounce = (value: string, delay: number): string => {
   return debouncedValue;
 };
 
-interface Patient {
-  id?: number;
-  first_name?: string;
-  last_name?: string;
-  document_id?: string;
-  medical_history?: string;
-}
 
-interface Appointment {
-  id?: number;
-  patient_id: number;
-  user_id?: number;
-  appointment_date: string;
-  appointment_time: string;
-  temperature?: string;
-  blood_pressure?: string;
-  heart_rate?: string;
-  oxygen_saturation?: string;
-  weight?: number;
-  weight_unit?: string;
-  height?: string;
-  user?: User;
-}
 
 interface PatientOption {
   value: string;
@@ -96,13 +101,6 @@ interface FormValues {
   peso: string;
   pesoUnidad: string;
   talla: string;
-}
-
-interface OriginalData {
-  formData: Partial<FormValues>;
-  patient: Patient;
-  appointment: Appointment;
-  assignedDoctor?: User;
 }
 
 interface APIResponse<T = any> {
@@ -139,7 +137,7 @@ export default function AppointmentEdit(): JSX.Element {
   const [loadingData, setLoadingData] = useState<boolean>(true);
   const [searchLoading, setSearchLoading] = useState<boolean>(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [assignedDoctor, setAssignedDoctor] = useState<User | null>(null);
+  const [assignedDoctor, setAssignedDoctor] = useState<UserData | null>(null);
   const [searchValue, setSearchValue] = useState<string>('');
   const [patientOptions, setPatientOptions] = useState<PatientOption[]>([]);
   const [originalData, setOriginalData] = useState<OriginalData | null>(null);

@@ -29,8 +29,11 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
+
 import PatientService from '../../services/PatientService';
-import AppointmentService, { type User } from '../../services/AppointmentService';
+import AppointmentService from '../../services/AppointmentService';
+import type { Patient } from '../../interfaces/Patient';
+import type { UserData as User } from '../../interfaces/UserData';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -52,13 +55,7 @@ const useDebounce = (value: string, delay: number) => {
   return debouncedValue;
 };
 
-interface Patient {
-  id?: number;
-  first_name?: string;
-  last_name?: string;
-  document_id?: string;
-  medical_history?: string;
-}
+
 
 const WEIGHT_UNITS = [
   { value: 'kg', label: 'Kilogramos (kg)', suffix: 'kg' },
