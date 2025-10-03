@@ -198,8 +198,6 @@ const AppointmentManageEdit: FC = () => {
       if (appointmentResponse.success) {
         const appointmentData = appointmentResponse.data;
         
-        console.log('Appointment data loaded:', appointmentData);
-  console.log('Medical preinscription value:', (appointmentData as any).medical_preinscription);
 
         if (appointmentData.user) {
           setAssignedDoctor(appointmentData.user);
@@ -244,8 +242,7 @@ const AppointmentManageEdit: FC = () => {
               examenes: appointmentData.laboratory_tests || ''
             };
 
-            console.log('Form data to set:', formData);
-            console.log('Medical preinscription in formData:', formData.medical_preinscription);
+         
 
             let processedRecipes: Recipe[] = [];
             if (appointmentData.recipes && Array.isArray(appointmentData.recipes) && appointmentData.recipes.length > 0) {
@@ -452,7 +449,6 @@ const AppointmentManageEdit: FC = () => {
 
   const handleClear = (): void => {
     if (originalData) {
-      console.log('Restoring original data:', originalData.formData);
       form.setFieldsValue(originalData.formData);
       setRecipes([...originalData.recipes]); 
       setSelectedPatient(originalData.patient);
