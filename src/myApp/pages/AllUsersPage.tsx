@@ -23,7 +23,7 @@ export const AllUsersPage = () => {
     first_name: "", 
     last_name: "", 
     email: "",
-    role: "user" as "user" | "admin",
+    role: "user" as "user" | "admin" | "medic" | "nurse" | "laboratory",
     is_active: true
   });
 
@@ -110,32 +110,34 @@ export const AllUsersPage = () => {
   };
 
   const getRoleTag = (role: string) => {
-    // Configuración flexible para roles - fácil de extender
-    const roleConfig = {
-      superadmin: { color: 'purple', text: 'Superadmin', icon: '🔥' },
-      admin: { color: 'blue', text: 'Administrador', icon: '⚡' },
-      user: { color: 'green', text: 'Usuario', icon: '👤' },
-      // Aquí se pueden agregar más roles fácilmente:
-      // moderator: { color: 'orange', text: 'Moderador', icon: '🛡️' },
-      // viewer: { color: 'default', text: 'Visualizador', icon: '👁️' },
-    };
-    const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.user;
-    return <Tag color={config.color}>{config.icon} {config.text}</Tag>;
+  // Configuración flexible para roles - fácil de extender
+  const roleConfig = {
+    superadmin: { color: 'purple', text: 'Superadmin', icon: '🔥' },
+    admin: { color: 'blue', text: 'Administrador', icon: '⚡' },
+    medic: { color: 'green', text: 'Médico', icon: '🩺' },
+    nurse: { color: 'cyan', text: 'Enfermero/a', icon: '👩‍⚕️' },
+    laboratory: { color: 'orange', text: 'Laboratorista', icon: '🔬' },
+    user: { color: 'default', text: 'Usuario', icon: '👤' },
   };
+  const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.user;
+  return <Tag color={config.color}>{config.icon} {config.text}</Tag>;
+};
 
-  const getAvailableRoles = () => {
-    // Retorna los roles que se pueden asignar (excluyendo superadmin)
-    return [
-      { value: 'user', label: '👤 Usuario' },
-      { value: 'admin', label: '⚡ Administrador' },
-      // Agregar más roles aquí cuando sea necesario
-    ];
-  };
+ const getAvailableRoles = () => {
+  // Retorna los roles que se pueden asignar (excluyendo superadmin)
+  return [
+    { value: 'user', label: '👤 Usuario' },
+    { value: 'admin', label: '⚡ Administrador' },
+    { value: 'medic', label: '🩺 Médico' },
+    { value: 'nurse', label: '👩‍⚕️ Enfermero/a' },
+    { value: 'laboratory', label: '🔬 Laboratorista' },
+  ];
+};
 
   // Verificar si un usuario está protegido y no se puede editar/eliminar
   const isProtectedUser = (user: UserData): boolean => {
     const isProtected = user.role === 'superadmin' || user.email === 'admin@fenix.com';
-    console.log(`Usuario: ${user.email}, Rol: ${user.role}, Protegido: ${isProtected}`);
+    //console.log(`Usuario: ${user.email}, Rol: ${user.role}, Protegido: ${isProtected}`);
     return isProtected;
   };
 
@@ -150,7 +152,7 @@ export const AllUsersPage = () => {
       first_name: user.first_name,
       last_name: user.last_name,
       email: user.email,
-      role: user.role as "user" | "admin",
+      role: user.role as "user" | "admin" | "medic" | "nurse" | "laboratory",
       is_active: user.is_active
     });
     setIsEditModalVisible(true);

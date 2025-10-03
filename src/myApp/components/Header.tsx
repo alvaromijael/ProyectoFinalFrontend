@@ -52,8 +52,8 @@ export const Header = () => {
         icon: <AppstoreOutlined />,
       },
       {
-        label: <Link to="/income">Medical</Link>,
-        key: "/income",
+        label: <Link to="/medical">Medical</Link>,
+        key: "/medical",
         icon: <StarOutlined />,
       },
        {

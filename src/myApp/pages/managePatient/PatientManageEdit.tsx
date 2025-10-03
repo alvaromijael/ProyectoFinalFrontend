@@ -1,9 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Input,
   Select,
   DatePicker,
-  InputNumber,
   Button,
   Card,
   Table,
@@ -17,11 +16,13 @@ import {
   Avatar,
   Layout,
   Collapse,
-  Divider,
+  Spin,
+  Divider
 } from 'antd';
 import {
   UserOutlined,
   EnvironmentOutlined,
+  MedicineBoxOutlined,
   PhoneOutlined,
   HeartFilled,
   PlusOutlined,
@@ -30,29 +31,35 @@ import {
   SaveOutlined,
   CloseOutlined,
   CaretRightOutlined,
+  LockOutlined,
   ContactsOutlined
 } from '@ant-design/icons';
+import type { ColumnsType } from 'antd/es/table';
 
+const { TextArea } = Input;
 const { Option } = Select;
 const { Title, Text } = Typography;
 const { Content } = Layout;
 const { Panel } = Collapse;
 
-import { useNavigate } from "react-router-dom";
-import PatientService  from '../../services/PatientService';
-import PatientCreate  from '../../services/PatientService';
+import { useNavigate, useParams } from "react-router-dom";
+import PatientService from '../../services/PatientService';
+import type { Patient } from '../../services/PatientService';
 import dataEcuador from '../../../assets/dataEcuador';
-import dayjs, { Dayjs } from 'dayjs';
-import type {  ContactForm } from '../../interfaces/Patient';
+import dayjs from 'dayjs';
+import type { FormData, ContactForm, ContactFormState, DataEcuador, PatientManage } from '../../interfaces/Patient';
+import { calculateAge } from '../patient/utils';
 
 
 
-export default function PatientCreateC() {
+export default function PatientManageEdit() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
+  const { id } = useParams<{ id: string }>();
+
+  const [formData, setFormData] = useState<FormData>({
     last_name: '',
     first_name: '',
-    birth_date: null as Dayjs | null,
+    birth_date: null,
     age: '',
     gender: '',
     document_id: '',
@@ -62,13 +69,15 @@ export default function PatientCreateC() {
     origin: '',
     province: '',
     city: '',
+    medical_history: '',
+    notes: '',
     neighborhood: '',
     street: '',
     house_number: '',
-    contacts: [] as ContactForm[]
+    contacts: []
   });
 
-  const [contactoForm, setContactoForm] = useState({
+  const [contactoForm, setContactoForm] = useState<ContactFormState>({
     first_name: '',
     last_name: '',
     phone: '',
@@ -77,60 +86,154 @@ export default function PatientCreateC() {
   });
 
   const [editingContact, setEditingContact] = useState<number | null>(null);
-  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
-  const [activeKey, setActiveKey] = useState(['1']);
-  const [loading, setLoading] = useState(false);
+  const [isContactModalOpen, setIsContactModalOpen] = useState<boolean>(false);
+  const [activeKey, setActiveKey] = useState<string[]>(['1']);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [initialLoading, setInitialLoading] = useState<boolean>(true);
+  const [originalData, setOriginalData] = useState<Patient | null>(null);
 
-  const provincias = Object.keys(dataEcuador);
-  const ciudades = formData.province ? dataEcuador[formData.province] : [];
+  const provincias = Object.keys(dataEcuador as DataEcuador);
+  const ciudades = formData.province ? (dataEcuador as DataEcuador)[formData.province] : [];
 
-  const goToPatientList = () => {
-    navigate("/patientList");
+  useEffect(() => {
+    const loadPatientData = async (): Promise<void> => {
+      if (!id) return;
+      
+      setInitialLoading(true);
+      try {
+        const response = await PatientService.getPatientById(id);
+        
+        if (response.success && response.data) {
+          const patient: Patient = response.data;
+          setOriginalData(patient);
+          
+          setFormData({
+            last_name: patient.last_name || '',
+            first_name: patient.first_name || '',
+            birth_date: patient.birth_date ? dayjs(patient.birth_date) : null,
+            age: calculateAge(patient.birth_date || ''),
+            gender: patient.gender || '',
+            document_id: patient.document_id || '',
+            marital_status: patient.marital_status || '',
+            occupation: patient.occupation || '',
+            education: patient.education || '',
+            origin: patient.origin || '',
+            province: patient.province || '',
+            city: patient.city || '',
+            medical_history: patient.medical_history || '',
+            notes: patient.notes || '',
+            neighborhood: patient.neighborhood || '',
+            street: patient.street || '',
+            house_number: patient.house_number || '',
+            contacts: (patient.contacts || []).map((contact, index) => ({
+              id: contact.id || Date.now() + index,
+              first_name: contact.first_name,
+              last_name: contact.last_name,
+              phone: contact.phone,
+              email: contact.email || '',
+              relationship_type: contact.relationship_type
+            }))
+          });
+          
+          message.success('Datos del paciente cargados correctamente');
+        } else {
+          message.error(response.message || 'Error al cargar los datos del paciente');
+          navigate('/patientList');
+        }
+      } catch (error) {
+        message.error('Error al cargar los datos del paciente');
+        console.error('Error:', error);
+        navigate('/patientList');
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+    
+    if (id) {
+      loadPatientData();
+    }
+  }, [id, navigate]); 
+
+  const goToPatientList = (): void => {
+    navigate("/patientManageList");
   };
 
-  const handleInputChange = <K extends keyof typeof formData>(
-    field: K,
-    value: typeof formData[K]
-  ) => {
+  const hasChanges = (): boolean => {
+    if (!originalData) return false;
+    
+    if (
+      formData.first_name !== originalData.first_name ||
+      formData.last_name !== originalData.last_name ||
+      formData.age !== originalData.age ||
+      formData.gender !== originalData.gender ||
+      formData.marital_status !== (originalData.marital_status || '') ||
+      formData.occupation !== (originalData.occupation || '') ||
+      formData.education !== (originalData.education || '') ||
+      formData.origin !== (originalData.origin || '') ||
+      formData.province !== (originalData.province || '') ||
+      formData.city !== (originalData.city || '') ||
+      formData.neighborhood !== (originalData.neighborhood || '') ||
+      formData.street !== (originalData.street || '') ||
+      formData.house_number !== (originalData.house_number || '') ||
+      formData.medical_history !== (originalData.medical_history || '') ||
+      formData.notes !== (originalData.notes || '')
+    ) {
+      return true;
+    }
+
+    const originalDate = originalData.birth_date ? dayjs(originalData.birth_date) : null;
+    const currentDate = formData.birth_date;
+    if (
+      (originalDate && !currentDate) ||
+      (!originalDate && currentDate) ||
+      (originalDate && currentDate && !originalDate.isSame(currentDate, 'day'))
+    ) {
+      return true;
+    }
+
+    const originalContacts = originalData.contacts || [];
+    if (formData.contacts.length !== originalContacts.length) {
+      return true;
+    }
+
+    for (let i = 0; i < formData.contacts.length; i++) {
+      const current = formData.contacts[i];
+      const original = originalContacts[i];
+      
+      if (
+        current.first_name !== original.first_name ||
+        current.last_name !== original.last_name ||
+        current.phone !== original.phone ||
+        (current.email || '') !== (original.email || '') ||
+        current.relationship_type !== original.relationship_type
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  const handleInputChange = (field: keyof FormData, value: string): void => {
+    if (field === 'document_id') {
+      message.warning('La cédula no puede ser modificada');
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const handleBirthDateChange = (value: any) => {
-    handleInputChange('birth_date', value);
-    if (!value) {
-      handleInputChange('age', '');
-      return;
-    }
-    
-    const today = dayjs();
-    const birth = dayjs(value);
-    let years = today.diff(birth, 'year');
-    const monthsDiff = today.diff(birth.add(years, 'year'), 'month');
-    let ageText = '';
-    if (years === 0) {
-      ageText = `${monthsDiff} ${monthsDiff === 1 ? 'mes' : 'meses'}`;
-    } else if (monthsDiff === 0) {
-      ageText = `${years} ${years === 1 ? 'año' : 'años'}`;
-    } else {
-      ageText = `${years} ${years === 1 ? 'año' : 'años'} y ${monthsDiff} ${monthsDiff === 1 ? 'mes' : 'meses'}`;
-    }
-    handleInputChange('age', ageText);
-  };
-
-  const handleContactInputChange = <K extends keyof typeof contactoForm>(
-    field: K,
-    value: typeof contactoForm[K]
-  ) => {
+  const handleContactInputChange = (field: keyof ContactFormState, value: string): void => {
     setContactoForm(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const openAddContactModal = () => {
+  const openAddContactModal = (): void => {
     setContactoForm({
       first_name: '',
       last_name: '',
@@ -142,7 +245,7 @@ export default function PatientCreateC() {
     setIsContactModalOpen(true);
   };
 
-  const addContact = () => {
+  const addContact = (): void => {
     if (!contactoForm.last_name || !contactoForm.first_name || !contactoForm.phone) {
       message.error('Por favor complete al menos el apellido, nombre y teléfono del contacto');
       return;
@@ -180,7 +283,7 @@ export default function PatientCreateC() {
     setEditingContact(null);
   };
 
-  const editContact = (contact: ContactForm) => {
+  const editContact = (contact: ContactForm): void => {
     setContactoForm({
       first_name: contact.first_name,
       last_name: contact.last_name,
@@ -192,7 +295,7 @@ export default function PatientCreateC() {
     setIsContactModalOpen(true);
   };
 
-  const deleteContact = (contactId: number) => {
+  const deleteContact = (contactId: number): void => {
     setFormData(prev => ({
       ...prev,
       contacts: prev.contacts.filter(contact => contact.id !== contactId)
@@ -200,7 +303,7 @@ export default function PatientCreateC() {
     message.success('Contacto eliminado correctamente');
   };
 
-  const cancelContactModal = () => {
+  const cancelContactModal = (): void => {
     setEditingContact(null);
     setIsContactModalOpen(false);
     setContactoForm({
@@ -212,21 +315,38 @@ export default function PatientCreateC() {
     });
   };
 
-  const handleSubmit = async () => {
-    if (!formData.last_name || !formData.first_name || !formData.document_id || !formData.age || !formData.gender || !formData.birth_date) {
+  const handleSubmit = async (): Promise<void> => {
+    if (!id) {
+      message.error('ID del paciente no encontrado');
+      return;
+    }
+
+    if (!formData.last_name || !formData.first_name || !formData.age || !formData.gender || !formData.birth_date) {
       message.error('Por favor complete todos los campos obligatorios marcados con *');
+      return;
+    }
+
+    // Validación específica para antecedentes médicos
+    if (!formData.medical_history?.trim()) {
+      message.error('Por favor complete el campo de antecedentes médicos');
+      return;
+    }
+
+    if (!hasChanges()) {
+      message.info('No hay cambios para guardar');
       return;
     }
 
     setLoading(true);
 
     try {
-      const patientData: PatientCreate = {
+      const patientData: PatientManage = {
         first_name: formData.first_name,
         last_name: formData.last_name,
         birth_date: formData.birth_date.format('YYYY-MM-DD'),
         gender: formData.gender,
         document_id: formData.document_id,
+        medical_history: formData.medical_history, // Campo obligatorio
         marital_status: formData.marital_status || undefined,
         occupation: formData.occupation || undefined,
         education: formData.education || undefined,
@@ -236,6 +356,7 @@ export default function PatientCreateC() {
         neighborhood: formData.neighborhood || undefined,
         street: formData.street || undefined,
         house_number: formData.house_number || undefined,
+        notes: formData.notes || undefined,
         contacts: formData.contacts.map(contact => ({
           first_name: contact.first_name,
           last_name: contact.last_name,
@@ -245,45 +366,27 @@ export default function PatientCreateC() {
         }))
       };
 
-      const response = await PatientService.createPatient(patientData);
+      console.log('Datos a actualizar:', patientData);
 
-      console.log('Response from API:', response);
+      const response = await PatientService.managePatient(id, patientData);
 
       if (response.success) {
         message.success(response.message);
-        setFormData({
-          last_name: '',
-          first_name: '',
-          birth_date: null,
-          age: '',
-          gender: '',
-          document_id: '',
-          marital_status: '',
-          occupation: '',
-          education: '',
-          origin: '',
-          province: '',
-          city: '',
-          neighborhood: '',
-          street: '',
-          house_number: '',
-          contacts: []
-        });
         setTimeout(() => {
-          navigate('/patientList');
+          navigate('/patientManageList');
         }, 1500);
       } else {
         message.error(response.message);
       }
     } catch (error) {
-      message.error('Error al crear el paciente');
+      message.error('Error al actualizar el paciente');
       console.error('Error:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleProvinciaChange = (value: string) => {
+  const handleProvinciaChange = (value: string): void => {
     setFormData(prev => ({
       ...prev,
       province: value,
@@ -291,7 +394,7 @@ export default function PatientCreateC() {
     }));
   };
 
-  const contactColumns = [
+  const contactColumns: ColumnsType<ContactForm> = [
     {
       title: 'Apellidos',
       dataIndex: 'last_name',
@@ -358,6 +461,16 @@ export default function PatientCreateC() {
     },
   ];
 
+  if (initialLoading) {
+    return (
+      <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+        <Content style={{ padding: '24px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <Spin size="large" />
+        </Content>
+      </Layout>
+    );
+  }
+
   return (
     <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
       <Content style={{ padding: '24px' }}>
@@ -370,8 +483,22 @@ export default function PatientCreateC() {
                   FENIX
                 </Title>
                 <Text style={{ color: '#722ed1', fontSize: '18px', fontWeight: 500 }}>
-                  Crear Nuevo Paciente
+                  Gestión Médica - Editar Paciente
                 </Text>
+                {formData.document_id && (
+                  <div style={{ marginTop: '8px' }}>
+                    <Text type="secondary">
+                      CI: {formData.document_id}
+                    </Text>
+                  </div>
+                )}
+                {originalData && hasChanges() && (
+                  <div style={{ marginTop: '8px' }}>
+                    <Text type="warning" style={{ fontSize: '12px' }}>
+                      ⚠ Hay cambios sin guardar
+                    </Text>
+                  </div>
+                )}
               </Col>
               <Col>
                 <Avatar
@@ -386,12 +513,12 @@ export default function PatientCreateC() {
           {/* Acordeones */}
           <Collapse
             activeKey={activeKey}
-            onChange={setActiveKey}
+            onChange={(keys) => setActiveKey(Array.isArray(keys) ? keys : [keys])}
             expandIcon={({ isActive }) => <CaretRightOutlined rotate={isActive ? 90 : 0} />}
             style={{ marginBottom: '24px' }}
             size="large"
           >
-            {/* Panel 1: Datos de Filiación (Combinado) */}
+            {/* Panel 1: Datos de Filiación */}
             <Panel
               header={
                 <Space>
@@ -451,13 +578,19 @@ export default function PatientCreateC() {
                   <Col xs={24} sm={12} lg={8}>
                     <Space direction="vertical" style={{ width: '100%' }}>
                       <Text strong>
-                        Cédula <Text type="danger">*</Text>
+                        <LockOutlined /> Cédula (No editable)
                       </Text>
                       <Input
-                        placeholder="Ingrese la cédula"
+                        placeholder="Cédula"
                         value={formData.document_id}
-                        onChange={(e) => handleInputChange('document_id', e.target.value)}
+                        disabled
                         size="large"
+                        style={{ 
+                          backgroundColor: '#f5f5f5',
+                          color: '#666',
+                          cursor: 'not-allowed'
+                        }}
+                        addonBefore={<LockOutlined style={{ color: '#999' }} />}
                       />
                     </Space>
                   </Col>
@@ -472,7 +605,13 @@ export default function PatientCreateC() {
                         style={{ width: '100%' }}
                         format="DD/MM/YYYY"
                         value={formData.birth_date}
-                        onChange={handleBirthDateChange}
+                        onChange={(value) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            birth_date: value,
+                            age: value ? calculateAge(value.format('YYYY-MM-DD')) : ''
+                          }));
+                        }}
                         size="large"
                       />
                     </Space>
@@ -483,15 +622,15 @@ export default function PatientCreateC() {
                       <Text strong>
                         Edad <Text type="danger">*</Text>
                       </Text>
-                      <InputNumber
-                        min="0"
-                        max="120"
-                        placeholder="Edad"
-                        style={{ width: '100%' }}
+                      <Input
+                        placeholder="Se calcula automáticamente"
                         value={formData.age}
-                        onChange={(value) => handleInputChange('age', value ?? '0')}
+                        readOnly
+                        style={{ 
+                          backgroundColor: '#f5f5f5',
+                          cursor: 'default'
+                        }}
                         size="large"
-                        disabled
                       />
                     </Space>
                   </Col>
@@ -559,7 +698,7 @@ export default function PatientCreateC() {
                         <Option value="Estudiante">Estudiante</Option>
                         <Option value="Jubilado">Jubilado</Option>
                         <Option value="Desempleado">Desempleado</Option>
-                         <Option value="NoAplica">No Aplica</Option>
+                        <Option value="NoAplica">No Aplica</Option>
                       </Select>
                     </Space>
                   </Col>
@@ -722,6 +861,52 @@ export default function PatientCreateC() {
                 )}
               </div>
             </Panel>
+
+            {/* Panel 2: Información Médica */}
+            <Panel
+              header={
+                <Space>
+                  <MedicineBoxOutlined style={{ color: '#52c41a' }} />
+                  <Text strong>Información Médica</Text>
+                </Space>
+              }
+              key="2"
+            >
+              <Row gutter={[24, 16]}>
+                <Col xs={24} sm={12}>
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <Text strong>
+                      Antecedentes Médicos <Text type="danger">*</Text>
+                    </Text>
+                    <TextArea
+                      value={formData.medical_history}
+                      onChange={(e) => handleInputChange('medical_history', e.target.value)}
+                      placeholder="Escribe los antecedentes médicos aquí..."
+                      rows={4}
+                      required
+                      status={!formData.medical_history?.trim() ? 'error' : ''}
+                    />
+                    {!formData.medical_history?.trim() && (
+                      <Text type="danger" style={{ fontSize: '12px' }}>
+                        Este campo es obligatorio
+                      </Text>
+                    )}
+                  </Space>
+                </Col>
+
+                <Col xs={24} sm={12}>
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <Text strong>Observaciones</Text>
+                    <TextArea
+                      value={formData.notes}
+                      onChange={(e) => handleInputChange('notes', e.target.value)}
+                      placeholder="Información adicional..."
+                      rows={4}
+                    />
+                  </Space>
+                </Col>
+              </Row>
+            </Panel>
           </Collapse>
 
           {/* Botones de Acción */}
@@ -736,8 +921,9 @@ export default function PatientCreateC() {
                 icon={<SaveOutlined />}
                 onClick={handleSubmit}
                 loading={loading}
+                disabled={!originalData || !hasChanges()}
               >
-                Guardar Paciente
+                Actualizar Paciente
               </Button>
             </Space>
           </Row>
@@ -825,7 +1011,7 @@ export default function PatientCreateC() {
                 <Select
                   placeholder="Seleccionar..."
                   value={contactoForm.relationship_type}
-                  onChange={(value) => handleContactInputChange('relationship_type', value)}
+                  onChange={(value: string) => handleContactInputChange('relationship_type', value)}
                   style={{ width: '100%' }}
                   size="large"
                 >

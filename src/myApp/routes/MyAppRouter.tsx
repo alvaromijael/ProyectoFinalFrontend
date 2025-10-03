@@ -22,18 +22,20 @@ import AppointmentEdit from "../pages/appointment/AppointmentEdit";
 import { ProfilePage } from "../pages/ProfilePage";
 
 import LabOrderForm from "../pages/laboratory/LabOrderForm";
-import AppointmentManage from "../pages/manageAppointment/AppointmentManageCreate";
 import AppointmentManageList from "../pages/manageAppointment/AppointmentManageList";
 import AppointmentManageEdit from "../pages/manageAppointment/AppointmentManageEdit";
-import AppointmentManageCreate from "../pages/manageAppointment/AppointmentManageCreate";
+import PatientManageList from "../pages/managePatient/PatientManageList";
+import PatientManageEdit from "../pages/managePatient/PatientManageEdit";
+import Unauthorized from "../components/Unauthorized";
+import Medical from "../pages/landing/Medical";
 
 
 const { Content } = Layout;
 
 export const MyAppRouter = () => {
-  const { user, loading } = useAuthContext(); // 👈 usamos tu hook
+  const { user, loading } = useAuthContext(); 
 
-  if (loading) return null; // o un spinner si prefieres
+  if (loading) return null; 
 
   return (
     <>
@@ -56,7 +58,7 @@ export const MyAppRouter = () => {
             <Route
               path="/patientList"
               element={
-                <PrivateRoute>
+                <PrivateRoute roles={["admin", "medic", "nurse","laboratory"]}>
                   <PatientList />
                 </PrivateRoute>
               }
@@ -77,10 +79,28 @@ export const MyAppRouter = () => {
                 </PrivateRoute>
               }
             />
+
+            <Route
+              path="/patientManageList"
+              element={
+                <PrivateRoute roles={["admin", "medic"]}>
+                  <PatientManageList />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/patientManageEdit/:id"
+              element={
+                <PrivateRoute>
+                  <PatientManageEdit />
+                </PrivateRoute>
+              }
+            />
+
             <Route
               path="/appointmentList"
               element={
-                <PrivateRoute>
+                <PrivateRoute >
                   <AppointmentList />
                 </PrivateRoute>
               }
@@ -104,21 +124,13 @@ export const MyAppRouter = () => {
               <Route
               path="/manageAppointmentList"
               element={
-                <PrivateRoute>
+                <PrivateRoute roles={["admin", "medic"]}>
                   <AppointmentManageList />
                 </PrivateRoute>
               }
             />
 
-              <Route
-              path="/manageAppointmentCreate"
-              element={
-                <PrivateRoute>
-                  <AppointmentManageCreate />
-                </PrivateRoute>
-              }
-            />
-
+    
               <Route
               path="/manageAppointmentEdit/:id"
               element={
@@ -131,7 +143,7 @@ export const MyAppRouter = () => {
             <Route
               path="/all-users"
               element={
-                <PrivateRoute>
+                <PrivateRoute roles="admin">
                   <AllUsersPage />
                 </PrivateRoute>
               }
@@ -155,6 +167,8 @@ export const MyAppRouter = () => {
             <Route path="/about-us" element={<AboutUs />} />
             <Route path="/specialities" element={<Specialities />} />
             <Route path="/laboratory" element={<Laboratory />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route path="/medical" element={<Medical/>} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </Content>

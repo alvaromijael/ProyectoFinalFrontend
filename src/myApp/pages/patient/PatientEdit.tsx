@@ -3,7 +3,6 @@ import {
   Input,
   Select,
   DatePicker,
-  InputNumber,
   Button,
   Card,
   Table,
@@ -23,7 +22,6 @@ import {
 import {
   UserOutlined,
   EnvironmentOutlined,
-  MedicineBoxOutlined,
   PhoneOutlined,
   HeartFilled,
   PlusOutlined,
@@ -37,7 +35,6 @@ import {
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
-const { TextArea } = Input;
 const { Option } = Select;
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -49,51 +46,11 @@ import type { Patient } from '../../services/PatientService';
 import type { PatientUpdate } from '../../services/PatientService';
 
 import dataEcuador from '../../../assets/dataEcuador';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
+import type { FormData, ContactForm, ContactFormState, DataEcuador } from '../../interfaces/Patient';
 import { calculateAge } from './utils';
 
-interface ContactForm {
-  id?: number;
-  first_name: string;
-  last_name: string;
-  phone: string;
-  email?: string;
-  relationship_type: string;
-}
 
-interface FormData {
-  last_name: string;
-  first_name: string;
-  birth_date: Dayjs | null;
-  age: string;
-  gender: string;
-  document_id: string;
-  marital_status: string;
-  occupation: string;
-  education: string;
-  origin: string;
-  province: string;
-  city: string;
-  medical_history: string;
-  notes: string;
-  neighborhood: string;
-  street: string;
-  house_number: string;
-  contacts: ContactForm[];
-}
-
-interface ContactFormState {
-  first_name: string;
-  last_name: string;
-  phone: string;
-  email: string;
-  relationship_type: string;
-}
-
-// Definir el tipo para dataEcuador
-interface DataEcuador {
-  [provincia: string]: string[];
-}
 
 export default function PatientEdit() {
   const navigate = useNavigate();
@@ -112,8 +69,6 @@ export default function PatientEdit() {
     origin: '',
     province: '',
     city: '',
-    medical_history: '',
-    notes: '',
     neighborhood: '',
     street: '',
     house_number: '',
@@ -163,8 +118,6 @@ export default function PatientEdit() {
             origin: patient.origin || '',
             province: patient.province || '',
             city: patient.city || '',
-            medical_history: patient.medical_history || '',
-            notes: patient.notes || '',
             neighborhood: patient.neighborhood || '',
             street: patient.street || '',
             house_number: patient.house_number || '',
@@ -217,9 +170,7 @@ export default function PatientEdit() {
       formData.city !== (originalData.city || '') ||
       formData.neighborhood !== (originalData.neighborhood || '') ||
       formData.street !== (originalData.street || '') ||
-      formData.house_number !== (originalData.house_number || '') ||
-      formData.medical_history !== (originalData.medical_history || '') ||
-      formData.notes !== (originalData.notes || '')
+      formData.house_number !== (originalData.house_number || '')
     ) {
       return true;
     }
@@ -391,8 +342,6 @@ export default function PatientEdit() {
         neighborhood: formData.neighborhood || undefined,
         street: formData.street || undefined,
         house_number: formData.house_number || undefined,
-        medical_history: formData.medical_history || undefined,
-        notes: formData.notes || undefined,
         contacts: formData.contacts.map(contact => ({
           first_name: contact.first_name,
           last_name: contact.last_name,
@@ -734,6 +683,7 @@ export default function PatientEdit() {
                         <Option value="Estudiante">Estudiante</Option>
                         <Option value="Jubilado">Jubilado</Option>
                         <Option value="Desempleado">Desempleado</Option>
+                        <Option value="NoAplica">No Aplica</Option>
                       </Select>
                     </Space>
                   </Col>
@@ -895,43 +845,6 @@ export default function PatientEdit() {
                   </div>
                 )}
               </div>
-            </Panel>
-
-            {/* Panel 2: Información Médica */}
-            <Panel
-              header={
-                <Space>
-                  <MedicineBoxOutlined style={{ color: '#52c41a' }} />
-                  <Text strong>Información Médica</Text>
-                </Space>
-              }
-              key="2"
-            >
-              <Row gutter={[24, 16]}>
-                <Col xs={24} sm={12}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Antecedentes Médicos</Text>
-                    <TextArea
-                      value={formData.medical_history}
-                      onChange={(e) => handleInputChange('medical_history', e.target.value)}
-                      placeholder="Escribe los antecedentes médicos aquí..."
-                      rows={4}
-                    />
-                  </Space>
-                </Col>
-
-                <Col xs={24} sm={12}>
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Text strong>Observaciones</Text>
-                    <TextArea
-                      value={formData.notes}
-                      onChange={(e) => handleInputChange('notes', e.target.value)}
-                      placeholder="Información adicional..."
-                      rows={4}
-                    />
-                  </Space>
-                </Col>
-              </Row>
             </Panel>
           </Collapse>
 

@@ -16,24 +16,29 @@ import {
   message,
   Divider,
   AutoComplete,
-  Spin
+  Spin,
+  Select
 } from 'antd';
 import {
   UserOutlined,  
   SaveOutlined,
   ArrowLeftOutlined,
   PlusOutlined,
-  SearchOutlined
+  SearchOutlined,
+  
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
+
 import PatientService from '../../services/PatientService';
 import AppointmentService from '../../services/AppointmentService';
+import type { Patient } from '../../interfaces/Patient';
+import type { UserData as User } from '../../interfaces/UserData';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
+const { Option } = Select;
 
-// Función helper para debounce
 const useDebounce = (value: string, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
 
@@ -50,30 +55,47 @@ const useDebounce = (value: string, delay: number) => {
   return debouncedValue;
 };
 
-// Interfaces
-interface Patient {
-  id?: number;
-  first_name?: string;
-  last_name?: string;
-  document_id?: string;
-  medical_history?: string;
-}
+
+
+const WEIGHT_UNITS = [
+  { value: 'kg', label: 'Kilogramos (kg)', suffix: 'kg' },
+  { value: 'lb', label: 'Libras (lb)', suffix: 'lb' },
+  { value: 'g', label: 'Gramos (g)', suffix: 'g' }
+];
 
 export default function AppointmentCreate(): JSX.Element {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   
-  // Estados
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [searchValue, setSearchValue] = useState('');
   const [patientOptions, setPatientOptions] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [weightUnit, setWeightUnit] = useState<string>('kg');
 
-  // Debounce del valor de búsqueda
   const debouncedSearchValue = useDebounce(searchValue, 500);
 
-  // Función para buscar pacientes
+  const loadUsers = useCallback(async () => {
+    setUsersLoading(true);
+    try {
+      const response = await AppointmentService.getUsers();
+      if (response.success && response.data) {
+        setUsers(response.data);
+      } else {
+        message.error('Error al cargar la lista de médicos');
+      }
+    } catch (error) {
+      console.error('Error loading users:', error);
+      message.error('Error al cargar los médicos');
+    } finally {
+      setUsersLoading(false);
+    }
+  }, [form]);
+
   const searchPatients = useCallback(async (query: string) => {
     if (!query || query.length < 2) {
       setPatientOptions([]);
@@ -117,16 +139,17 @@ export default function AppointmentCreate(): JSX.Element {
     }
   }, []);
 
-  // Efecto para buscar cuando cambie el valor debounced
   useEffect(() => {
     if (debouncedSearchValue) {
       searchPatients(debouncedSearchValue);
     }
   }, [debouncedSearchValue, searchPatients]);
 
-  // Establecer valores por defecto al cargar el componente
   useEffect(() => {
-    // Establecer fecha y hora actual por defecto
+    // Cargar usuarios al montar el componente
+    loadUsers();
+    
+    // Establecer valores por defecto del formulario
     const now = dayjs();
     form.setFieldsValue({
       fecha: now,
@@ -136,9 +159,10 @@ export default function AppointmentCreate(): JSX.Element {
       frecuenciaCardiaca: '78',
       saturacionO2: '98',
       peso: '',
+      pesoUnidad: 'kg',
       talla: ''
     });
-  }, [form]);
+  }, [form, loadUsers]);
 
   const onPatientSearch = (value: string) => {
     setSearchValue(value);
@@ -164,9 +188,54 @@ export default function AppointmentCreate(): JSX.Element {
     }
   };
 
+  const onUserSelect = (userId: number) => {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      setSelectedUser(user);
+      form.setFieldsValue({ user_id: userId });
+    }
+  };
+
+  const onWeightUnitChange = (value: string) => {
+    setWeightUnit(value);
+    form.setFieldsValue({ pesoUnidad: value });
+  };
+
+  const getWeightSuffix = (): string => {
+    const unit = WEIGHT_UNITS.find(u => u.value === weightUnit);
+    return unit ? unit.suffix : 'kg';
+  };
+
+  const getWeightPlaceholder = (): string => {
+    switch (weightUnit) {
+      case 'kg':
+        return '65.5';
+      case 'lb':
+        return '144.4';
+      case 'g':
+        return '3200';
+      default:
+        return '65.5';
+    }
+  };
+
+  const getWeightValidationPattern = (): RegExp => {
+    switch (weightUnit) {
+      case 'g':
+        return /^\d{1,6}(\.\d{1,2})?$/; 
+      default:
+        return /^\d{1,3}(\.\d{1,2})?$/; 
+    }
+  };
+
   const onFinish = async (values: any) => {
     if (!selectedPatient || !selectedPatient.id) {
       message.error('Debe seleccionar un paciente válido');
+      return;
+    }
+
+    if (!values.user_id) {
+      message.error('Debe seleccionar un médico');
       return;
     }
 
@@ -177,7 +246,6 @@ export default function AppointmentCreate(): JSX.Element {
 
     setLoading(true);
     try {
-      // Validar altura
       let heightInMeters = '';
       if (values.talla) {
         const heightInCm = parseFloat(values.talla);
@@ -189,27 +257,41 @@ export default function AppointmentCreate(): JSX.Element {
         heightInMeters = (heightInCm / 100).toString();
       }
 
-      // Preparar datos para crear la nueva cita
+      const weightValue = parseFloat(values.peso);
+      if (isNaN(weightValue) || weightValue <= 0) {
+        message.error('El peso debe ser un número válido');
+        setLoading(false);
+        return;
+      }
+
+      const weightValidation = AppointmentService.validateWeight(weightValue, values.pesoUnidad);
+      if (!weightValidation.isValid) {
+        message.error(weightValidation.message);
+        setLoading(false);
+        return;
+      }
+
       const appointmentData = {
         patient_id: selectedPatient.id,
+        user_id: values.user_id,
         appointment_date: values.fecha.format('YYYY-MM-DD'),
         appointment_time: values.hora.format('HH:mm:ss'),
         temperature: values.temperatura || '',
         blood_pressure: values.presionArterial || '',
         heart_rate: values.frecuenciaCardiaca || '',
         oxygen_saturation: values.saturacionO2 || '',
-        weight: values.peso || '',
+        weight: weightValue,
+        weight_unit: values.pesoUnidad,
         height: heightInMeters
       };
 
       console.log('Datos a enviar:', appointmentData);
       
-      // Crear nueva cita
       const response = await AppointmentService.createAppointment(appointmentData);
       
       if (response.success) {
         message.success('Cita médica creada exitosamente');
-        navigate('/appointments');
+        navigate('/appointmentList');
       } else {
         message.error(response.message || 'Error al crear la cita médica');
       }
@@ -222,21 +304,21 @@ export default function AppointmentCreate(): JSX.Element {
   };
 
   const goBack = () => {
-    navigate('/appointments');
+    navigate('/appointmentList');
   };
 
   const handleCancel = () => {
-    navigate('/appointments');
+    navigate('/appointmentList');
   };
 
   const handleClear = () => {
-    // Limpiar formulario
     form.resetFields();
     setSelectedPatient(null);
+    setSelectedUser(null);
     setSearchValue('');
     setPatientOptions([]);
+    setWeightUnit('kg');
     
-    // Reestablecer valores por defecto
     const now = dayjs();
     form.setFieldsValue({
       fecha: now,
@@ -244,7 +326,8 @@ export default function AppointmentCreate(): JSX.Element {
       temperatura: '36.5',
       presionArterial: '120/80',
       frecuenciaCardiaca: '78',
-      saturacionO2: '98'
+      saturacionO2: '98',
+      pesoUnidad: 'kg'
     });
     
     message.info('Formulario limpiado');
@@ -295,9 +378,9 @@ export default function AppointmentCreate(): JSX.Element {
             scrollToFirstError
           >
             <Row gutter={[24, 0]}>
-              {/* Información del Paciente */}
+              {/* Información del Paciente y Médico */}
               <Col xs={24}>
-                <Card title={<><UserOutlined /> Información del Paciente</>} style={{ marginBottom: '24px' }}>
+                <Card title={<><UserOutlined /> Información del Paciente y Médico</>} style={{ marginBottom: '24px' }}>
                   <Row gutter={[16, 0]}>
                     <Col xs={24} lg={12}>
                       <Form.Item
@@ -355,6 +438,39 @@ export default function AppointmentCreate(): JSX.Element {
                         </div>
                       )}
                     </Col>
+                    
+                    <Col xs={24} lg={12}>
+                      <Form.Item
+                        label="Médico Responsable"
+                        name="user_id"
+                        rules={[{ required: true, message: 'Debe seleccionar un médico' }]}
+                        extra="Seleccione el médico que atenderá la cita"
+                        style={{ marginBottom: selectedUser ? '8px' : '24px' }}
+                      >
+                        <Select
+                          placeholder="Seleccionar médico"
+                          loading={usersLoading}
+                          onChange={onUserSelect}
+                          showSearch
+                          size="large"
+                          allowClear
+                          filterOption={(input, option) => {
+                            const user = users.find(u => u.id === option?.value);
+                            if (!user) return false;
+                            const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+                            return fullName.includes(input.toLowerCase());
+                          }}
+                          notFoundContent={usersLoading ? <Spin size="small" /> : 'No hay médicos disponibles'}
+                        >
+                          {users.filter(user => user.is_active).map(user => (
+                            <Option key={user.id} value={user.id}>
+                              Dr. {user.first_name} {user.last_name}
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+
                     <Col xs={24} lg={6}>
                       <Form.Item label="Nombres" name="nombres">
                         <Input disabled placeholder="Nombres del paciente" />
@@ -452,16 +568,38 @@ export default function AppointmentCreate(): JSX.Element {
                         <Input placeholder="98" addonAfter="%" />
                       </Form.Item>
                     </Col>
-                    <Col xs={24} sm={12} md={8} lg={4}>
+                    <Col xs={24} sm={12} md={6} lg={3}>
                       <Form.Item
-                        label="Peso (kg)"
+                        label="Unidad de Peso"
+                        name="pesoUnidad"
+                        rules={[{ required: true, message: 'Seleccione unidad' }]}
+                      >
+                        <Select
+                          value={weightUnit}
+                          onChange={onWeightUnitChange}
+                          placeholder="Unidad"
+                        >
+                          {WEIGHT_UNITS.map(unit => (
+                            <Option key={unit.value} value={unit.value}>
+                              {unit.label}
+                            </Option>
+                          ))}
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24} sm={12} md={6} lg={3}>
+                      <Form.Item
+                        label={`Peso (${getWeightSuffix()})`}
                         name="peso"
                         rules={[
                           { required: true, message: 'Ingrese el peso' },
-                          { pattern: /^\d{1,3}(\.\d{1,2})?$/, message: 'Formato inválido' }
+                          { pattern: getWeightValidationPattern(), message: 'Formato inválido' }
                         ]}
                       >
-                        <Input placeholder="65.5" addonAfter="kg" />
+                        <Input 
+                          placeholder={getWeightPlaceholder()} 
+                          addonAfter={getWeightSuffix()} 
+                        />
                       </Form.Item>
                     </Col>
                     <Col xs={24} sm={12} md={8} lg={4}>
@@ -510,7 +648,7 @@ export default function AppointmentCreate(): JSX.Element {
                         htmlType="submit"
                         loading={loading}
                         icon={<SaveOutlined />}
-                        disabled={!selectedPatient}
+                        disabled={!selectedPatient || !selectedUser}
                       >
                         Crear Cita
                       </Button>

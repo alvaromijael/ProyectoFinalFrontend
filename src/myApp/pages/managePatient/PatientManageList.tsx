@@ -23,7 +23,6 @@ import {
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
-  PlusOutlined,
   PhoneOutlined,
   EnvironmentOutlined,
   CalendarOutlined,
@@ -33,40 +32,14 @@ import {
 
 import { useNavigate } from "react-router-dom";
 import PatientService from '../../services/PatientService';
-import { calculateAge } from './utils';
+import { calculateAge } from '../patient/utils';
 
-interface Patient {
-  id?: number;
-  first_name: string;
-  last_name: string;
-  document_id?: string;
-  birth_date?: string;
-  age?: number;
-  gender: string;
-  marital_status?: string;
-  occupation?: string;
-  education?: string;
-  origin?: string;
-  province?: string;
-  city?: string;
-  neighborhood?: string;
-  street?: string;
-  house_number?: string;
-  contacts?: Array<{
-    first_name: string;
-    last_name: string;
-    phone: string;
-    email?: string;
-    relationship_type: string;
-  }>;
-  medical_history?: string;
-  notes?: string;
-}
+import type { Patient } from '../../interfaces/Patient';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
 
-export default function PatientList() {
+export default function PatientManageList() {
   const navigate = useNavigate();
 
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -101,9 +74,6 @@ export default function PatientList() {
     }
   };
 
-  const goToCreatePatient = () => {
-    navigate("/patientCreate");
-  };
 
   // Función de búsqueda con validación de mínimo 3 caracteres
   const handleSearch = async (value: string) => {
@@ -178,7 +148,7 @@ export default function PatientList() {
   };
 
   const handleEdit = (patient: Patient) => {
-    navigate(`/patientEdit/${patient.id}`);
+    navigate(`/patientManageEdit/${patient.id}`);
   };
 
   const handleDelete = async (patientId: number) => {
@@ -359,14 +329,6 @@ export default function PatientList() {
                     style={{ backgroundColor: '#722ed1' }}
                     icon={<HeartFilled />}
                   />
-                  <Button
-                    type="primary"
-                    size="large"
-                    icon={<PlusOutlined />}
-                    onClick={goToCreatePatient}
-                  >
-                    Nuevo Paciente
-                  </Button>
                 </Space>
               </Col>
             </Row>
@@ -528,6 +490,24 @@ export default function PatientList() {
                     </Card>
                   </Col>
                 </Row>
+                {selectedPatient.medical_history && (
+                  <Row style={{ marginTop: '16px' }}>
+                    <Col xs={24}>
+                      <Card size="small" title="Historia Médica">
+                        <Text>{selectedPatient.medical_history}</Text>
+                      </Card>
+                    </Col>
+                  </Row>
+                )}
+                {selectedPatient.notes && (
+                  <Row style={{ marginTop: '16px' }}>
+                    <Col xs={24}>
+                      <Card size="small" title="Notas">
+                        <Text>{selectedPatient.notes}</Text>
+                      </Card>
+                    </Col>
+                  </Row>
+                )}
               </div>
             )}
           </Modal>

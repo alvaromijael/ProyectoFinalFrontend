@@ -1,109 +1,10 @@
-import axios, {  AxiosError, type AxiosResponse } from 'axios';
+
+import axios, { AxiosError, type AxiosResponse } from 'axios';
+import type { Patient, PatientCreate, PatientUpdate } from '../interfaces/Patient';
+import type { Contact, ContactCreate } from '../interfaces/Contact';
 
 
-interface Contact {
-  id?: number;
-  first_name: string;
-  last_name: string;
-  phone: string;
-  email?: string;
-  relationship_type: string;
-  created_at?: string;
-}
-
-interface ContactCreate {
-  first_name: string;
-  last_name: string;
-  phone: string;
-  email?: string;
-  relationship_type: string;
-}
-
-interface Patient {
-  id?: number;
-  first_name?: string;
-  last_name?: string;
-  birth_date?: string; // ISO date string
-  age?: string;
-  gender?: string;
-  document_id?: string;
-  marital_status?: string;
-  occupation?: string;
-  education?: string;
-  origin?: string;
-  province?: string;
-  city?: string;
-  neighborhood?: string;
-  street?: string;
-  house_number?: string;
-  medical_history?: string;
-  notes?: string;
-  created_at?: string;
-  updated_at?: string;
-  contacts?: Contact[];
-}
-
-interface PatientCreate {
-  first_name?: string;
-  last_name?: string;
-  birth_date?: string;
-  age?: string;
-  gender?: string;
-  document_id?: string;
-  marital_status?: string;
-  occupation?: string;
-  education?: string;
-  origin?: string;
-  province?: string;
-  city?: string;
-  neighborhood?: string;
-  street?: string;
-  house_number?: string;
-  medical_history?: string;
-  notes?: string;
-  contacts?: ContactCreate[];
-}
-
-interface PatientUpdate {
-  first_name?: string;
-  last_name?: string;
-  birth_date?: string;
-  age?: string;
-  gender?: string;
-  document_id?: string;
-  marital_status?: string;
-  occupation?: string;
-  education?: string;
-  origin?: string;
-  province?: string;
-  city?: string;
-  neighborhood?: string;
-  street?: string;
-  house_number?: string;
-  medical_history?: string;
-  notes?: string;
-  contacts?: ContactCreate[];
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message: string;
-}
-
-interface SearchParams {
-  skip?: number;
-  limit?: number;
-}
-
-interface ApiErrorResponse {
-  message?: string;
-  detail?: string;
-}
-
-interface DeleteResponse {
-  message: string;
-}
+import type { ApiResponse, SearchParams, ApiErrorResponse, DeleteResponse } from '../interfaces/Patient';
 
 const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL;
 
@@ -173,6 +74,19 @@ class PatientService {
   static async updatePatient(patientId: string | number, patientData: PatientUpdate): Promise<ApiResponse<Patient>> {
     try {
       const response: AxiosResponse<Patient> = await api.put<Patient>(`/patients/${patientId}`, patientData);
+      return {
+        success: true,
+        data: response.data,
+        message: 'Paciente actualizado exitosamente'
+      };
+    } catch (error) {
+      return this.handleError<Patient>(error, 'Error al actualizar el paciente');
+    }
+  }
+
+   static async managePatient(patientId: string | number, patientData: PatientUpdate): Promise<ApiResponse<Patient>> {
+    try {
+      const response: AxiosResponse<Patient> = await api.put<Patient>(`/patients/manage/${patientId}`, patientData);
       return {
         success: true,
         data: response.data,

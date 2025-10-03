@@ -1,125 +1,22 @@
-import axios, {  AxiosError, type AxiosResponse } from 'axios';
 
-interface Patient {
-  id?: number;
-  first_name?: string;
-  last_name?: string;
-  document_id?: string;
-  gender?: string;
-}
+import axios, { AxiosError, type AxiosResponse } from 'axios';
+import type { Appointment, AppointmentCreate, AppointmentUpdate } from '../interfaces/Appointment';
+import type { Recipe } from '../interfaces/Recipe';
+import type { UserData as User } from '../interfaces/UserData';
+import type { Patient } from '../interfaces/Patient';
 
-interface Recipe {
-  medicine: string;
-  amount: string;
-  instructions: string;
-  observations: string;
-}
-
-interface AdvancedSearchParams extends SearchParams {
-  query?: string;
-  start_date?: string;
-  end_date?: string;
-}
-
-interface Appointment {
-  id?: number;
-  patient_id: number;
-  appointment_date: string; // ISO date string (YYYY-MM-DD)
-  appointment_time: string; // Time string (HH:MM:SS)
-  current_illness?: string;
-  physical_examination?: string;
-  diagnosis_code?: string;
-  diagnosis_description?: string;
-  observations?: string;
-  laboratory_tests?: string;
-  temperature?: string;
-  blood_pressure?: string;
-  heart_rate?: string;
-  oxygen_saturation?: string;
-  weight?: string;
-  height?: string;
-  recipes?: Recipe[]; // ← Agregar recetas
-  created_at?: string;
-  updated_at?: string;
-  patient?: Patient;
-}
-
-interface AppointmentCreate {
-  patient_id: number;
-  appointment_date: string;
-  appointment_time: string;
-  current_illness?: string;
-  physical_examination?: string;
-  diagnosis_code?: string;
-  diagnosis_description?: string;
-  observations?: string;
-  laboratory_tests?: string;
-  temperature?: string;
-  blood_pressure?: string;
-  heart_rate?: string;
-  oxygen_saturation?: string;
-  weight?: string;
-  height?: string;
-  recipes?: Recipe[]; // ← Agregar recetas
-}
-
-interface AppointmentUpdate {
-  patient_id?: number;
-  appointment_date?: string;
-  appointment_time?: string;
-  current_illness?: string;
-  physical_examination?: string;
-  diagnosis_code?: string;
-  diagnosis_description?: string;
-  observations?: string;
-  laboratory_tests?: string;
-  temperature?: string;
-  blood_pressure?: string;
-  heart_rate?: string;
-  oxygen_saturation?: string;
-  weight?: string;
-  height?: string;
-  recipes?: Recipe[]; // ← Agregar recetas
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  message: string;
-}
-
-interface SearchParams {
-  skip?: number;
-  limit?: number;
-  include_patient?: boolean;
-}
-
-interface DateRangeParams extends SearchParams {
-  start_date: string;
-  end_date: string;
-}
-
-interface UpcomingAppointmentsParams extends SearchParams {
-  days_ahead?: number;
-}
-
-interface AppointmentSearchParams extends SearchParams {
-  query: string;
-}
-
-interface ApiErrorResponse {
-  message?: string;
-  detail?: string;
-}
-
-interface DeleteResponse {
-  message: string;
-}
-
-interface AppointmentCountResponse {
-  patient_id: number;
-  appointment_count: number;
-}
+import type {
+  UserAppointmentParams,
+  AdvancedSearchParams,
+  ApiResponse,
+  SearchParams,
+  DateRangeParams,
+  UpcomingAppointmentsParams,
+  AppointmentSearchParams,
+  ApiErrorResponse,
+  DeleteResponse,
+  AppointmentCountResponse
+} from '../interfaces/Appointment';
 
 const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL;
 
@@ -132,7 +29,6 @@ const api = axios.create({
 
 class AppointmentService {
   
-  // Crear nueva cita
   static async createAppointment(appointmentData: AppointmentCreate): Promise<ApiResponse<Appointment>> {
     try {
       console.log("appointmen", appointmentData)
@@ -147,7 +43,6 @@ class AppointmentService {
     }
   }
 
-  // Obtener todas las citas
   static async getAppointments(params: SearchParams = {}): Promise<ApiResponse<Appointment[]>> {
     try {
       const { skip = 0, limit = 100, include_patient = true }: SearchParams = params;
@@ -165,7 +60,6 @@ class AppointmentService {
     }
   }
 
-  // Obtener cita por ID
   static async getAppointmentById(appointmentId: string | number): Promise<ApiResponse<Appointment>> {
     try {
       const response: AxiosResponse<Appointment> = await api.get<Appointment>(`/appointments/${appointmentId}`);
@@ -179,7 +73,6 @@ class AppointmentService {
     }
   }
 
-  // Obtener citas de hoy
   static async getTodayAppointments(): Promise<ApiResponse<Appointment[]>> {
     try {
       const response: AxiosResponse<Appointment[]> = await api.get<Appointment[]>('/appointments/today');
@@ -193,7 +86,6 @@ class AppointmentService {
     }
   }
 
-  // Obtener próximas citas
   static async getUpcomingAppointments(params: UpcomingAppointmentsParams = {}): Promise<ApiResponse<Appointment[]>> {
     try {
       const { skip = 0, limit = 100, days_ahead = 7 }: UpcomingAppointmentsParams = params;
@@ -211,7 +103,6 @@ class AppointmentService {
     }
   }
 
-  // Buscar citas
   static async searchAppointments(params: AppointmentSearchParams): Promise<ApiResponse<Appointment[]>> {
     try {
       const { query, skip = 0, limit = 100 }: AppointmentSearchParams = params;
@@ -229,7 +120,6 @@ class AppointmentService {
     }
   }
 
-  // Obtener citas por rango de fechas
   static async getAppointmentsByDateRange(params: DateRangeParams): Promise<ApiResponse<Appointment[]>> {
     try {
       const { start_date, end_date, skip = 0, limit = 100 }: DateRangeParams = params;
@@ -247,7 +137,6 @@ class AppointmentService {
     }
   }
 
-  // Obtener citas por estado
   static async getAppointmentsByStatus(status: string, params: SearchParams = {}): Promise<ApiResponse<Appointment[]>> {
     try {
       const { skip = 0, limit = 100 }: SearchParams = params;
@@ -265,7 +154,6 @@ class AppointmentService {
     }
   }
 
-  // Obtener citas de un paciente
   static async getAppointmentsByPatient(patientId: string | number, params: SearchParams = {}): Promise<ApiResponse<Appointment[]>> {
     try {
       const { skip = 0, limit = 100 }: SearchParams = params;
@@ -283,7 +171,6 @@ class AppointmentService {
     }
   }
 
-  // Contar citas de un paciente
   static async getAppointmentCountByPatient(patientId: string | number): Promise<ApiResponse<AppointmentCountResponse>> {
     try {
       const response: AxiosResponse<AppointmentCountResponse> = await api.get<AppointmentCountResponse>(
@@ -300,7 +187,53 @@ class AppointmentService {
     }
   }
 
-  // Actualizar cita
+  static async getAppointmentsByUser(
+    userId: number,
+    params: UserAppointmentParams = {}
+  ): Promise<ApiResponse<Appointment[]>> {
+    try {
+      const { 
+        skip = 0, 
+        limit = 100, 
+        include_patient = true,
+        include_recipes = true,
+        include_diagnoses = true,
+        query,
+        start_date,
+        end_date
+      } = params;
+
+      const searchParams = new URLSearchParams();
+      searchParams.append('skip', skip.toString());
+      searchParams.append('limit', limit.toString());
+      searchParams.append('include_patient', include_patient.toString());
+      searchParams.append('include_recipes', include_recipes.toString());
+      searchParams.append('include_diagnoses', include_diagnoses.toString());
+
+      if (query && query.trim()) {
+        searchParams.append('query', query.trim());
+      }
+      if (start_date) {
+        searchParams.append('start_date', start_date);
+      }
+      if (end_date) {
+        searchParams.append('end_date', end_date);
+      }
+
+      const response: AxiosResponse<Appointment[]> = await api.get<Appointment[]>(
+        `/appointments/user/${userId}?${searchParams.toString()}`
+      );
+
+      return {
+        success: true,
+        data: response.data,
+        message: `${response.data.length} citas encontradas para el médico`
+      };
+    } catch (error) {
+      return this.handleError<Appointment[]>(error, 'Error al obtener las citas del médico');
+    }
+  }
+
   static async updateAppointment(appointmentId: string | number, appointmentData: AppointmentUpdate): Promise<ApiResponse<Appointment>> {
     try {
       const response: AxiosResponse<Appointment> = await api.put<Appointment>(`/appointments/${appointmentId}`, appointmentData);
@@ -314,7 +247,6 @@ class AppointmentService {
     }
   }
 
-  // Eliminar cita
   static async deleteAppointment(appointmentId: string | number): Promise<ApiResponse<DeleteResponse>> {
     try {
       const response: AxiosResponse<DeleteResponse> = await api.delete<DeleteResponse>(`/appointments/${appointmentId}`);
@@ -328,13 +260,25 @@ class AppointmentService {
     }
   }
 
-  // Métodos utilitarios
+  static async getUsers(): Promise<ApiResponse<User[]>> {
+    try {
+      const response: AxiosResponse<{message: string, data: User[]}> = await api.get<{message: string, data: User[]}>('/users/');
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message
+      };
+    } catch (error) {
+      return this.handleError<User[]>(error, 'Error al obtener los usuarios');
+    }
+  }
+
   static formatDate(date: Date): string {
-    return date.toISOString().split('T')[0]; // YYYY-MM-DD
+    return date.toISOString().split('T')[0];
   }
 
   static formatTime(date: Date): string {
-    return date.toTimeString().split(' ')[0]; // HH:MM:SS
+    return date.toTimeString().split(' ')[0];
   }
 
   static parseAppointmentDateTime(appointment: Appointment): Date | null {
@@ -358,7 +302,86 @@ class AppointmentService {
     return appointmentDateTime > new Date();
   }
 
-  // Manejo de errores
+  static formatWeight(weight?: number, unit?: string): string {
+    if (!weight) return '';
+    
+    const unitSymbol = unit || 'kg';
+    return `${weight} ${unitSymbol}`;
+  }
+
+  static convertWeight(weight: number, fromUnit: string, toUnit: string): number {
+    if (fromUnit === toUnit) return weight;
+    
+    let weightInKg: number;
+    switch (fromUnit.toLowerCase()) {
+      case 'g':
+        weightInKg = weight / 1000;
+        break;
+      case 'lb':
+        weightInKg = weight * 0.453592;
+        break;
+      case 'kg':
+      default:
+        weightInKg = weight;
+        break;
+    }
+    
+    switch (toUnit.toLowerCase()) {
+      case 'g':
+        return weightInKg * 1000;
+      case 'lb':
+        return weightInKg / 0.453592;
+      case 'kg':
+      default:
+        return weightInKg;
+    }
+  }
+
+  static validateWeight(weight: number, unit: string): { isValid: boolean; message?: string } {
+    if (weight <= 0) {
+      return { isValid: false, message: 'El peso debe ser mayor a 0' };
+    }
+
+    switch (unit.toLowerCase()) {
+      case 'kg':
+        if (weight > 500) {
+          return { isValid: false, message: 'Peso en kg no puede exceder 500 kg' };
+        }
+        if (weight < 0.1) {
+          return { isValid: false, message: 'Peso en kg no puede ser menor a 0.1 kg' };
+        }
+        break;
+      case 'lb':
+        if (weight > 1100) {
+          return { isValid: false, message: 'Peso en lb no puede exceder 1100 lb' };
+        }
+        if (weight < 0.22) {
+          return { isValid: false, message: 'Peso en lb no puede ser menor a 0.22 lb' };
+        }
+        break;
+      case 'g':
+        if (weight > 500000) {
+          return { isValid: false, message: 'Peso en g no puede exceder 500,000 g' };
+        }
+        if (weight < 100) {
+          return { isValid: false, message: 'Peso en g no puede ser menor a 100 g' };
+        }
+        break;
+      default:
+        return { isValid: false, message: 'Unidad de peso no válida' };
+    }
+
+    return { isValid: true };
+  }
+
+  static getWeightUnitOptions(): Array<{ value: string; label: string; suffix: string }> {
+    return [
+      { value: 'kg', label: 'Kilogramos (kg)', suffix: 'kg' },
+      { value: 'lb', label: 'Libras (lb)', suffix: 'lb' },
+      { value: 'g', label: 'Gramos (g)', suffix: 'g' }
+    ];
+  }
+
   private static handleError<T>(error: unknown, defaultMessage: string): ApiResponse<T> {
     let errorMessage: string = defaultMessage;
 
@@ -387,7 +410,6 @@ class AppointmentService {
     try {
       const { query, start_date, end_date, skip = 0, limit = 100 }: AdvancedSearchParams = params;
       
-      // Construir parámetros de consulta
       const searchParams = new URLSearchParams();
       searchParams.append('skip', skip.toString());
       searchParams.append('limit', limit.toString());
@@ -423,7 +445,8 @@ export type {
   AppointmentCreate, 
   AppointmentUpdate,
   Patient,
-  Recipe, // ← Exportar nueva interfaz
+  Recipe,
+  User,
   ApiResponse, 
   SearchParams,
   DateRangeParams,
@@ -431,5 +454,6 @@ export type {
   AppointmentSearchParams,
   ApiErrorResponse,
   DeleteResponse,
-  AppointmentCountResponse
+  AppointmentCountResponse,
+  UserAppointmentParams
 };
