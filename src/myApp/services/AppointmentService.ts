@@ -262,7 +262,7 @@ class AppointmentService {
 
   static async getUsers(): Promise<ApiResponse<User[]>> {
     try {
-      const response: AxiosResponse<{message: string, data: User[]}> = await api.get<{message: string, data: User[]}>('/users/');
+      const response: AxiosResponse<{message: string, data: User[]}> = await api.get<{message: string, data: User[]}>('/users?role=medic');
       return {
         success: true,
         data: response.data.data,

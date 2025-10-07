@@ -82,12 +82,10 @@ export default function AppointmentList() {
     }
   };
 
-  // Función de búsqueda avanzada que llama al API
   const handleAdvancedSearch = async () => {
     const trimmedSearch = searchText.trim();
     const hasDateFilter = dateRange && dateRange[0] && dateRange[1];
     
-    // Si no hay filtros, mostrar todas las citas
     if (!trimmedSearch && !hasDateFilter) {
       setDisplayedAppointments(appointments);
       setHasActiveFilters(false);
@@ -105,7 +103,6 @@ export default function AppointmentList() {
         end_date: hasDateFilter ? dateRange![1].format('YYYY-MM-DD') : undefined
       });
 
-      // Preparar parámetros para el API
       const searchParams: any = {
         limit: 1000
       };
@@ -119,7 +116,6 @@ export default function AppointmentList() {
         searchParams.end_date = dateRange![1].format('YYYY-MM-DD');
       }
 
-      // Llamar al endpoint de búsqueda avanzada
       const response = await AppointmentService.searchAppointmentsAdvanced(searchParams);
 
       if (response.success) {
@@ -146,18 +142,15 @@ export default function AppointmentList() {
     }
   };
 
-  // Búsqueda en tiempo real solo por texto (local para menos de 3 caracteres, API para 3+)
   const handleTextSearch = async (value: string) => {
     setSearchText(value);
     const trimmedValue = value.trim();
 
-    // Si hay rango de fechas activo, siempre usar búsqueda avanzada
     if (dateRange && dateRange[0] && dateRange[1]) {
-      return; // No hacer búsqueda automática, esperar a que presione buscar
+      return; 
     }
 
     if (trimmedValue.length >= 3) {
-      // Búsqueda en servidor para 3+ caracteres
       setSearchLoading(true);
       setTableLoading(true);
       setHasActiveFilters(true);

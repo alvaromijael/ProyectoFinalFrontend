@@ -285,7 +285,6 @@ export default function AppointmentCreate(): JSX.Element {
         height: heightInMeters
       };
 
-      console.log('Datos a enviar:', appointmentData);
       
       const response = await AppointmentService.createAppointment(appointmentData);
       

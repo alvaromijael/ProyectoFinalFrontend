@@ -160,6 +160,7 @@ export interface Appointment {
   blood_pressure?: string;
   heart_rate?: string;
   oxygen_saturation?: string;
+  medical_preinscription?:string
   weight?: number;
   weight_unit?: string;
   height?: string;
@@ -168,6 +169,7 @@ export interface Appointment {
   updated_at?: string;
   patient?: Patient;
   user?: User;
+  diagnoses?: Diagnosis[];
 }
 
 export interface AppointmentCreate {

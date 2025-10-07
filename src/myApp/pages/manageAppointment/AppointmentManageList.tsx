@@ -30,13 +30,16 @@ import {
   ClearOutlined,
   FilterOutlined,
   MedicineBoxOutlined,
-  LoginOutlined
+  LoginOutlined,
+  FilePdfOutlined
 } from '@ant-design/icons';
 
 import { useNavigate } from "react-router-dom";
 import AppointmentService from '../../services/AppointmentService';
 import type { Appointment, UserAppointmentParams } from '../../services/AppointmentService';
 import dayjs from 'dayjs';
+import RecipePDFDocument from './RecipePDF';
+import { pdf } from '@react-pdf/renderer';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -49,6 +52,7 @@ interface UserData {
   last_name: string;
   role?: string;
 }
+
 
 export default function MyAppointmentsList() {
   const navigate = useNavigate();
@@ -65,6 +69,7 @@ export default function MyAppointmentsList() {
   const [tableLoading, setTableLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [hasActiveFilters, setHasActiveFilters] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
     initializeUser();
@@ -124,6 +129,37 @@ export default function MyAppointmentsList() {
       console.error('Error:', error);
     } finally {
       setTableLoading(false);
+    }
+  };
+
+  const handleExportPDF = async (appointment: Appointment) => {
+    setPdfLoading(true);
+    try {
+      message.loading({ content: 'Generando PDF...', key: 'pdf-generation' });
+      
+      const pdfDoc = (
+        <RecipePDFDocument
+          patient={appointment.patient || {}}
+          doctor={appointment.user || null}
+          recipes={appointment.recipes || []}
+          diagnoses={appointment.diagnoses || []}
+          general={appointment}
+          appointmentDate={appointment.appointment_date}
+          appointmentId={appointment.id?.toString() || 'N/A'}
+        />
+      );
+
+      const blob = await pdf(pdfDoc).toBlob();
+      const url = URL.createObjectURL(blob);
+      
+      window.open(url, '_blank');
+      
+      message.success({ content: 'PDF generado exitosamente', key: 'pdf-generation', duration: 2 });
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      message.error({ content: 'Error al generar el PDF', key: 'pdf-generation', duration: 2 });
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -402,10 +438,20 @@ export default function MyAppointmentsList() {
     {
       title: 'Acciones',
       key: 'actions',
-      width: 150,
+      width: 180,
       fixed: 'right' as const,
       render: (_: unknown, record: Appointment) => (
         <Space size="small">
+          <Tooltip title="Exportar PDF">
+            <Button
+              type="link"
+              icon={<FilePdfOutlined />}
+              onClick={() => handleExportPDF(record)}
+              loading={pdfLoading}
+              size="small"
+              style={{ color: '#ff4d4f' }}
+            />
+          </Tooltip>
           <Tooltip title="Ver detalles">
             <Button
               type="link"
@@ -564,7 +610,7 @@ export default function MyAppointmentsList() {
             <div style={{ marginTop: '8px' }}>
               {searchText && searchText.length > 0 && searchText.length < 3 && (
                 <Text type="warning" style={{ fontSize: '12px' }}>
-                  ⚠️ Búsqueda local activa (escriba 3+ caracteres para búsqueda completa en servidor)
+                  ⚠ Búsqueda local activa (escriba 3+ caracteres para búsqueda completa en servidor)
                 </Text>
               )}
               {!hasActiveFilters && (
@@ -587,8 +633,8 @@ export default function MyAppointmentsList() {
                 pageSize: 10,
                 showSizeChanger: true,
                 showQuickJumper: true,
-                showTotal: (total, range) => 
-                  `${range[0]}-${range[1]} de ${total} mis citas`,
+                showTotal: (total, range) =>` 
+                  ${range[0]}-${range[1]} de ${total} mis citas`,
               }}
               size="middle"
             />

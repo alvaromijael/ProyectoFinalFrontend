@@ -345,9 +345,9 @@ const AppointmentManageEdit: FC = () => {
   const getWeightValidationPattern = (): RegExp => {
     switch (weightUnit) {
       case 'g':
-        return /^\d{1,6}(\.\d{1,2})?$/; // Para gramos (hasta 6 dígitos)
+        return /^\d{1,6}(\.\d{1,2})?$/; 
       default:
-        return /^\d{1,3}(\.\d{1,2})?$/; // Para kg y lb
+        return /^\d{1,3}(\.\d{1,2})?$/; 
     }
   };
 
