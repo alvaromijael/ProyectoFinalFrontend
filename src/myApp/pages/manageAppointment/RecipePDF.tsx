@@ -1,7 +1,6 @@
 // Importaciones para PDF
 import { Document, Page, Text as PDFText, View, StyleSheet } from '@react-pdf/renderer';
-import type { Appointment } from '../../services/AppointmentService';
-import type { Diagnosis } from '../../interfaces/Appointment';
+import type { Patient } from '../../interfaces/Patient';
 
 interface Recipe {
   medicine: string;
@@ -11,255 +10,225 @@ interface Recipe {
   observations: string;
 }
 
-interface Patient {
-  first_name?: string;
-  last_name?: string;
-  document_id?: string;
-  medical_history?: string;
-}
 
 interface Doctor {
   first_name?: string;
   last_name?: string;
-  email?: string;
+  specialty?: string;
+  license?: string;
 }
 
 interface RecipePDFProps {
   patient: Patient;
   doctor: Doctor | null;
   recipes: Recipe[];
-  diagnoses: Diagnosis[];
-  general: Appointment;
   appointmentDate: string;
   appointmentId: string;
 }
 
-// Estilos mejorados para el PDF
+// Estilos inspirados en el formato físico
 const styles = StyleSheet.create({
   page: {
-    padding: 25,
-    fontSize: 9,
+    padding: 20,
+    fontSize: 10,
     fontFamily: 'Helvetica',
     backgroundColor: '#ffffff',
   },
-  // Header con diseño mejorado
+  // Header con logo y título
   header: {
-    marginBottom: 15,
-    borderBottomWidth: 3,
-    borderBottomColor: '#2563eb',
-    borderBottomStyle: 'solid',
-    paddingBottom: 10,
-    backgroundColor: '#f8fafc',
-    padding: 12,
-    borderRadius: 4,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1e40af',
-    marginBottom: 3,
-    letterSpacing: 1,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  // Secciones
-  section: {
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    marginBottom: 6,
-    color: '#ffffff',
-    backgroundColor: '#2563eb',
-    padding: 6,
-    borderRadius: 3,
-  },
-  // Info general
-  infoGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingBottom: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: '#2563eb',
   },
-  infoBox: {
-    width: '48%',
-    backgroundColor: '#f1f5f9',
-    padding: 6,
-    borderRadius: 3,
-    marginBottom: 3,
+  logoSection: {
+    width: '30%',
   },
-  infoLabel: {
-    fontSize: 7,
-    color: '#64748b',
+  titleSection: {
+    width: '70%',
+    alignItems: 'flex-end',
+  },
+  clinicName: {
+    fontSize: 22,
     fontWeight: 'bold',
-    textTransform: 'uppercase',
+    color: '#1e293b',
     marginBottom: 2,
   },
-  infoValue: {
-    fontSize: 9,
-    color: '#1e293b',
-    fontWeight: 'normal',
+  subtitle: {
+    fontSize: 10,
+    color: '#64748b',
+    marginBottom: 1,
   },
-  // Tablas
-  table: {
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-    borderStyle: 'solid',
+  // Información del doctor
+  doctorSection: {
+    backgroundColor: '#f8fafc',
+    padding: 10,
+    marginBottom: 12,
     borderRadius: 4,
-    overflow: 'hidden',
+  },
+  doctorName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1e40af',
+    marginBottom: 4,
+  },
+  doctorInfo: {
+    fontSize: 9,
+    color: '#475569',
+    marginBottom: 2,
+  },
+  // Datos del paciente
+  patientSection: {
+    marginBottom: 15,
+  },
+  patientRow: {
+    flexDirection: 'row',
+    marginBottom: 6,
+  },
+  patientLabel: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    width: '25%',
+    color: '#334155',
+  },
+  patientValue: {
+    fontSize: 9,
+    width: '75%',
+    color: '#1e293b',
+  },
+  // Sección RP (Receta)
+  rpSection: {
+    marginTop: 10,
+    marginBottom: 15,
+  },
+  rpHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#dc2626',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  // Tabla de medicamentos
+  medicineTable: {
+    marginBottom: 15,
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#e2e8f0',
-    borderBottomWidth: 2,
-    borderBottomColor: '#94a3b8',
-    borderBottomStyle: 'solid',
-    padding: 8,
+    padding: 6,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: '#94a3b8',
   },
   tableHeaderCell: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 'bold',
-    color: '#334155',
-    textTransform: 'uppercase',
+    color: '#1e293b',
   },
   tableRow: {
     flexDirection: 'row',
+    padding: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
-    borderBottomStyle: 'solid',
-    padding: 5,
-    minHeight: 28,
-  },
-  tableRowAlt: {
-    backgroundColor: '#f8fafc',
+    minHeight: 35,
   },
   tableCell: {
     fontSize: 9,
     color: '#1e293b',
+  },
+  // Columnas de la tabla
+  colMedicine: {
+    width: '30%',
     paddingRight: 5,
   },
-  // Columnas de tabla de diagnósticos
-  diagnosisTypeCol: {
-    width: '20%',
+  colAmount: {
+    width: '15%',
+    paddingRight: 5,
   },
-  diagnosisCodeCol: {
-    width: '20%',
-  },
-  diagnosisDescCol: {
-    width: '60%',
-  },
-  // Columnas de tabla de recetas
-  recipeNumCol: {
-    width: '8%',
-  },
-  recipeMedicineCol: {
-    width: '25%',
-  },
-  recipeAmountCol: {
-    width: '12%',
-  },
-  recipeInstructionsCol: {
+  colInstructions: {
     width: '30%',
+    paddingRight: 5,
   },
-  recipeTimeCol: {
-    width: '12%',
+  colTime: {
+    width: '15%',
+    paddingRight: 5,
   },
-  recipeObsCol: {
-    width: '13%',
+  colObs: {
+    width: '10%',
   },
-  // Texto destacado
-  textBox: {
+  // Indicaciones
+  indicationsSection: {
+    marginTop: 15,
+    marginBottom: 20,
+  },
+  indicationsTitle: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 6,
+  },
+  indicationsBox: {
     backgroundColor: '#f8fafc',
-    padding: 6,
-    borderRadius: 3,
+    padding: 8,
+    borderRadius: 4,
     borderLeftWidth: 3,
     borderLeftColor: '#2563eb',
-    borderLeftStyle: 'solid',
-    marginBottom: 4,
+    minHeight: 40,
   },
-  textContent: {
-    fontSize: 8,
+  indicationsText: {
+    fontSize: 9,
     color: '#334155',
     lineHeight: 1.4,
   },
   // Firma
   signatureSection: {
-    marginTop: 30,
+    marginTop: 40,
     alignItems: 'center',
   },
   signatureLine: {
-    borderTopWidth: 2,
+    borderTopWidth: 1,
     borderTopColor: '#1e293b',
-    borderTopStyle: 'solid',
     width: 200,
-    marginBottom: 6,
+    marginBottom: 5,
   },
-  signatureName: {
-    fontSize: 11,
+  signatureText: {
+    fontSize: 10,
     fontWeight: 'bold',
     color: '#1e293b',
-    marginBottom: 3,
+    marginBottom: 2,
   },
-  signatureRole: {
-    fontSize: 9,
+  signatureSubtext: {
+    fontSize: 8,
     color: '#64748b',
   },
   // Footer
   footer: {
     position: 'absolute',
-    bottom: 20,
-    left: 30,
-    right: 30,
-    textAlign: 'center',
-    fontSize: 8,
-    color: '#94a3b8',
+    bottom: 15,
+    left: 20,
+    right: 20,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
-    borderTopStyle: 'solid',
-    paddingTop: 10,
+    paddingTop: 8,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 3,
   },
   footerText: {
-    marginBottom: 2,
-  },
-  // Badge para tipo de diagnóstico
-  badge: {
-    backgroundColor: '#dbeafe',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 3,
-    alignSelf: 'flex-start',
-  },
-  badgeText: {
-    fontSize: 8,
-    fontWeight: 'bold',
-    color: '#1e40af',
-  },
-  badgeSecondary: {
-    backgroundColor: '#f3e8ff',
-  },
-  badgeSecondaryText: {
-    color: '#6b21a8',
-  },
-  emptyState: {
-    textAlign: 'center',
+    fontSize: 7,
     color: '#94a3b8',
-    fontStyle: 'italic',
-    padding: 10,
-    fontSize: 8,
   },
 });
 
-const RecipePDFDocument = ({ 
+const RecipePdf = ({ 
   patient, 
   doctor, 
   recipes, 
-  diagnoses,
-  general,
   appointmentDate, 
   appointmentId 
 }: RecipePDFProps) => {
@@ -278,263 +247,160 @@ const RecipePDFDocument = ({
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <PDFText style={styles.title}>FENIX</PDFText>
-          <PDFText style={styles.subtitle}>Historia Clínica y Prescripción Médica</PDFText>
+          <View style={styles.logoSection}>
+            {/* Aquí iría el logo si lo tienes */}
+            <PDFText style={{ fontSize: 8, color: '#64748b' }}>
+              Logo FENIX
+            </PDFText>
+          </View>
+          <View style={styles.titleSection}>
+            <PDFText style={styles.clinicName}>FENIX</PDFText>
+            <PDFText style={styles.subtitle}>clínica</PDFText>
+            <PDFText style={styles.subtitle}>Tu salud es nuestra prioridad</PDFText>
+          </View>
         </View>
 
-        {/* Información de la cita y paciente */}
-        <View style={styles.section}>
-          <PDFText style={styles.sectionTitle}>Información General</PDFText>
-          <View style={styles.infoGrid}>
-            <View style={styles.infoBox}>
-              <PDFText style={styles.infoLabel}>Cita N°</PDFText>
-              <PDFText style={styles.infoValue}>{appointmentId}</PDFText>
-            </View>
-            <View style={styles.infoBox}>
-              <PDFText style={styles.infoLabel}>Fecha de Atención</PDFText>
-              <PDFText style={styles.infoValue}>{formatDate(appointmentDate)}</PDFText>
-            </View>
-            <View style={styles.infoBox}>
-              <PDFText style={styles.infoLabel}>Paciente</PDFText>
-              <PDFText style={styles.infoValue}>
-                {patient.first_name} {patient.last_name}
+        {/* Información del Doctor */}
+        {doctor && (
+          <View style={styles.doctorSection}>
+            <PDFText style={styles.doctorName}>
+              {doctor.first_name} {doctor.last_name}
+            </PDFText>
+            <PDFText style={styles.doctorInfo}>
+              Especialista en Pediatría
+            </PDFText>
+            <PDFText style={styles.doctorInfo}>
+              Esmeraldas: NV 71, Quito 2 Julio 3 BB 17/1 (593) 99 21 85 67
+            </PDFText>
+          </View>
+        )}
+
+        {/* Datos del Paciente */}
+        <View style={styles.patientSection}>
+          <View style={styles.patientRow}>
+            <PDFText style={styles.patientLabel}>Paciente:</PDFText>
+            <PDFText style={styles.patientValue}>
+              {patient.first_name} {patient.last_name}
+            </PDFText>
+          </View>
+          <View style={styles.patientRow}>
+            <PDFText style={styles.patientLabel}>Fecha:</PDFText>
+            <PDFText style={styles.patientValue}>
+              {formatDate(appointmentDate)}
+            </PDFText>
+          </View>
+          <View style={styles.patientRow}>
+            <PDFText style={styles.patientLabel}>Edad:</PDFText>
+            <PDFText style={styles.patientValue}>
+              {patient.age || 'N/A'} años
+            </PDFText>
+          </View>
+          <View style={styles.patientRow}>
+            <PDFText style={styles.patientLabel}>Cita N°:</PDFText>
+            <PDFText style={styles.patientValue}>
+              {appointmentId}
+            </PDFText>
+          </View>
+        </View>
+
+        {/* RP - Receta */}
+        <View style={styles.rpSection}>
+          <PDFText style={styles.rpHeader}>Rp.</PDFText>
+        </View>
+
+        {/* Tabla de Medicamentos */}
+        <View style={styles.medicineTable}>
+          <View style={styles.tableHeader}>
+            <PDFText style={[styles.tableHeaderCell, styles.colMedicine]}>
+              Medicina
+            </PDFText>
+            <PDFText style={[styles.tableHeaderCell, styles.colAmount]}>
+              Cantidad
+            </PDFText>
+            <PDFText style={[styles.tableHeaderCell, styles.colInstructions]}>
+              Instrucciones
+            </PDFText>
+            <PDFText style={[styles.tableHeaderCell, styles.colTime]}>
+              Hora de comida
+            </PDFText>
+            <PDFText style={[styles.tableHeaderCell, styles.colObs]}>
+              Observaciones
+            </PDFText>
+          </View>
+          
+          {recipes && recipes.length > 0 ? (
+            recipes.map((recipe, index) => (
+              <View key={index} style={styles.tableRow}>
+                <PDFText style={[styles.tableCell, styles.colMedicine]}>
+                  {recipe.medicine}
+                </PDFText>
+                <PDFText style={[styles.tableCell, styles.colAmount]}>
+                  {recipe.amount}
+                </PDFText>
+                <PDFText style={[styles.tableCell, styles.colInstructions]}>
+                  {recipe.instructions}
+                </PDFText>
+                <PDFText style={[styles.tableCell, styles.colTime]}>
+                  {recipe.lunchTime || '-'}
+                </PDFText>
+                <PDFText style={[styles.tableCell, styles.colObs]}>
+                  {recipe.observations}
+                </PDFText>
+              </View>
+            ))
+          ) : (
+            <View style={styles.tableRow}>
+              <PDFText style={[styles.tableCell, { width: '100%', textAlign: 'center', fontStyle: 'italic', color: '#94a3b8' }]}>
+                No se registraron medicamentos
               </PDFText>
             </View>
-            <View style={styles.infoBox}>
-              <PDFText style={styles.infoLabel}>Cédula</PDFText>
-              <PDFText style={styles.infoValue}>{patient.document_id || 'N/A'}</PDFText>
-            </View>
-            {doctor && (
-              <>
-                <View style={styles.infoBox}>
-                  <PDFText style={styles.infoLabel}>Médico Tratante</PDFText>
-                  <PDFText style={styles.infoValue}>
-                    Dr. {doctor.first_name} {doctor.last_name}
-                  </PDFText>
-                </View>
-                <View style={styles.infoBox}>
-                  <PDFText style={styles.infoLabel}>Contacto</PDFText>
-                  <PDFText style={styles.infoValue}>{doctor.email}</PDFText>
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-
-        {/* Signos Vitales */}
-        <View style={styles.section}>
-          <PDFText style={styles.sectionTitle}>Signos Vitales</PDFText>
-          <View style={styles.infoGrid}>
-            <View style={styles.infoBox}>
-              <PDFText style={styles.infoLabel}>Temperatura</PDFText>
-              <PDFText style={styles.infoValue}>{general.temperature} °C</PDFText>
-            </View>
-            <View style={styles.infoBox}>
-              <PDFText style={styles.infoLabel}>Presión Arterial</PDFText>
-              <PDFText style={styles.infoValue}>{general.blood_pressure} mmHg</PDFText>
-            </View>
-            <View style={styles.infoBox}>
-              <PDFText style={styles.infoLabel}>Frecuencia Cardíaca</PDFText>
-              <PDFText style={styles.infoValue}>{general.heart_rate} lpm</PDFText>
-            </View>
-            <View style={styles.infoBox}>
-              <PDFText style={styles.infoLabel}>Saturación O₂</PDFText>
-              <PDFText style={styles.infoValue}>{general.oxygen_saturation} %</PDFText>
-            </View>
-            <View style={styles.infoBox}>
-              <PDFText style={styles.infoLabel}>Peso</PDFText>
-              <PDFText style={styles.infoValue}>{general.weight} {general.weight_unit}</PDFText>
-            </View>
-            <View style={styles.infoBox}>
-              <PDFText style={styles.infoLabel}>Talla</PDFText>
-              <PDFText style={styles.infoValue}>{general.height} m</PDFText>
-            </View>
-          </View>
-        </View>
-
-        {/* Anamnesis */}
-        <View style={styles.section}>
-          <PDFText style={styles.sectionTitle}>Anamnesis</PDFText>
-          {patient.medical_history && (
-            <View style={styles.textBox}>
-              <PDFText style={styles.infoLabel}>Antecedentes Médicos</PDFText>
-              <PDFText style={styles.textContent}>{patient.medical_history}</PDFText>
-            </View>
-          )}
-          {general.current_illness && (
-            <View style={styles.textBox}>
-              <PDFText style={styles.infoLabel}>Enfermedad Actual</PDFText>
-              <PDFText style={styles.textContent}>{general.current_illness}</PDFText>
-            </View>
           )}
         </View>
 
-        {/* Examen Físico */}
-        {general.physical_examination && (
-          <View style={styles.section}>
-            <PDFText style={styles.sectionTitle}>Examen Físico</PDFText>
-            <View style={styles.textBox}>
-              <PDFText style={styles.textContent}>{general.physical_examination}</PDFText>
-            </View>
-          </View>
-        )}
-
-        {/* Diagnósticos - TABLA */}
-        <View style={styles.section}>
-          <PDFText style={styles.sectionTitle}>Diagnósticos</PDFText>
-          {diagnoses && diagnoses.length > 0 ? (
-            <View style={styles.table}>
-              <View style={styles.tableHeader}>
-                <PDFText style={[styles.tableHeaderCell, styles.diagnosisTypeCol]}>
-                  Tipo
-                </PDFText>
-                <PDFText style={[styles.tableHeaderCell, styles.diagnosisCodeCol]}>
-                  Código CIE-10
-                </PDFText>
-                <PDFText style={[styles.tableHeaderCell, styles.diagnosisDescCol]}>
-                  Descripción
-                </PDFText>
-              </View>
-              {diagnoses.map((diagnosis, index) => (
-                <View 
-                  key={index} 
-                  style={[
-                    styles.tableRow                  ]}
-                >
-                  <View style={styles.diagnosisTypeCol}>
-                    <View 
-                      style={[
-                        styles.badge,                      ]}
-                    >
-                      <PDFText 
-                        style={[
-                          styles.badgeText,                        ]}
-                      >
-                        {diagnosis.diagnosis_type === 'primary' ? 'Principal' : 'Secundario'}
-                      </PDFText>
-                    </View>
-                  </View>
-                  <PDFText style={[styles.tableCell, styles.diagnosisCodeCol]}>
-                    {diagnosis.diagnosis_code}
-                  </PDFText>
-                  <PDFText style={[styles.tableCell, styles.diagnosisDescCol]}>
-                    {diagnosis.diagnosis_description}
-                  </PDFText>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <PDFText style={styles.emptyState}>
-              No se registraron diagnósticos para esta consulta
+        {/* Indicaciones */}
+        <View style={styles.indicationsSection}>
+          <PDFText style={styles.indicationsTitle}>Indicaciones:</PDFText>
+          <View style={styles.indicationsBox}>
+            <PDFText style={styles.indicationsText}>
+              {/* Aquí irían las indicaciones generales si las hay */}
+              Seguir el tratamiento según lo prescrito. En caso de presentar efectos secundarios o reacciones adversas, suspender el tratamiento y consultar inmediatamente.
             </PDFText>
-          )}
-        </View>
-
-        {/* Prescripción Médica - TABLA */}
-        <View style={styles.section}>
-          <PDFText style={styles.sectionTitle}>Prescripción Médica</PDFText>
-          {recipes && recipes.length > 0 ? (
-            <View style={styles.table}>
-              <View style={styles.tableHeader}>
-                <PDFText style={[styles.tableHeaderCell, styles.recipeNumCol]}>
-                  N°
-                </PDFText>
-                <PDFText style={[styles.tableHeaderCell, styles.recipeMedicineCol]}>
-                  Medicamento
-                </PDFText>
-                <PDFText style={[styles.tableHeaderCell, styles.recipeAmountCol]}>
-                  Cantidad
-                </PDFText>
-                <PDFText style={[styles.tableHeaderCell, styles.recipeInstructionsCol]}>
-                  Instrucciones
-                </PDFText>
-                <PDFText style={[styles.tableHeaderCell, styles.recipeTimeCol]}>
-                  Horario
-                </PDFText>
-                <PDFText style={[styles.tableHeaderCell, styles.recipeObsCol]}>
-                  Observ.
-                </PDFText>
-              </View>
-              {recipes.map((recipe, index) => (
-                <View 
-                  key={index} 
-                  style={[
-                    styles.tableRow,
-                  ]}
-                >
-                  <PDFText style={[styles.tableCell, styles.recipeNumCol]}>
-                    {index + 1}
-                  </PDFText>
-                  <PDFText style={[styles.tableCell, styles.recipeMedicineCol]}>
-                    {recipe.medicine || '-'}
-                  </PDFText>
-                  <PDFText style={[styles.tableCell, styles.recipeAmountCol]}>
-                    {recipe.amount || '-'}
-                  </PDFText>
-                  <PDFText style={[styles.tableCell, styles.recipeInstructionsCol]}>
-                    {recipe.instructions || '-'}
-                  </PDFText>
-                  <PDFText style={[styles.tableCell, styles.recipeTimeCol]}>
-                    {recipe.lunchTime || '-'}
-                  </PDFText>
-                  <PDFText style={[styles.tableCell, styles.recipeObsCol]}>
-                    {recipe.observations || '-'}
-                  </PDFText>
-                </View>
-              ))}
-            </View>
-          ) : (
-            <PDFText style={styles.emptyState}>
-              No se registraron medicamentos para esta consulta
-            </PDFText>
-          )}
-        </View>
-
-        {/* Indicaciones Generales */}
-        {general.medical_preinscription && (
-          <View style={styles.section}>
-            <PDFText style={styles.sectionTitle}>Indicaciones Médicas Generales</PDFText>
-            <View style={styles.textBox}>
-              <PDFText style={styles.textContent}>{general.medical_preinscription}</PDFText>
-            </View>
           </View>
-        )}
-
-        {/* Observaciones */}
-        {general.observations && (
-          <View style={styles.section}>
-            <PDFText style={styles.sectionTitle}>Observaciones</PDFText>
-            <View style={styles.textBox}>
-              <PDFText style={styles.textContent}>{general.observations}</PDFText>
-            </View>
-          </View>
-        )}
+        </View>
 
         {/* Firma */}
         <View style={styles.signatureSection}>
           <View style={styles.signatureLine} />
-          <PDFText style={styles.signatureName}>
-            {doctor ? `Dr. ${doctor.first_name} ${doctor.last_name}` : 'Firma del Médico'}
+          <PDFText style={styles.signatureText}>
+            {doctor ? `Dra. ${doctor.first_name} ${doctor.last_name}` : 'Firma del Médico'}
           </PDFText>
-          <PDFText style={styles.signatureRole}>Médico Tratante</PDFText>
+          <PDFText style={styles.signatureSubtext}>
+            Responsable
+          </PDFText>
         </View>
 
         {/* Footer */}
         <View style={styles.footer}>
-          <PDFText style={styles.footerText}>
-            Sistema de Gestión Médica FENIX | Documento Generado Electrónicamente
-          </PDFText>
-          <PDFText style={styles.footerText}>
-            Fecha de emisión: {new Date().toLocaleDateString('es-EC', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}
-          </PDFText>
+          <View style={styles.footerRow}>
+            <PDFText style={styles.footerText}>
+              Receta válida por 30 días
+            </PDFText>
+            <PDFText style={styles.footerText}>
+              Fecha de emisión: {formatDate(new Date().toISOString())}
+            </PDFText>
+          </View>
+          <View style={styles.footerRow}>
+            <PDFText style={styles.footerText}>
+              Re enviar rcp: ___ de ___
+            </PDFText>
+            <PDFText style={styles.footerText}>
+              Atendido: el quiniche a ___ del 20__
+            </PDFText>
+          </View>
         </View>
       </Page>
     </Document>
   );
 };
 
-export default RecipePDFDocument;
+export default RecipePdf;

@@ -102,7 +102,7 @@ export interface Diagnosis {
   diagnosis_code: string;
   diagnosis_description: string;
   diagnosis_type: 'primary' | 'secondary';
-  observations: string;
+  diagnosis_observations: string ;
 }
 
 export interface AppointmentDiagnosis {
@@ -110,6 +110,7 @@ export interface AppointmentDiagnosis {
   diagnosis_code: string;
   diagnosis_description: string;
   diagnosis_type: 'primary' | 'secondary';
+  diagnosis_observations: string;
 }
 
 export interface APIRecipe extends Recipe {

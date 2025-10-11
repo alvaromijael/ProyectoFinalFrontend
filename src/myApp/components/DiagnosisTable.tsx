@@ -24,28 +24,24 @@ import dataCIE10 from '../../assets/dataCIE10.json';
 
 const { TextArea } = Input;
 
-// Interfaz para el diagnóstico
 export interface Diagnosis {
   key: string;
   diagnosis_code: string;
   diagnosis_description: string;
   diagnosis_type: 'primary' | 'secondary';
-  observations: string;
+  diagnosis_observations: string;
 }
 
-// Props del componente
 interface DiagnosisTableProps {
   diagnoses: Diagnosis[];
   setDiagnoses: React.Dispatch<React.SetStateAction<Diagnosis[]>>;
 }
 
-// Componente de la tabla de diagnósticos
 const DiagnosisTable: React.FC<DiagnosisTableProps> = ({ diagnoses, setDiagnoses }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingDiagnosis, setEditingDiagnosis] = useState<Diagnosis | null>(null);
   const [form] = Form.useForm();
 
-  // Opciones del CIE-10
   const cie10Options = Array.isArray(dataCIE10) 
     ? dataCIE10
         .filter(item => item && item.code && item.description && (item.level > 0))
@@ -56,7 +52,6 @@ const DiagnosisTable: React.FC<DiagnosisTableProps> = ({ diagnoses, setDiagnoses
         }))
     : [];
 
-  // Columnas de la tabla
   const columns = [
     {
       title: 'Tipo',
@@ -84,8 +79,8 @@ const DiagnosisTable: React.FC<DiagnosisTableProps> = ({ diagnoses, setDiagnoses
     },
     {
       title: 'Observaciones',
-      dataIndex: 'observations',
-      key: 'observations',
+      dataIndex: 'diagnosis_observations',
+      key: 'diagnosis_observations',
       width: '25%'
     },
     {
@@ -121,7 +116,6 @@ const DiagnosisTable: React.FC<DiagnosisTableProps> = ({ diagnoses, setDiagnoses
   const handleAdd = () => {
     setEditingDiagnosis(null);
     form.resetFields();
-    // Si no hay diagnósticos, el primero será principal
     const defaultType = diagnoses.length === 0 ? 'primary' : 'secondary';
     form.setFieldsValue({ diagnosis_type: defaultType });
     setIsModalVisible(true);

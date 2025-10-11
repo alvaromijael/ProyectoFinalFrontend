@@ -38,8 +38,9 @@ import { useNavigate } from "react-router-dom";
 import AppointmentService from '../../services/AppointmentService';
 import type { Appointment, UserAppointmentParams } from '../../services/AppointmentService';
 import dayjs from 'dayjs';
-import RecipePDFDocument from './RecipePDF';
+import AppointmentPdf from './AppointmentPdf';
 import { pdf } from '@react-pdf/renderer';
+import RecipePdf from './RecipePDF';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -132,18 +133,48 @@ export default function MyAppointmentsList() {
     }
   };
 
-  const handleExportPDF = async (appointment: Appointment) => {
+  const handleExportAppointmentPDF = async (appointment: Appointment) => {
     setPdfLoading(true);
     try {
       message.loading({ content: 'Generando PDF...', key: 'pdf-generation' });
       
       const pdfDoc = (
-        <RecipePDFDocument
+        <AppointmentPdf
           patient={appointment.patient || {}}
           doctor={appointment.user || null}
           recipes={appointment.recipes || []}
           diagnoses={appointment.diagnoses || []}
           general={appointment}
+          appointmentDate={appointment.appointment_date}
+          appointmentId={appointment.id?.toString() || 'N/A'}
+        />
+      );
+
+      const blob = await pdf(pdfDoc).toBlob();
+      const url = URL.createObjectURL(blob);
+      
+      window.open(url, '_blank');
+      
+      message.success({ content: 'PDF generado exitosamente', key: 'pdf-generation', duration: 2 });
+    } catch (error) {
+      console.error('Error al generar PDF:', error);
+      message.error({ content: 'Error al generar el PDF', key: 'pdf-generation', duration: 2 });
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
+
+   const handleRecipePDF = async (appointment: Appointment) => {
+    setPdfLoading(true);
+    try {
+      message.loading({ content: 'Generando PDF...', key: 'pdf-generation' });
+      
+      const pdfDoc = (
+        <RecipePdf
+          patient={appointment.patient || {}}
+          doctor={appointment.user || null}
+          recipes={appointment.recipes || []}
           appointmentDate={appointment.appointment_date}
           appointmentId={appointment.id?.toString() || 'N/A'}
         />
@@ -442,16 +473,27 @@ export default function MyAppointmentsList() {
       fixed: 'right' as const,
       render: (_: unknown, record: Appointment) => (
         <Space size="small">
-          <Tooltip title="Exportar PDF">
-            <Button
-              type="link"
-              icon={<FilePdfOutlined />}
-              onClick={() => handleExportPDF(record)}
-              loading={pdfLoading}
-              size="small"
-              style={{ color: '#ff4d4f' }}
-            />
-          </Tooltip>
+         <Tooltip title="Exportar PDF CITA">
+  <Button
+    type="link"
+    icon={<FilePdfOutlined />}
+    onClick={() => handleExportAppointmentPDF(record)}
+    loading={pdfLoading}
+    size="small"
+    style={{ color: '#ff4d4f' }}
+  />
+</Tooltip>
+
+<Tooltip title="Exportar PDF Receta">
+  <Button
+    type="link"
+    icon={<MedicineBoxOutlined />} 
+    onClick={() => handleRecipePDF(record)}
+    loading={pdfLoading}
+    size="small"
+    style={{ color: '#1890ff' }} 
+  />
+</Tooltip>
           <Tooltip title="Ver detalles">
             <Button
               type="link"

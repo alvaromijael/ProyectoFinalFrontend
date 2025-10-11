@@ -165,12 +165,13 @@ const AppointmentManageEdit: FC = () => {
   }, [id]);
 
   const convertDiagnosesToTable = (apiDiagnoses: AppointmentDiagnosis[]): Diagnosis[] => {
+    console.log('Converting API diagnoses to table format:', apiDiagnoses);
     return apiDiagnoses.map((diag: AppointmentDiagnosis, index: number) => ({
       key: `diagnosis-${index}-${Date.now()}`,
       diagnosis_code: diag.diagnosis_code,
       diagnosis_description: diag.diagnosis_description,
       diagnosis_type: diag.diagnosis_type,
-      observations: ''
+      diagnosis_observations: diag.diagnosis_observations || ''
     }));
   };
 
@@ -180,7 +181,8 @@ const AppointmentManageEdit: FC = () => {
       .map((diag: Diagnosis) => ({
         diagnosis_code: diag.diagnosis_code,
         diagnosis_description: diag.diagnosis_description,
-        diagnosis_type: diag.diagnosis_type
+        diagnosis_type: diag.diagnosis_type,
+        diagnosis_observations: diag.diagnosis_observations
       }));
   };
 
@@ -197,7 +199,7 @@ const AppointmentManageEdit: FC = () => {
       
       if (appointmentResponse.success) {
         const appointmentData = appointmentResponse.data;
-        
+        console.log("AppointmenData", appointmentData)
 
         if (appointmentData.user) {
           setAssignedDoctor(appointmentData.user);
@@ -214,6 +216,8 @@ const AppointmentManageEdit: FC = () => {
             const tableDiagnoses = (appointmentData as any).diagnoses 
               ? convertDiagnosesToTable((appointmentData as any).diagnoses)
               : [];
+
+              console.log("Tabla de dioagnsoticos", tableDiagnoses)
             
             setDiagnoses(tableDiagnoses);
 
