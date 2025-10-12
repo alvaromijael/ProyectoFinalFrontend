@@ -31,7 +31,7 @@ const menuItems: MenuItemType[] = [
       { key: "patientManageList", title: "Gestión de Pacientes", roles: ["admin", "medic"] },
       { key: "appointmentList", title: "Citas", roles: ["admin", "medic", "nurse","laboratory","user"] },
       { key: "manageAppointmentList", title: "Gestión de Citas", roles: ["admin","medic"] },
-      { key: "resultados-med", title: "Recetas", roles: ["admin", "medic", "nurse","user","laboratory"] },
+      { key: "medicalHistory", title: "Historias Clinicas", roles: ["admin", "medic", "nurse","user","laboratory"] },
     ],
   },
   {

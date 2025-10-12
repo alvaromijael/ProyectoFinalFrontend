@@ -11,26 +11,22 @@ import {
   Avatar,
   Layout,
   Tag,
-  Popconfirm,
-  Modal,
   message,
-  Tooltip
+  Tooltip,
+  Modal
 } from 'antd';
 import {
   UserOutlined,
   HeartFilled,
   SearchOutlined,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
   PhoneOutlined,
   EnvironmentOutlined,
   CalendarOutlined,
-  MailOutlined,
-  HomeOutlined
+  HomeOutlined,
+  FileTextOutlined,
+  DownloadOutlined
 } from '@ant-design/icons';
 
-import { useNavigate } from "react-router-dom";
 import PatientService from '../../services/PatientService';
 import { calculateAge } from '../patient/utils';
 
@@ -39,17 +35,16 @@ import type { Patient } from '../../interfaces/Patient';
 const { Title, Text } = Typography;
 const { Content } = Layout;
 
-export default function PatientManageList() {
-  const navigate = useNavigate();
+export default function MedicalHistory() {
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [displayedPatients, setDisplayedPatients] = useState<Patient[]>([]);
   const [searchText, setSearchText] = useState('');
-  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [loading, setLoading] = useState(false);
   const [tableLoading, setTableLoading] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
+  const [generatingPdfId, setGeneratingPdfId] = useState<number | null>(null);
+  const [pdfModalVisible, setPdfModalVisible] = useState(false);
+  const [currentPdfUrl, setCurrentPdfUrl] = useState<string>('');
+  const [currentPdfFilename, setCurrentPdfFilename] = useState<string>('');
 
   useEffect(() => {
     loadPatients();
@@ -74,35 +69,17 @@ export default function PatientManageList() {
     }
   };
 
-
   const handleSearch = async (value: string) => {
     setSearchText(value);
     
     const trimmedValue = value.trim();
     
     if (trimmedValue.length >= 3) {  
-      setSearchLoading(true);
       setTableLoading(true);
       try {
-    
-        
-      const response = await PatientService.searchPatients(trimmedValue);
-        
-        console.log('📊 Respuesta del backend:', response); // Debug
+        const response = await PatientService.searchPatients(trimmedValue);
         
         if (response.success) {
-          response.data.forEach(patient => {
-            const searchTerm = trimmedValue.toLowerCase();
-            const firstName = (patient.first_name || '').toLowerCase();
-            const lastName = (patient.last_name || '').toLowerCase();
-            const documentId = (patient.document_id || '').toLowerCase();
-            
-            let matchedField = '';
-            if (firstName.includes(searchTerm)) matchedField += 'nombre ';
-            if (lastName.includes(searchTerm)) matchedField += 'apellido ';
-            if (documentId.includes(searchTerm)) matchedField += 'cédula ';
-                      });
-          
           setDisplayedPatients(response.data as Patient[]);
           
           if (response.data.length === 0) {
@@ -112,11 +89,10 @@ export default function PatientManageList() {
           message.error(response.message);
           setDisplayedPatients(patients);
         }
-      }  catch (error) {
-          console.error('❌ Error completo:', error);      
+      } catch (error) {
+        console.error('Error:', error);      
         setDisplayedPatients(patients);
       } finally {
-        setSearchLoading(false);
         setTableLoading(false);
       }
     } else if (trimmedValue.length === 0) {
@@ -142,35 +118,54 @@ export default function PatientManageList() {
     setDisplayedPatients(patients);
   };
 
-  const handleEdit = (patient: Patient) => {
-    navigate(`/patientManageEdit/${patient.id}`);
-  };
-
-  const handleDelete = async (patientId: number) => {
-    setLoading(true);
+  const handleGenerateMedicalHistory = async (patientId: number) => {
+    setGeneratingPdfId(patientId);
     try {
-      const response = await PatientService.deletePatient(patientId);
-      if (response.success) {
-        message.success(response.message);
-        await loadPatients();
+      const response = await PatientService.generateMedicalHistory(patientId);
+      
+      if (response.success && response.data) {
+        message.success('Historial médico generado exitosamente');
+        
+        const byteCharacters = atob(response.data.pdf_base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+        
+        setCurrentPdfUrl(url);
+        setCurrentPdfFilename(response.data.filename);
+        setPdfModalVisible(true);
       } else {
-        message.error(response.message);
+        message.error(response.message || 'Error al generar el historial médico');
       }
     } catch (error) {
-      message.error('Error al eliminar el paciente');
+      message.error('Error al generar el historial médico');
       console.error('Error:', error);
     } finally {
-      setLoading(false);
+      setGeneratingPdfId(null);
     }
   };
 
-  const showPatientDetail = (patient: Patient) => {
-    setSelectedPatient(patient);
-    setIsDetailModalVisible(true);
+  const handleDownloadPdf = () => {
+    const link = document.createElement('a');
+    link.href = currentPdfUrl;
+    link.download = currentPdfFilename;
+    link.click();
+    message.success('Descargando historial médico...');
   };
 
+  const handleClosePdfModal = () => {
+    if (currentPdfUrl) {
+      window.URL.revokeObjectURL(currentPdfUrl);
+    }
+    setPdfModalVisible(false);
+    setCurrentPdfUrl('');
+    setCurrentPdfFilename('');
+  };
 
- 
   const columns = [
     {
       title: 'Paciente',
@@ -259,51 +254,26 @@ export default function PatientManageList() {
     {
       title: 'Acciones',
       key: 'actions',
-      width: 180,
+      width: 150,
       fixed: 'right' as const,
       render: (_: unknown, record: Patient) => (
-        <Space size="small">
-          <Tooltip title="Ver detalles">
-            <Button
-              type="link"
-              icon={<EyeOutlined />}
-              onClick={() => showPatientDetail(record)}
-              size="small"
-            />
-          </Tooltip>
-          <Tooltip title="Editar">
-            <Button
-              type="link"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
-              size="small"
-            />
-          </Tooltip>
-          <Popconfirm
-            title="¿Está seguro de eliminar este paciente?"
-            description="Esta acción no se puede deshacer."
-            onConfirm={() => record.id && handleDelete(record.id)}
-            okText="Sí, eliminar"
-            cancelText="Cancelar"
-            okButtonProps={{ danger: true }}
+        <Tooltip title="Generar Historial Médico">
+          <Button
+            type="primary"
+            icon={<FileTextOutlined />}
+            onClick={() => record.id && handleGenerateMedicalHistory(record.id)}
+            loading={generatingPdfId === record.id}
+            size="small"
           >
-            <Tooltip title="Eliminar">
-              <Button
-                type="link"
-                danger
-                icon={<DeleteOutlined />}
-                size="small"
-                loading={loading}
-              />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
+            Historial
+          </Button>
+        </Tooltip>
       ),
     },
   ];
 
   return (
-    <Layout style={{ minHeight: '100vh', background: '#f0f2f5',  maxWidth: '87%'}}>
+    <Layout style={{ minHeight: '100vh', background: '#f0f2f5', maxWidth: '87%'}}>
       <Content style={{ padding: '24px' }}>
         <div style={{ maxWidth: '100%', margin: '0 auto' }}>
           {/* Header */}
@@ -314,7 +284,7 @@ export default function PatientManageList() {
                   FENIX
                 </Title>
                 <Text style={{ color: '#722ed1', fontSize: '18px', fontWeight: 500 }}>
-                  Lista de Pacientes
+                  Historial Médico de Pacientes
                 </Text>
               </Col>
               <Col>
@@ -329,7 +299,7 @@ export default function PatientManageList() {
             </Row>
           </Card>
 
-          {/* Barra de búsqueda simplificada */}
+          {/* Barra de búsqueda */}
           <Card style={{ marginBottom: '24px' }}>
             <Row gutter={[16, 16]} align="middle">
               <Col xs={24} md={16} lg={18}>
@@ -340,7 +310,6 @@ export default function PatientManageList() {
                       prefix={<SearchOutlined />}
                       value={searchText}
                       onChange={(e) => handleSearch(e.target.value)}
-                      onLoad={() => searchLoading}
                       size="large"
                       allowClear
                       onClear={clearSearch}
@@ -369,8 +338,6 @@ export default function PatientManageList() {
                   )}
                   <Text type="secondary">
                     {displayedPatients.length} de {patients.length} pacientes
-                    {searchText && searchText.trim().length >= 3 && ` (búsqueda en servidor: "${searchText}")`}
-                    {searchText && searchText.trim().length > 0 && searchText.trim().length < 3 && ` (filtrado local: "${searchText}")`}
                   </Text>
                 </Space>
               </Col>
@@ -397,114 +364,45 @@ export default function PatientManageList() {
             />
           </Card>
 
-          {/* Modal de Detalles */}
+          {/* Modal para visualizar PDF */}
           <Modal
             title={
               <Space>
-                <UserOutlined style={{ color: '#1890ff' }} />
-                Detalles del Paciente
+                <FileTextOutlined style={{ color: '#1890ff' }} />
+                Historial Médico - {currentPdfFilename}
               </Space>
             }
-            open={isDetailModalVisible}
-            onCancel={() => setIsDetailModalVisible(false)}
-            width={900}
+            open={pdfModalVisible}
+            onCancel={handleClosePdfModal}
+            width="90%"
+            style={{ top: 20 }}
             footer={[
-              <Button key="close" onClick={() => setIsDetailModalVisible(false)}>
+              <Button key="close" onClick={handleClosePdfModal}>
                 Cerrar
               </Button>,
               <Button
-                key="edit"
+                key="download"
                 type="primary"
-                icon={<EditOutlined />}
-                onClick={() => {
-                  if (selectedPatient) {
-                    handleEdit(selectedPatient);
-                    setIsDetailModalVisible(false);
-                  }
-                }}
+                icon={<DownloadOutlined />}
+                onClick={handleDownloadPdf}
               >
-                Editar Paciente
+                Descargar PDF
               </Button>,
             ]}
           >
-            {selectedPatient && (
-              <div>
-                <Row gutter={[24, 16]}>
-                  <Col xs={24} sm={12}>
-                    <Card size="small" title="Información Personal">
-                      <Space direction="vertical" style={{ width: '100%' }}>
-                        <Text><strong>Nombres:</strong> {selectedPatient.first_name || 'N/A'}</Text>
-                        <Text><strong>Apellidos:</strong> {selectedPatient.last_name || 'N/A'}</Text>
-                        <Text><strong>Cédula:</strong> {selectedPatient.document_id || 'N/A'}</Text>
-                        <Text><strong>Fecha de Nacimiento:</strong> {selectedPatient.birth_date || 'N/A'}</Text>
-                        <Text><strong>Edad:</strong> {calculateAge(selectedPatient.birth_date || '')}</Text>
-                        <Text><strong>Sexo:</strong> {selectedPatient.gender === 'M' ? 'Masculino' : selectedPatient.gender === 'F' ? 'Femenino' : 'N/A'}</Text>
-                        <Text><strong>Estado Civil:</strong> {selectedPatient.marital_status || 'N/A'}</Text>
-                        <Text><strong>Ocupación:</strong> {selectedPatient.occupation || 'N/A'}</Text>
-                        <Text><strong>Instrucción:</strong> {selectedPatient.education || 'N/A'}</Text>
-                        <Text><strong>Procedencia:</strong> {selectedPatient.origin || 'N/A'}</Text>
-                      </Space>
-                    </Card>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <Card size="small" title="Dirección">
-                      <Space direction="vertical" style={{ width: '100%' }}>
-                        <Text><strong>Provincia:</strong> {selectedPatient.province || 'N/A'}</Text>
-                        <Text><strong>Ciudad:</strong> {selectedPatient.city || 'N/A'}</Text>
-                        <Text><strong>Sector/Barrio:</strong> {selectedPatient.neighborhood || 'N/A'}</Text>
-                        <Text><strong>Calle:</strong> {selectedPatient.street || 'N/A'}</Text>
-                        <Text><strong>Número de Casa:</strong> {selectedPatient.house_number || 'N/A'}</Text>
-                      </Space>
-                    </Card>
-                  </Col>
-                  <Col xs={24}>
-                    <Card size="small" title={`Contactos de Emergencia (${selectedPatient.contacts?.length || 0})`}>
-                      {selectedPatient.contacts && selectedPatient.contacts.length > 0 ? (
-                        selectedPatient.contacts.map((contact, index) => (
-                          <div key={index} style={{ marginBottom: '12px', padding: '12px', background: '#f5f5f5', borderRadius: '6px' }}>
-                            <Text><strong>{contact.first_name} {contact.last_name}</strong></Text>
-                            <br />
-                            <Space direction="vertical" size="small" style={{ marginTop: '4px' }}>
-                              <Text type="secondary">
-                                <PhoneOutlined /> {contact.phone}
-                              </Text>
-                              {contact.email && (
-                                <Text type="secondary">
-                                  <MailOutlined /> {contact.email}
-                                </Text>
-                              )}
-                              <Text type="secondary">
-                                <strong>Relación:</strong> {contact.relationship_type}
-                              </Text>
-                            </Space>
-                          </div>
-                        ))
-                      ) : (
-                        <Text type="secondary">No hay contactos registrados</Text>
-                      )}
-                    </Card>
-                  </Col>
-                </Row>
-                {selectedPatient.medical_history && (
-                  <Row style={{ marginTop: '16px' }}>
-                    <Col xs={24}>
-                      <Card size="small" title="Historia Médica">
-                        <Text>{selectedPatient.medical_history}</Text>
-                      </Card>
-                    </Col>
-                  </Row>
-                )}
-                {selectedPatient.notes && (
-                  <Row style={{ marginTop: '16px' }}>
-                    <Col xs={24}>
-                      <Card size="small" title="Notas">
-                        <Text>{selectedPatient.notes}</Text>
-                      </Card>
-                    </Col>
-                  </Row>
-                )}
-              </div>
-            )}
+            <div style={{ height: '75vh' }}>
+              {currentPdfUrl && (
+                <iframe
+                  src={currentPdfUrl}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                  }}
+                  title="Historial Médico PDF"
+                />
+              )}
+            </div>
           </Modal>
         </div>
       </Content>

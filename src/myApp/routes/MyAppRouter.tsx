@@ -28,6 +28,7 @@ import PatientManageList from "../pages/managePatient/PatientManageList";
 import PatientManageEdit from "../pages/managePatient/PatientManageEdit";
 import Unauthorized from "../components/Unauthorized";
 import Medical from "../pages/landing/Medical";
+import MedicalHistory from "../pages/medicalHsitory/medicalHistory";
 
 
 const { Content } = Layout;
@@ -136,6 +137,16 @@ export const MyAppRouter = () => {
               element={
                 <PrivateRoute>
                   <AppointmentManageEdit />
+                </PrivateRoute>
+              }
+            />
+
+          
+             <Route
+              path="/medicalHistory"
+              element={
+                <PrivateRoute>
+                  <MedicalHistory />
                 </PrivateRoute>
               }
             />

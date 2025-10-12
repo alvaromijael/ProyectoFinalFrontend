@@ -110,6 +110,34 @@ class PatientService {
     }
   }
 
+  static async generateMedicalHistory(patientId: number): Promise<ApiResponse<{ 
+  success: boolean;
+  patient_id: number;
+  filename: string;
+  pdf_base64: string;
+  size_bytes: number;
+  generated_at: string;
+}>> {
+  try {
+    const response: AxiosResponse<{
+      success: boolean;
+      patient_id: number;
+      filename: string;
+      pdf_base64: string;
+      size_bytes: number;
+      generated_at: string;
+    }> = await api.get(`/reports/medical-history/${patientId}`);
+    
+    return {
+      success: true,
+      data: response.data,
+      message: 'Historial médico generado exitosamente'
+    };
+  } catch (error) {
+    return this.handleError(error, 'Error al generar el historial médico');
+  }
+}
+
   static async searchPatients(query: string, params: SearchParams = {}): Promise<ApiResponse<Patient[]>> {
     try {
       const { skip = 0, limit = 100 }: SearchParams = params;
@@ -148,6 +176,8 @@ class PatientService {
       message: errorMessage
     };
   }
+
+  
 }
 
 export default PatientService;
@@ -160,5 +190,6 @@ export type {
   ApiResponse, 
   SearchParams,
   ApiErrorResponse,
-  DeleteResponse
+  DeleteResponse,
+  
 };
