@@ -18,7 +18,8 @@ import {
   DatePicker,
   Form,
   Divider,
-  Alert
+  Alert,
+  List
 } from 'antd';
 import {
   UserOutlined,
@@ -31,7 +32,9 @@ import {
   FilterOutlined,
   MedicineBoxOutlined,
   LoginOutlined,
-  FilePdfOutlined
+  FilePdfOutlined,
+  FileTextOutlined,
+  SafetyCertificateOutlined
 } from '@ant-design/icons';
 
 import { useNavigate } from "react-router-dom";
@@ -40,7 +43,8 @@ import type { Appointment, UserAppointmentParams } from '../../services/Appointm
 import dayjs from 'dayjs';
 import AppointmentPdf from './AppointmentPdf';
 import { pdf } from '@react-pdf/renderer';
-import RecipePdf from './RecipePDF';
+import RecipePdf from './RecipePdf';
+import PatientService from '../../services/PatientService';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -54,7 +58,6 @@ interface UserData {
   role?: string;
 }
 
-
 export default function MyAppointmentsList() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
@@ -65,12 +68,12 @@ export default function MyAppointmentsList() {
   const [searchText, setSearchText] = useState('');
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [isReportsModalVisible, setIsReportsModalVisible] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [loading, setLoading] = useState(false);
   const [tableLoading, setTableLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [hasActiveFilters, setHasActiveFilters] = useState(false);
-  const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
     initializeUser();
@@ -134,9 +137,8 @@ export default function MyAppointmentsList() {
   };
 
   const handleExportAppointmentPDF = async (appointment: Appointment) => {
-    setPdfLoading(true);
     try {
-      message.loading({ content: 'Generando PDF...', key: 'pdf-generation' });
+      message.loading({ content: 'Generando PDF de cita...', key: 'pdf-generation' });
       
       const pdfDoc = (
         <AppointmentPdf
@@ -160,15 +162,12 @@ export default function MyAppointmentsList() {
       console.error('Error al generar PDF:', error);
       message.error({ content: 'Error al generar el PDF', key: 'pdf-generation', duration: 2 });
     } finally {
-      setPdfLoading(false);
     }
   };
 
-
-   const handleRecipePDF = async (appointment: Appointment) => {
-    setPdfLoading(true);
+  const handleRecipePDF = async (appointment: Appointment) => {
     try {
-      message.loading({ content: 'Generando PDF...', key: 'pdf-generation' });
+      message.loading({ content: 'Generando PDF de receta...', key: 'pdf-generation' });
       
       const pdfDoc = (
         <RecipePdf
@@ -190,7 +189,42 @@ export default function MyAppointmentsList() {
       console.error('Error al generar PDF:', error);
       message.error({ content: 'Error al generar el PDF', key: 'pdf-generation', duration: 2 });
     } finally {
-      setPdfLoading(false);
+    }
+  };
+
+  const handleMedicalCertificatePDF = async (appointment: Appointment) => {
+    try {
+      message.loading({ content: 'Generando certificado médico...', key: 'pdf-generation' });
+      
+    await PatientService.generateMedicalCertificate(appointment.id);
+ 
+    } catch (error) {
+      console.error('Error al generar certificado médico:', error);
+      message.error({ content: 'Error al generar el certificado', key: 'pdf-generation', duration: 2 });
+    } finally {
+    }
+  };
+
+  const showReportsModal = (appointment: Appointment) => {
+    setSelectedAppointment(appointment);
+    setIsReportsModalVisible(true);
+  };
+
+  const handleReportSelection = async (reportType: 'appointment' | 'recipe' | 'certificate') => {
+    if (!selectedAppointment) return;
+    
+    setIsReportsModalVisible(false);
+    
+    switch (reportType) {
+      case 'appointment':
+        await handleExportAppointmentPDF(selectedAppointment);
+        break;
+      case 'recipe':
+        await handleRecipePDF(selectedAppointment);
+        break;
+      case 'certificate':
+        await handleMedicalCertificatePDF(selectedAppointment);
+        break;
     }
   };
 
@@ -469,31 +503,19 @@ export default function MyAppointmentsList() {
     {
       title: 'Acciones',
       key: 'actions',
-      width: 180,
+      width: 160,
       fixed: 'right' as const,
       render: (_: unknown, record: Appointment) => (
         <Space size="small">
-         <Tooltip title="Exportar PDF CITA">
-  <Button
-    type="link"
-    icon={<FilePdfOutlined />}
-    onClick={() => handleExportAppointmentPDF(record)}
-    loading={pdfLoading}
-    size="small"
-    style={{ color: '#ff4d4f' }}
-  />
-</Tooltip>
-
-<Tooltip title="Exportar PDF Receta">
-  <Button
-    type="link"
-    icon={<MedicineBoxOutlined />} 
-    onClick={() => handleRecipePDF(record)}
-    loading={pdfLoading}
-    size="small"
-    style={{ color: '#1890ff' }} 
-  />
-</Tooltip>
+          <Tooltip title="Reportes">
+            <Button
+              type="link"
+              icon={<FilePdfOutlined />}
+              onClick={() => showReportsModal(record)}
+              size="small"
+              style={{ color: '#ff4d4f' }}
+            />
+          </Tooltip>
           <Tooltip title="Ver detalles">
             <Button
               type="link"
@@ -531,6 +553,27 @@ export default function MyAppointmentsList() {
         </Space>
       ),
     },
+  ];
+
+  const reportOptions = [
+    {
+      key: 'appointment',
+      icon: <FileTextOutlined style={{ fontSize: '24px', color: '#1890ff' }} />,
+      title: 'Reporte de Cita',
+      description: 'Genera el reporte completo de la cita médica con diagnósticos y recetas'
+    },
+    {
+      key: 'recipe',
+      icon: <MedicineBoxOutlined style={{ fontSize: '24px', color: '#52c41a' }} />,
+      title: 'Receta Médica',
+      description: 'Genera únicamente la receta médica con los medicamentos prescritos'
+    },
+    {
+      key: 'certificate',
+      icon: <SafetyCertificateOutlined style={{ fontSize: '24px', color: '#722ed1' }} />,
+      title: 'Certificado Médico',
+      description: 'Genera el certificado médico oficial para el paciente'
+    }
   ];
 
   return (
@@ -675,13 +718,54 @@ export default function MyAppointmentsList() {
                 pageSize: 10,
                 showSizeChanger: true,
                 showQuickJumper: true,
-                showTotal: (total, range) =>` 
-                  ${range[0]}-${range[1]} de ${total} mis citas`,
+                showTotal: (total, range) => `${range[0]}-${range[1]} de ${total} mis citas`,
               }}
               size="middle"
             />
           </Card>
 
+          {/* Modal de Reportes */}
+          <Modal
+            title={
+              <Space>
+                <FilePdfOutlined style={{ color: '#ff4d4f' }} />
+                Seleccione el tipo de reporte
+              </Space>
+            }
+            open={isReportsModalVisible}
+            onCancel={() => setIsReportsModalVisible(false)}
+            footer={null}
+            width={600}
+          >
+            <List
+              dataSource={reportOptions}
+              renderItem={(item) => (
+                <List.Item
+                  style={{ 
+                    cursor: 'pointer',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    transition: 'all 0.3s'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f0f0f0';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                  onClick={() => handleReportSelection(item.key as 'appointment' | 'recipe' | 'certificate')}
+                >
+                  <List.Item.Meta
+                    avatar={item.icon}
+                    title={<Text strong style={{ fontSize: '16px' }}>{item.title}</Text>}
+                    description={<Text type="secondary">{item.description}</Text>}
+                  />
+                </List.Item>
+              )}
+            />
+          </Modal>
+
+          {/* Modal de Detalles */}
           <Modal
             title={
               <Space>

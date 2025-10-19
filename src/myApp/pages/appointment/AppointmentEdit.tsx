@@ -1,25 +1,3 @@
-interface FormValues {
-  searchPatient: string;
-  nombres: string;
-  apellidos: string;
-  cedula: string;
-  fecha: Dayjs;
-  hora: Dayjs;
-  temperatura: string;
-  presionArterial: string;
-  frecuenciaCardiaca: string;
-  saturacionO2: string;
-  peso: string;
-  pesoUnidad: string;
-  talla: string;
-}
-
-type OriginalData = {
-  formData: Partial<FormValues>;
-  patient: Patient;
-  appointment: Appointment;
-  assignedDoctor?: UserData;
-};
 import { useState, useEffect, useCallback, type JSX } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -39,7 +17,8 @@ import {
   Divider,
   AutoComplete,
   Spin,
-  Select
+  Select,
+  Checkbox
 } from 'antd';
 import {
   UserOutlined,  
@@ -51,13 +30,13 @@ import {
 } from '@ant-design/icons';
 import dayjs, { Dayjs } from 'dayjs';
 
-
 import PatientService from '../../services/PatientService';
 import AppointmentService from '../../services/AppointmentService';
+import { contactService } from '../../services/ContactService';
 import type { Patient } from '../../interfaces/Patient';
 import type { Appointment } from '../../interfaces/Appointment';
 import type { UserData } from '../../interfaces/UserData';
-
+import type { Contact } from '../../interfaces/Contact';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -79,8 +58,6 @@ const useDebounce = (value: string, delay: number): string => {
   return debouncedValue;
 };
 
-
-
 interface PatientOption {
   value: string;
   label: JSX.Element;
@@ -101,6 +78,8 @@ interface FormValues {
   peso: string;
   pesoUnidad: string;
   talla: string;
+  has_representative?: boolean;
+  representative_id?: number;
 }
 
 interface APIResponse<T = any> {
@@ -120,7 +99,19 @@ interface AppointmentUpdateData {
   weight: number;
   weight_unit: string;
   height: string;
+  has_representative: boolean;
+  representative_id: number | null;
 }
+
+type OriginalData = {
+  formData: Partial<FormValues>;
+  patient: Patient;
+  appointment: Appointment;
+  assignedDoctor?: UserData;
+  contacts: Contact[];
+  isRepresentative: boolean;
+  selectedContact: number | null;
+};
 
 const WEIGHT_UNITS = [
   { value: 'kg', label: 'Kilogramos (kg)', suffix: 'kg' },
@@ -143,7 +134,31 @@ export default function AppointmentEdit(): JSX.Element {
   const [originalData, setOriginalData] = useState<OriginalData | null>(null);
   const [weightUnit, setWeightUnit] = useState<string>('kg');
 
+  // Estados para representante
+  const [isRepresentative, setIsRepresentative] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<number | null>(null);
+
   const debouncedSearchValue = useDebounce(searchValue, 500);
+
+  const loadPatientContacts = useCallback(async (patientId: number) => {
+    setContactsLoading(true);
+    try {
+      const contactsData = await contactService.getContactsByPatientId(patientId);
+      setContacts(contactsData);
+      
+      if (contactsData.length === 0) {
+        message.info('Este paciente no tiene contactos registrados');
+      }
+    } catch (error) {
+      console.error('Error loading contacts:', error);
+      message.error('Error al cargar los contactos del paciente');
+      setContacts([]);
+    } finally {
+      setContactsLoading(false);
+    }
+  }, []);
 
   const searchPatients = useCallback(async (query: string): Promise<void> => {
     if (!query || query.length < 2) {
@@ -222,10 +237,18 @@ export default function AppointmentEdit(): JSX.Element {
             const patient = patientResponse.data;
             setSelectedPatient(patient);
             
+            if (patient.id)
+            await loadPatientContacts(patient.id);
+            
             const patientDisplayValue = `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}`;
 
             const weightUnitValue = appointmentData.weight_unit || 'kg';
             setWeightUnit(weightUnitValue);
+
+            const hasRep = appointmentData.has_representative || false;
+            const repId = appointmentData.representative_id || null;
+            setIsRepresentative(hasRep);
+            setSelectedContact(repId);
 
             const formData: Partial<FormValues> = {
               searchPatient: patientDisplayValue,
@@ -240,14 +263,19 @@ export default function AppointmentEdit(): JSX.Element {
               saturacionO2: appointmentData.oxygen_saturation || '',
               peso: appointmentData.weight ? appointmentData.weight.toString() : '',
               pesoUnidad: weightUnitValue,
-              talla: appointmentData.height ? Math.round(parseFloat(appointmentData.height) * 100).toString() : ''
+              talla: appointmentData.height ? Math.round(parseFloat(appointmentData.height) * 100).toString() : '',
+              has_representative: hasRep,
+              representative_id: repId || undefined
             };
             
             const originalDataObj: OriginalData = {
               formData,
               patient,
               appointment: appointmentData,
-              assignedDoctor: appointmentData.user
+              assignedDoctor: appointmentData.user,
+              contacts: [],
+              isRepresentative: hasRep,
+              selectedContact: repId
             };
             
             setOriginalData(originalDataObj);
@@ -290,8 +318,26 @@ export default function AppointmentEdit(): JSX.Element {
         cedula: patient.document_id
       });
       
+      if (patient.id)
+      loadPatientContacts(patient.id);
+      
       message.success('Paciente seleccionado correctamente.');
     }
+  };
+
+  const onRepresentativeChange = (checked: boolean) => {
+    setIsRepresentative(checked);
+    form.setFieldsValue({ has_representative: checked });
+    
+    if (!checked) {
+      setSelectedContact(null);
+      form.setFieldsValue({ representative_id: undefined });
+    }
+  };
+
+  const onContactSelect = (contactId: number) => {
+    setSelectedContact(contactId);
+    form.setFieldsValue({ representative_id: contactId });
   };
 
   const onWeightUnitChange = (value: string): void => {
@@ -337,6 +383,11 @@ export default function AppointmentEdit(): JSX.Element {
       return;
     }
 
+    if (isRepresentative && !selectedContact) {
+      message.error('Debe seleccionar un contacto representante');
+      return;
+    }
+
     setLoading(true);
     try {
       let heightInMeters = '';
@@ -367,7 +418,9 @@ export default function AppointmentEdit(): JSX.Element {
         oxygen_saturation: values.saturacionO2,
         weight: weightValue,
         weight_unit: values.pesoUnidad,
-        height: heightInMeters
+        height: heightInMeters,
+        has_representative: isRepresentative,
+        representative_id: isRepresentative ? selectedContact : null
       };
 
       console.log('Datos de la cita a actualizar:', appointmentData);
@@ -403,6 +456,8 @@ export default function AppointmentEdit(): JSX.Element {
       setAssignedDoctor(originalData.assignedDoctor || null);
       setSearchValue(originalData.formData.searchPatient || '');
       setWeightUnit(originalData.formData.pesoUnidad || 'kg');
+      setIsRepresentative(originalData.isRepresentative);
+      setSelectedContact(originalData.selectedContact);
       message.info('Formulario restaurado a valores originales');
     } else {
       loadAppointmentData();
@@ -508,35 +563,19 @@ export default function AppointmentEdit(): JSX.Element {
                             setSearchValue('');
                             setPatientOptions([]);
                             setSelectedPatient(null);
+                            setContacts([]);
+                            setIsRepresentative(false);
+                            setSelectedContact(null);
                             form.setFieldsValue({
                               nombres: '',
                               apellidos: '',
-                              cedula: ''
+                              cedula: '',
+                              has_representative: false,
+                              representative_id: undefined
                             });
                           }}
                         />
                       </Form.Item>
-                      {selectedPatient && (
-                        <div style={{ 
-                          marginBottom: '16px',
-                          padding: '12px', 
-                          background: '#f6ffed', 
-                          border: '1px solid #b7eb8f',
-                          borderRadius: '8px',
-                          fontSize: '13px',
-                          fontWeight: 500
-                        }}>
-                          <div style={{ color: '#52c41a', marginBottom: '4px' }}>
-                            ✓ Paciente seleccionado
-                          </div>
-                          <div style={{ color: '#389e0d' }}>
-                            {selectedPatient.first_name} {selectedPatient.last_name}
-                          </div>
-                          <div style={{ color: '#73d13d', fontSize: '12px' }}>
-                            CI: {selectedPatient.document_id}
-                          </div>
-                        </div>
-                      )}
                     </Col>
 
                     <Col xs={24} lg={12}>
@@ -552,27 +591,6 @@ export default function AppointmentEdit(): JSX.Element {
                           style={{ backgroundColor: '#f0f0f0', fontWeight: 500 }}
                         />
                       </Form.Item>
-                      {assignedDoctor && (
-                        <div style={{ 
-                          marginBottom: '16px',
-                          padding: '12px', 
-                          background: '#e6f7ff', 
-                          border: '1px solid #91d5ff',
-                          borderRadius: '8px',
-                          fontSize: '13px',
-                          fontWeight: 500
-                        }}>
-                          <div style={{ color: '#1890ff', marginBottom: '4px' }}>
-                            👨‍⚕️ Médico asignado
-                          </div>
-                          <div style={{ color: '#096dd9' }}>
-                            Dr. {assignedDoctor.first_name} {assignedDoctor.last_name}
-                          </div>
-                          <div style={{ color: '#40a9ff', fontSize: '12px' }}>
-                            {assignedDoctor.email}
-                          </div>
-                        </div>
-                      )}
                     </Col>
                   </Row>
 
@@ -595,6 +613,156 @@ export default function AppointmentEdit(): JSX.Element {
                       </Form.Item>
                     </Col>
                   </Row>
+
+                  <Divider style={{ margin: '12px 0' }} />
+
+                  <Row gutter={[16, 16]}>
+                    <Col xs={24}>
+                      <Form.Item 
+                        name="has_representative"
+                        valuePropName="checked"
+                        style={{ marginBottom: 4 }}
+                      >
+                        <Checkbox 
+                          checked={isRepresentative}
+                          onChange={(e) => onRepresentativeChange(e.target.checked)}
+                          disabled={!selectedPatient || contacts.length === 0}
+                          style={{ fontSize: '15px', fontWeight: 500 }}
+                        >
+                          ¿El paciente asiste con un representante?
+                        </Checkbox>
+                      </Form.Item>
+                      
+                      {!selectedPatient && (
+                        <div style={{ 
+                          marginLeft: '24px', 
+                          marginBottom: '16px',
+                          fontSize: '12px', 
+                          color: '#8c8c8c'
+                        }}>
+                          Primero debe seleccionar un paciente
+                        </div>
+                      )}
+                      
+                      {selectedPatient && contacts.length === 0 && !contactsLoading && (
+                        <div style={{ 
+                          marginLeft: '24px',
+                          marginBottom: '16px',
+                          padding: '8px 12px',
+                          background: '#fff7e6',
+                          border: '1px solid #ffd591',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          color: '#d46b08'
+                        }}>
+                          ⚠️ Este paciente no tiene contactos registrados
+                        </div>
+                      )}
+
+                      {contactsLoading && (
+                        <div style={{ 
+                          marginLeft: '24px',
+                          marginBottom: '16px',
+                          padding: '8px 12px',
+                          background: '#f0f5ff',
+                          border: '1px solid #adc6ff',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          color: '#2f54eb'
+                        }}>
+                          <Spin size="small" style={{ marginRight: '8px' }} />
+                          Cargando contactos del paciente...
+                        </div>
+                      )}
+                    </Col>
+
+                    {isRepresentative && contacts.length > 0 && (
+                      <Col xs={24} lg={12}>
+                        <Form.Item
+                          label="Seleccionar Representante"
+                          name="representative_id"
+                          rules={[
+                            { 
+                              required: isRepresentative, 
+                              message: 'Debe seleccionar un representante' 
+                            }
+                          ]}
+                          extra="Seleccione quién acompaña al paciente"
+                        >
+                          <Select
+                            placeholder="Seleccionar contacto representante"
+                            loading={contactsLoading}
+                            onChange={onContactSelect}
+                            showSearch
+                            allowClear
+                            size="large"
+                            value={selectedContact}
+                            filterOption={(input, option) => {
+                              const contact = contacts.find(c => c.id === option?.value);
+                              if (!contact) return false;
+                              const fullName = `${contact.first_name} ${contact.last_name}`.toLowerCase();
+                              const phone = contact.phone.toLowerCase();
+                              const searchTerm = input.toLowerCase();
+                              return fullName.includes(searchTerm) || phone.includes(searchTerm);
+                            }}
+                            notFoundContent={
+                              contactsLoading ? (
+                                <Spin size="small" />
+                              ) : (
+                                'No hay contactos disponibles'
+                              )
+                            }
+                            optionLabelProp="label"
+                          >
+                            {contacts.map(contact => (
+                              <Option 
+                                key={contact.id} 
+                                value={contact.id}
+                                label={`${contact.first_name} ${contact.last_name}`}
+                              >
+                                <div style={{ padding: '4px 0' }}>
+                                  <div style={{ 
+                                    fontWeight: 600, 
+                                    fontSize: '14px',
+                                    color: '#262626',
+                                    marginBottom: '4px'
+                                  }}>
+                                    {contact.first_name} {contact.last_name}
+                                  </div>
+                                  <div style={{ 
+                                    fontSize: '12px', 
+                                    color: '#8c8c8c',
+                                    display: 'flex',
+                                    gap: '12px',
+                                    flexWrap: 'wrap'
+                                  }}>
+                                    {contact.relationship_type && (
+                                      <span>
+                                        <UserOutlined style={{ marginRight: '4px' }} />
+                                        {contact.relationship_type}
+                                      </span>
+                                    )}
+                                    <span>
+                                      📞 {contact.phone}
+                                    </span>
+                                    {contact.document_id && (
+                                      <span>
+                                        🆔 CI: {contact.document_id}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                      </Col>
+                    )}
+                  </Row>
+
+                  {isRepresentative && contacts.length > 0 && (
+                    <Divider style={{ margin: '12px 0' }} />
+                  )}
 
                   <Row gutter={[16, 16]} style={{ marginTop: '8px' }}>
                     <Col xs={24} sm={12}>

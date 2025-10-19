@@ -4,6 +4,7 @@ export interface Contact {
   last_name: string;
   phone: string;
   email?: string;
+  document_id?: string;
   relationship_type: string;
   created_at?: string;
 }
@@ -13,5 +14,6 @@ export interface ContactCreate {
   last_name: string;
   phone: string;
   email?: string;
+  document_id?: string;
   relationship_type: string;
 }

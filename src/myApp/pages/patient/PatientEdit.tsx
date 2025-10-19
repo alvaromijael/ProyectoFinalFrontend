@@ -72,6 +72,8 @@ export default function PatientEdit() {
     neighborhood: '',
     street: '',
     house_number: '',
+    enterprise: '',
+    work_activity: '',
     contacts: []
   });
 
@@ -80,6 +82,7 @@ export default function PatientEdit() {
     last_name: '',
     phone: '',
     email: '',
+    document_id: '',
     relationship_type: ''
   });
 
@@ -121,16 +124,19 @@ export default function PatientEdit() {
             neighborhood: patient.neighborhood || '',
             street: patient.street || '',
             house_number: patient.house_number || '',
+            enterprise: patient.enterprise || undefined,
+            work_activity: patient.work_activity || undefined,
             contacts: (patient.contacts || []).map((contact, index) => ({
               id: contact.id || Date.now() + index,
               first_name: contact.first_name,
               last_name: contact.last_name,
               phone: contact.phone,
+              document_id: contact.document_id || '',
               email: contact.email || '',
               relationship_type: contact.relationship_type
             }))
           });
-          
+          console.log('Datos del paciente cargados:', patient);
           message.success('Datos del paciente cargados correctamente');
         } else {
           message.error(response.message || 'Error al cargar los datos del paciente');
@@ -170,7 +176,9 @@ export default function PatientEdit() {
       formData.city !== (originalData.city || '') ||
       formData.neighborhood !== (originalData.neighborhood || '') ||
       formData.street !== (originalData.street || '') ||
-      formData.house_number !== (originalData.house_number || '')
+      formData.house_number !== (originalData.house_number || '') ||
+      formData.enterprise !== (originalData.enterprise || '') ||
+      formData.work_activity !== (originalData.work_activity || '')
     ) {
       return true;
     }
@@ -233,6 +241,7 @@ export default function PatientEdit() {
       last_name: '',
       phone: '',
       email: '',
+      document_id: '',
       relationship_type: ''
     });
     setEditingContact(null);
@@ -283,6 +292,7 @@ export default function PatientEdit() {
       last_name: contact.last_name,
       phone: contact.phone,
       email: contact.email || '',
+      document_id: contact.document_id || '', 
       relationship_type: contact.relationship_type || ''
     });
     setEditingContact(contact.id || 0);
@@ -342,11 +352,14 @@ export default function PatientEdit() {
         neighborhood: formData.neighborhood || undefined,
         street: formData.street || undefined,
         house_number: formData.house_number || undefined,
+        enterprise: formData.enterprise || undefined,
+        work_activity: formData.work_activity || undefined,
         contacts: formData.contacts.map(contact => ({
           first_name: contact.first_name,
           last_name: contact.last_name,
           phone: contact.phone,
           email: contact.email || undefined,
+          document_id: contact.document_id || undefined,
           relationship_type: contact.relationship_type
         }))
       };
@@ -402,6 +415,13 @@ export default function PatientEdit() {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
+      width: 200,
+      render: (text: string) => text || '-'
+    },
+    {
+      title: 'Cedula',
+      dataIndex: 'document_id',
+      key: 'document_id',
       width: 200,
       render: (text: string) => text || '-'
     },
@@ -794,6 +814,30 @@ export default function PatientEdit() {
                       />
                     </Space>
                   </Col>
+
+                  <Col xs={24} sm={12} lg={6}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>Empresa</Text>
+                      <Input
+                        placeholder="Empresa donde trabaja"
+                        value={formData.enterprise}
+                        onChange={(e) => handleInputChange('enterprise', e.target.value)}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={6}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>Actividad Laboral</Text>
+                      <Input
+                        placeholder="Actividad laboral"
+                        value={formData.work_activity}
+                        onChange={(e) => handleInputChange('work_activity', e.target.value)}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
                 </Row>
               </div>
 
@@ -927,6 +971,20 @@ export default function PatientEdit() {
                   placeholder="Ej: 0987654321"
                   value={contactoForm.phone}
                   onChange={(e) => handleContactInputChange('phone', e.target.value)}
+                  size="large"
+                />
+              </Space>
+            </Col>
+
+            <Col xs={24} sm={12}>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Text strong>
+                  Cédula 
+                </Text>
+                <Input
+                  placeholder="Ej: 1755185743"
+                  value={contactoForm.document_id}
+                  onChange={(e) => handleContactInputChange('document_id', e.target.value)}
                   size="large"
                 />
               </Space>

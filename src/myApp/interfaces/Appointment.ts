@@ -79,6 +79,10 @@ export interface FormValues {
   examenFisico: string;
   observaciones: string;
   examenes: string;
+  reposo_desde: Dayjs;
+  reposo_hasta: Dayjs;
+  has_representative: boolean;
+  representative_id?: number;
 }
 
 export interface OriginalData {
@@ -88,6 +92,9 @@ export interface OriginalData {
   appointment: Appointment;
   diagnoses: Diagnosis[];
   assignedDoctor?: User;
+  contacts: ContactForm[];
+  isRepresentative: boolean;
+  selectedContact?: ContactForm;
 }
 
 export interface APIResponse<T = any> {
@@ -140,13 +147,19 @@ export type AppointmentUpdateData = {
     diagnosis_type: 'primary' | 'secondary';
   }>;
   recipes: Array<APIRecipe>;
+  rest_from?: string;
+  rest_to?: string;
+  has_representative?: boolean;
+  representative_id?: number;
+  contingency_type?: string;
+
 };
 import type { Recipe } from "./Recipe";
 import type { UserData as User } from "./UserData";
-import type { Patient } from "./Patient";
+import type { ContactForm, Patient } from "./Patient";
 
 export interface Appointment {
-  id?: number;
+  id: number;
   patient_id: number;
   user_id: number;
   appointment_date: string;
@@ -171,6 +184,11 @@ export interface Appointment {
   patient?: Patient;
   user?: User;
   diagnoses?: Diagnosis[];
+  rest_from?: string;
+  rest_to?: string;
+  has_representative?: boolean;
+  representative_id?: number; 
+  
 }
 
 export interface AppointmentCreate {

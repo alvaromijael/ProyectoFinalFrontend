@@ -17,7 +17,8 @@ import {
   Divider,
   AutoComplete,
   Spin,
-  Select
+  Select,
+  Checkbox
 } from 'antd';
 import {
   UserOutlined,  
@@ -25,15 +26,15 @@ import {
   ArrowLeftOutlined,
   PlusOutlined,
   SearchOutlined,
-  
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
-
 import PatientService from '../../services/PatientService';
 import AppointmentService from '../../services/AppointmentService';
+import { contactService } from '../../services/ContactService';
 import type { Patient } from '../../interfaces/Patient';
 import type { UserData as User } from '../../interfaces/UserData';
+import type { Contact } from '../../interfaces/Contact';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
@@ -55,8 +56,6 @@ const useDebounce = (value: string, delay: number) => {
   return debouncedValue;
 };
 
-
-
 const WEIGHT_UNITS = [
   { value: 'kg', label: 'Kilogramos (kg)', suffix: 'kg' },
   { value: 'lb', label: 'Libras (lb)', suffix: 'lb' },
@@ -76,6 +75,12 @@ export default function AppointmentCreate(): JSX.Element {
   const [patientOptions, setPatientOptions] = useState<any[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [weightUnit, setWeightUnit] = useState<string>('kg');
+  
+  // Nuevos estados para representante y contactos
+  const [isRepresentative, setIsRepresentative] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<number | null>(null);
 
   const debouncedSearchValue = useDebounce(searchValue, 500);
 
@@ -93,6 +98,26 @@ export default function AppointmentCreate(): JSX.Element {
       message.error('Error al cargar los médicos');
     } finally {
       setUsersLoading(false);
+    }
+  }, []);
+
+  const loadPatientContacts = useCallback(async (patientId: number) => {
+    setContactsLoading(true);
+    try {
+      const contactsData = await contactService.getContactsByPatientId(patientId);
+      setContacts(contactsData);
+      
+      if (contactsData.length === 0) {
+        message.info('Este paciente no tiene contactos registrados');
+        setIsRepresentative(false);
+        form.setFieldsValue({ has_representative: false });
+      }
+    } catch (error) {
+      console.error('Error loading contacts:', error);
+      message.error('Error al cargar los contactos del paciente');
+      setContacts([]);
+    } finally {
+      setContactsLoading(false);
     }
   }, [form]);
 
@@ -146,10 +171,8 @@ export default function AppointmentCreate(): JSX.Element {
   }, [debouncedSearchValue, searchPatients]);
 
   useEffect(() => {
-    // Cargar usuarios al montar el componente
     loadUsers();
     
-    // Establecer valores por defecto del formulario
     const now = dayjs();
     form.setFieldsValue({
       fecha: now,
@@ -184,6 +207,9 @@ export default function AppointmentCreate(): JSX.Element {
         cedula: patient.document_id || ''
       });
       
+      // Cargar contactos del paciente
+      loadPatientContacts(patient.id);
+      
       message.success('Paciente seleccionado correctamente.');
     }
   };
@@ -194,6 +220,21 @@ export default function AppointmentCreate(): JSX.Element {
       setSelectedUser(user);
       form.setFieldsValue({ user_id: userId });
     }
+  };
+
+  const onRepresentativeChange = (checked: boolean) => {
+    setIsRepresentative(checked);
+    form.setFieldsValue({ has_representative: checked });
+    
+    if (!checked) {
+      setSelectedContact(null);
+      form.setFieldsValue({ representative_id: undefined });
+    }
+  };
+
+  const onContactSelect = (contactId: number) => {
+    setSelectedContact(contactId);
+    form.setFieldsValue({ representative_id: contactId });
   };
 
   const onWeightUnitChange = (value: string) => {
@@ -244,6 +285,12 @@ export default function AppointmentCreate(): JSX.Element {
       return;
     }
 
+    // Validar representante
+    if (isRepresentative && !selectedContact) {
+      message.error('Debe seleccionar un contacto representante');
+      return;
+    }
+
     setLoading(true);
     try {
       let heightInMeters = '';
@@ -282,10 +329,11 @@ export default function AppointmentCreate(): JSX.Element {
         oxygen_saturation: values.saturacionO2 || '',
         weight: weightValue,
         weight_unit: values.pesoUnidad,
-        height: heightInMeters
+        height: heightInMeters,
+        has_representative: isRepresentative,
+        representative_id: isRepresentative ? selectedContact : null
       };
 
-      
       const response = await AppointmentService.createAppointment(appointmentData);
       
       if (response.success) {
@@ -317,6 +365,9 @@ export default function AppointmentCreate(): JSX.Element {
     setSearchValue('');
     setPatientOptions([]);
     setWeightUnit('kg');
+    setIsRepresentative(false);
+    setContacts([]);
+    setSelectedContact(null);
     
     const now = dayjs();
     form.setFieldsValue({
@@ -378,143 +429,291 @@ export default function AppointmentCreate(): JSX.Element {
           >
             <Row gutter={[24, 0]}>
               {/* Información del Paciente y Médico */}
-              <Col xs={24}>
-                <Card title={<><UserOutlined /> Información del Paciente y Médico</>} style={{ marginBottom: '24px' }}>
-                  <Row gutter={[16, 0]}>
-                    <Col xs={24} lg={12}>
-                      <Form.Item
-                        label="Buscar Paciente"
-                        name="searchPatient"
-                        rules={[{ required: true, message: 'Debe seleccionar un paciente' }]}
-                        extra="Busque por apellidos, nombres o número de cédula"
-                      >
-                        <AutoComplete
-                          value={searchValue}
-                          options={patientOptions}
-                          onSearch={onPatientSearch}
-                          onSelect={onPatientSelect}
-                          placeholder="Escriba apellidos, nombres o cédula..."
-                          notFoundContent={
-                            searchLoading ? (
-                              <div style={{ padding: '12px', textAlign: 'center' }}>
-                                <Spin size="small" /> Buscando pacientes...
-                              </div>
-                            ) : searchValue && searchValue.length >= 2 ? (
-                              <div style={{ padding: '12px', textAlign: 'center', color: '#999' }}>
-                                No se encontraron pacientes
-                              </div>
-                            ) : searchValue && searchValue.length < 2 ? (
-                              <div style={{ padding: '12px', textAlign: 'center', color: '#999' }}>
-                                Escriba al menos 2 caracteres para buscar
-                              </div>
-                            ) : null
-                          }
-                          suffixIcon={searchLoading ? <Spin size="small" /> : <SearchOutlined />}
-                          allowClear
-                          onClear={() => {
-                            setSearchValue('');
-                            setPatientOptions([]);
-                            setSelectedPatient(null);
-                            form.setFieldsValue({
-                              nombres: '',
-                              apellidos: '',
-                              cedula: ''
-                            });
-                          }}
-                        />
-                      </Form.Item>
-                      {selectedPatient && (
-                        <div style={{ 
-                          marginTop: '8px', 
-                          padding: '8px', 
-                          background: '#f6ffed', 
-                          border: '1px solid #b7eb8f',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          color: '#52c41a'
-                        }}>
-                          ✓ Paciente seleccionado: {selectedPatient.first_name} {selectedPatient.last_name}
-                        </div>
-                      )}
-                    </Col>
-                    
-                    <Col xs={24} lg={12}>
-                      <Form.Item
-                        label="Médico Responsable"
-                        name="user_id"
-                        rules={[{ required: true, message: 'Debe seleccionar un médico' }]}
-                        extra="Seleccione el médico que atenderá la cita"
-                        style={{ marginBottom: selectedUser ? '8px' : '24px' }}
-                      >
-                        <Select
-                          placeholder="Seleccionar médico"
-                          loading={usersLoading}
-                          onChange={onUserSelect}
-                          showSearch
-                          size="large"
-                          allowClear
-                          filterOption={(input, option) => {
-                            const user = users.find(u => u.id === option?.value);
-                            if (!user) return false;
-                            const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
-                            return fullName.includes(input.toLowerCase());
-                          }}
-                          notFoundContent={usersLoading ? <Spin size="small" /> : 'No hay médicos disponibles'}
-                        >
-                          {users.filter(user => user.is_active).map(user => (
-                            <Option key={user.id} value={user.id}>
-                              Dr. {user.first_name} {user.last_name}
-                            </Option>
-                          ))}
-                        </Select>
-                      </Form.Item>
-                    </Col>
+              
+<Col xs={24}>
+  <Card title={<><UserOutlined /> Información del Paciente y Médico</>} style={{ marginBottom: '24px' }}>
+    <Row gutter={[16, 0]}>
+      <Col xs={24} lg={12}>
+        <Form.Item
+          label="Buscar Paciente"
+          name="searchPatient"
+          rules={[{ required: true, message: 'Debe seleccionar un paciente' }]}
+          extra="Busque por apellidos, nombres o número de cédula"
+        >
+          <AutoComplete
+            value={searchValue}
+            options={patientOptions}
+            onSearch={onPatientSearch}
+            onSelect={onPatientSelect}
+            placeholder="Escriba apellidos, nombres o cédula..."
+            notFoundContent={
+              searchLoading ? (
+                <div style={{ padding: '12px', textAlign: 'center' }}>
+                  <Spin size="small" /> Buscando pacientes...
+                </div>
+              ) : searchValue && searchValue.length >= 2 ? (
+                <div style={{ padding: '12px', textAlign: 'center', color: '#999' }}>
+                  No se encontraron pacientes
+                </div>
+              ) : searchValue && searchValue.length < 2 ? (
+                <div style={{ padding: '12px', textAlign: 'center', color: '#999' }}>
+                  Escriba al menos 2 caracteres para buscar
+                </div>
+              ) : null
+            }
+            suffixIcon={searchLoading ? <Spin size="small" /> : <SearchOutlined />}
+            allowClear
+            onClear={() => {
+              setSearchValue('');
+              setPatientOptions([]);
+              setSelectedPatient(null);
+              setContacts([]);
+              setIsRepresentative(false);
+              setSelectedContact(null);
+              form.setFieldsValue({
+                nombres: '',
+                apellidos: '',
+                cedula: '',
+                has_representative: false,
+                representative_id: undefined
+              });
+            }}
+          />
+        </Form.Item>
+      </Col>
+      
+      <Col xs={24} lg={12}>
+        <Form.Item
+          label="Médico Responsable"
+          name="user_id"
+          rules={[{ required: true, message: 'Debe seleccionar un médico' }]}
+          extra="Seleccione el médico que atenderá la cita"
+        >
+          <Select
+            placeholder="Seleccionar médico"
+            loading={usersLoading}
+            onChange={onUserSelect}
+            showSearch
+            size="large"
+            allowClear
+            filterOption={(input, option) => {
+              const user = users.find(u => u.id === option?.value);
+              if (!user) return false;
+              const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
+              return fullName.includes(input.toLowerCase());
+            }}
+            notFoundContent={usersLoading ? <Spin size="small" /> : 'No hay médicos disponibles'}
+          >
+            {users.filter(user => user.is_active).map(user => (
+              <Option key={user.id} value={user.id}>
+                Dr. {user.first_name} {user.last_name}
+              </Option>
+            ))}
+          </Select>
+        </Form.Item>
+      </Col>
 
-                    <Col xs={24} lg={6}>
-                      <Form.Item label="Nombres" name="nombres">
-                        <Input disabled placeholder="Nombres del paciente" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} lg={6}>
-                      <Form.Item label="Apellidos" name="apellidos">
-                        <Input disabled placeholder="Apellidos del paciente" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} lg={6}>
-                      <Form.Item label="Cédula" name="cedula">
-                        <Input disabled placeholder="Cédula del paciente" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} lg={6}>
-                      <Form.Item
-                        label="Fecha de Cita"
-                        name="fecha"
-                        rules={[{ required: true, message: 'Ingrese la fecha de la cita' }]}
-                      >
-                        <DatePicker 
-                          style={{ width: '100%' }}
-                          placeholder="Seleccionar fecha"
-                          format="DD/MM/YYYY"
-                        />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24} lg={6}>
-                      <Form.Item
-                        label="Hora de Cita"
-                        name="hora"
-                        rules={[{ required: true, message: 'Ingrese la hora de la cita' }]}
-                      >
-                        <TimePicker 
-                          style={{ width: '100%' }}
-                          format="HH:mm"
-                          placeholder="Seleccionar hora"
-                        />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </Card>
-              </Col>
+      <Col xs={24} lg={8}>
+        <Form.Item label="Nombres" name="nombres">
+          <Input disabled placeholder="Nombres del paciente" />
+        </Form.Item>
+      </Col>
+      <Col xs={24} lg={8}>
+        <Form.Item label="Apellidos" name="apellidos">
+          <Input disabled placeholder="Apellidos del paciente" />
+        </Form.Item>
+      </Col>
+      <Col xs={24} lg={8}>
+        <Form.Item label="Cédula" name="cedula">
+          <Input disabled placeholder="Cédula del paciente" />
+        </Form.Item>
+      </Col>
 
+      {/* Divisor visual */}
+      <Col xs={24}>
+        <Divider style={{ margin: '12px 0' }} />
+      </Col>
+
+      <Col xs={24}>
+        <Form.Item 
+          name="has_representative"
+          valuePropName="checked"
+          style={{ marginBottom: 4 }}
+        >
+          <Checkbox 
+            checked={isRepresentative}
+            onChange={(e) => onRepresentativeChange(e.target.checked)}
+            disabled={!selectedPatient || contacts.length === 0}
+            style={{ fontSize: '15px', fontWeight: 500 }}
+          >
+            ¿El paciente asiste con un representante?
+          </Checkbox>
+        </Form.Item>
+        
+        {!selectedPatient && (
+          <div style={{ 
+            marginLeft: '24px', 
+            marginBottom: '16px',
+            fontSize: '12px', 
+            color: '#8c8c8c'
+          }}>
+            Primero debe seleccionar un paciente
+          </div>
+        )}
+        
+        {selectedPatient && contacts.length === 0 && !contactsLoading && (
+          <div style={{ 
+            marginLeft: '24px',
+            marginBottom: '16px',
+            padding: '8px 12px',
+            background: '#fff7e6',
+            border: '1px solid #ffd591',
+            borderRadius: '6px',
+            fontSize: '12px',
+            color: '#d46b08'
+          }}>
+            ⚠️ Este paciente no tiene contactos registrados
+          </div>
+        )}
+
+        {contactsLoading && (
+          <div style={{ 
+            marginLeft: '24px',
+            marginBottom: '16px',
+            padding: '8px 12px',
+            background: '#f0f5ff',
+            border: '1px solid #adc6ff',
+            borderRadius: '6px',
+            fontSize: '12px',
+            color: '#2f54eb'
+          }}>
+            <Spin size="small" style={{ marginRight: '8px' }} />
+            Cargando contactos del paciente...
+          </div>
+        )}
+      </Col>
+
+      {isRepresentative && contacts.length > 0 && (
+  <Col xs={24} lg={12}>
+    <Form.Item
+      label="Seleccionar Representante"
+      name="representative_id"
+      rules={[
+        { 
+          required: isRepresentative, 
+          message: 'Debe seleccionar un representante' 
+        }
+      ]}
+      extra="Seleccione quién acompaña al paciente"
+    >
+      <Select
+        placeholder="Seleccionar contacto representante"
+        loading={contactsLoading}
+        onChange={onContactSelect}
+        showSearch
+        allowClear
+        size="large"
+        filterOption={(input, option) => {
+          const contact = contacts.find(c => c.id === option?.value);
+          if (!contact) return false;
+          const fullName = `${contact.first_name} ${contact.last_name}`.toLowerCase();
+          const phone = contact.phone.toLowerCase();
+          const searchTerm = input.toLowerCase();
+          return fullName.includes(searchTerm) || phone.includes(searchTerm);
+        }}
+        notFoundContent={
+          contactsLoading ? (
+            <Spin size="small" />
+          ) : (
+            'No hay contactos disponibles'
+          )
+        }
+        optionLabelProp="label"
+      >
+        {contacts.map(contact => (
+          <Option 
+            key={contact.id} 
+            value={contact.id}
+            label={`${contact.first_name} ${contact.last_name}`}
+          >
+            <div style={{ padding: '4px 0' }}>
+              <div style={{ 
+                fontWeight: 600, 
+                fontSize: '14px',
+                color: '#262626',
+                marginBottom: '4px'
+              }}>
+                {contact.first_name} {contact.last_name}
+              </div>
+              <div style={{ 
+                fontSize: '12px', 
+                color: '#8c8c8c',
+                display: 'flex',
+                gap: '12px',
+                flexWrap: 'wrap'
+              }}>
+                {contact.relationship_type && (
+                  <span>
+                    <UserOutlined style={{ marginRight: '4px' }} />
+                    {contact.relationship_type}
+                  </span>
+                )}
+                <span>
+                  📞 {contact.phone}
+                </span>
+                {contact.document_id && (
+                  <span>
+                    🆔 CI: {contact.document_id}
+                  </span>
+                )}
+              </div>
+            </div>
+          </Option>
+        ))}
+      </Select>
+    </Form.Item>
+  </Col>
+)}
+
+      {/* Divisor visual si hay representante seleccionado */}
+      {isRepresentative && contacts.length > 0 && (
+        <Col xs={24}>
+          <Divider style={{ margin: '12px 0' }} />
+        </Col>
+      )}
+
+      {/* Fecha y Hora */}
+      <Col xs={24} lg={12}>
+        <Form.Item
+          label="Fecha de Cita"
+          name="fecha"
+          rules={[{ required: true, message: 'Ingrese la fecha de la cita' }]}
+        >
+          <DatePicker 
+            style={{ width: '100%' }}
+            placeholder="Seleccionar fecha"
+            format="DD/MM/YYYY"
+            size="large"
+          />
+        </Form.Item>
+      </Col>
+      <Col xs={24} lg={12}>
+        <Form.Item
+          label="Hora de Cita"
+          name="hora"
+          rules={[{ required: true, message: 'Ingrese la hora de la cita' }]}
+        >
+          <TimePicker 
+            style={{ width: '100%' }}
+            format="HH:mm"
+            placeholder="Seleccionar hora"
+            size="large"
+          />
+        </Form.Item>
+      </Col>
+    </Row>
+  </Card>
+</Col>
               {/* Signos Vitales */}
               <Col xs={24}>
                 <Card title="Signos Vitales" style={{ marginBottom: '24px' }}>

@@ -138,6 +138,48 @@ class PatientService {
   }
 }
 
+static async generateMedicalCertificate(appointmentId: number): Promise<ApiResponse<{
+  success: boolean;
+  appointment_id: number;
+  filename: string;
+  blob: Blob;
+}>> {
+  try {
+    const response: AxiosResponse<Blob> = await api.get(
+      `/reports/medical-certificate/${appointmentId}`,
+      {
+        responseType: 'blob' // Importante para recibir el PDF como blob
+      }
+    );
+
+    const contentDisposition = response.headers['content-disposition'];
+    const filenameMatch = contentDisposition?.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+    const filename = filenameMatch?.[1]?.replace(/['"]/g, '') || `certificado_medico_${appointmentId}.pdf`;
+
+    const url = window.URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    return {
+      success: true,
+      data: {
+        success: true,
+        appointment_id: appointmentId,
+        filename: filename,
+        blob: response.data
+      },
+      message: 'Certificado médico descargado exitosamente'
+    };
+  } catch (error) {
+    return this.handleError(error, 'Error al descargar el certificado médico');
+  }
+}
+
   static async searchPatients(query: string, params: SearchParams = {}): Promise<ApiResponse<Patient[]>> {
     try {
       const { skip = 0, limit = 100 }: SearchParams = params;

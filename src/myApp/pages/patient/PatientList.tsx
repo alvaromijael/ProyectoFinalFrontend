@@ -58,6 +58,7 @@ interface Patient {
     phone: string;
     email?: string;
     relationship_type: string;
+    document_id?: string;
   }>;
   medical_history?: string;
   notes?: string;

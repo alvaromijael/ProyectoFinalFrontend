@@ -27,6 +27,7 @@ export interface ContactForm {
   phone: string;
   email?: string;
   relationship_type: string;
+  document_id?: string;
 }
 
 export interface ContactFormState {
@@ -34,6 +35,7 @@ export interface ContactFormState {
   last_name: string;
   phone: string;
   email: string;
+  document_id?: string;
   relationship_type: string;
 }
 
@@ -56,6 +58,8 @@ export interface FormData {
   neighborhood: string;
   street: string;
   house_number: string;
+  enterprise?: string;
+  work_activity?: string;
   contacts: ContactForm[];
 }
 
@@ -103,6 +107,8 @@ export interface Patient {
   house_number?: string;
   medical_history?: string;
   notes?: string;
+  enterprise?: string;
+  work_activity?: string;
   created_at?: string;
   updated_at?: string;
   contacts?: Contact[];
@@ -146,6 +152,8 @@ export interface PatientUpdate {
   street?: string;
   house_number?: string;
   medical_history?: string;
+  enterprise?: string;
+  work_activity?: string;
   notes?: string;
   contacts?: ContactCreate[];
 }

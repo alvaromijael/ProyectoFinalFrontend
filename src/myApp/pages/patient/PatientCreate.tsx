@@ -65,6 +65,8 @@ export default function PatientCreateC() {
     neighborhood: '',
     street: '',
     house_number: '',
+    enterprise: '',
+    work_activity: '',
     contacts: [] as ContactForm[]
   });
 
@@ -73,6 +75,7 @@ export default function PatientCreateC() {
     last_name: '',
     phone: '',
     email: '',
+    document_id: '',
     relationship_type: ''
   });
 
@@ -136,7 +139,9 @@ export default function PatientCreateC() {
       last_name: '',
       phone: '',
       email: '',
-      relationship_type: ''
+      document_id: '',
+      relationship_type: '',
+      
     });
     setEditingContact(null);
     setIsContactModalOpen(true);
@@ -175,6 +180,7 @@ export default function PatientCreateC() {
       last_name: '',
       phone: '',
       email: '',
+      document_id: '',
       relationship_type: ''
     });
     setEditingContact(null);
@@ -186,6 +192,7 @@ export default function PatientCreateC() {
       last_name: contact.last_name,
       phone: contact.phone,
       email: contact.email || '',
+      document_id: contact.document_id || '',
       relationship_type: contact.relationship_type || ''
     });
     setEditingContact(contact.id || 0);
@@ -208,6 +215,7 @@ export default function PatientCreateC() {
       last_name: '',
       phone: '',
       email: '',
+      document_id: '',
       relationship_type: ''
     });
   };
@@ -236,11 +244,14 @@ export default function PatientCreateC() {
         neighborhood: formData.neighborhood || undefined,
         street: formData.street || undefined,
         house_number: formData.house_number || undefined,
+        enterprise: formData.enterprise || undefined,
+        work_activity: formData.work_activity || undefined,
         contacts: formData.contacts.map(contact => ({
           first_name: contact.first_name,
           last_name: contact.last_name,
           phone: contact.phone,
           email: contact.email || undefined,
+          document_id: contact.document_id || undefined,
           relationship_type: contact.relationship_type
         }))
       };
@@ -267,6 +278,8 @@ export default function PatientCreateC() {
           neighborhood: '',
           street: '',
           house_number: '',
+          enterprise: '',
+          work_activity: '',
           contacts: []
         });
         setTimeout(() => {
@@ -317,6 +330,13 @@ export default function PatientCreateC() {
       width: 200,
       render: (text: string) => text || '-'
     },
+     {
+    title: 'Cédula',  
+    dataIndex: 'document_id',
+    key: 'document_id',
+    width: 120,
+    render: (text: string) => text || '-'
+  },
     {
       title: 'Relación',
       dataIndex: 'relationship_type',
@@ -451,7 +471,7 @@ export default function PatientCreateC() {
                   <Col xs={24} sm={12} lg={8}>
                     <Space direction="vertical" style={{ width: '100%' }}>
                       <Text strong>
-                        Cédula <Text type="danger">*</Text>
+                        Cédula 
                       </Text>
                       <Input
                         placeholder="Ingrese la cédula"
@@ -670,6 +690,31 @@ export default function PatientCreateC() {
                       />
                     </Space>
                   </Col>
+
+                   <Col xs={24} sm={12} lg={6}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>Empresa</Text>
+                      <Input
+                        placeholder="Empresa donde trabaja"
+                        value={formData.enterprise}
+                        onChange={(e) => handleInputChange('enterprise', e.target.value)}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
+
+                    <Col xs={24} sm={12} lg={6}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>Actividad Laboral</Text>
+                      <Input
+                        placeholder="Empresa donde trabaja"
+                        value={formData.work_activity}
+                        onChange={(e) => handleInputChange('work_activity', e.target.value)}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
+
                 </Row>
               </div>
 
@@ -814,6 +859,20 @@ export default function PatientCreateC() {
                   placeholder="ejemplo@correo.com"
                   value={contactoForm.email}
                   onChange={(e) => handleContactInputChange('email', e.target.value)}
+                  size="large"
+                />
+              </Space>
+            </Col>
+
+              <Col xs={24} sm={12}>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Text strong>
+                  Cèdula <Text type="danger">*</Text>
+                </Text>
+                <Input
+                  placeholder="Ej: 1755187483"
+                  value={contactoForm.document_id}
+                  onChange={(e) => handleContactInputChange('document_id', e.target.value)}
                   size="large"
                 />
               </Space>

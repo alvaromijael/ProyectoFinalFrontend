@@ -17,7 +17,8 @@ import {
   Divider,
   AutoComplete,
   Spin,
-  Select
+  Select,
+  Checkbox
 } from 'antd';
 import {
   UserOutlined,  
@@ -33,10 +34,12 @@ import dayjs from 'dayjs';
 
 import PatientService from '../../services/PatientService';
 import AppointmentService from '../../services/AppointmentService';
+import { contactService } from '../../services/ContactService';
 import type { Patient } from '../../interfaces/Patient';
 import type { Recipe } from '../../interfaces/Recipe';
 import type { Appointment } from '../../interfaces/Appointment';
 import type { UserData as User } from '../../interfaces/UserData';
+import type { Contact } from '../../interfaces/Contact';
 import RecipeTable from '../../components/RecipeTable';
 import DiagnosisTable from '../../components/DiagnosisTable';
 
@@ -45,21 +48,51 @@ const { Content } = Layout;
 const { TextArea } = Input;
 const { Option } = Select;
 
-
-
 import type {
   Diagnosis,
   AppointmentDiagnosis,
   APIRecipe,
   AppointmentUpdateData
 } from '../../interfaces/Appointment';
-import type {
-  PatientOption,
-  FormValues,
-  OriginalData,
-  APIResponse
-} from '../../interfaces/Appointment';
 
+interface PatientOption {
+  value: string;
+  label: React.ReactNode;
+  patient: Patient;
+}
+
+interface FormValues {
+  searchPatient: string;
+  nombres: string;
+  apellidos: string;
+  cedula: string;
+  fecha: dayjs.Dayjs;
+  hora: dayjs.Dayjs;
+  antecedentes: string;
+  enfermedadActual: string;
+  temperatura: string;
+  presionArterial: string;
+  frecuenciaCardiaca: string;
+  saturacionO2: string;
+  peso: string;
+  pesoUnidad: string;
+  talla: string;
+  medical_preinscription?: string;
+  examenFisico: string;
+  observaciones: string;
+  examenes?: string;
+  reposo_desde?: dayjs.Dayjs;
+  reposo_hasta?: dayjs.Dayjs;
+  contingency_type?: string;
+  has_representative?: boolean;
+  representative_id?: number;
+}
+
+interface APIResponse<T = any> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
 
 const useDebounce = (value: string, delay: number): string => {
   const [debouncedValue, setDebouncedValue] = useState<string>(value);
@@ -76,13 +109,6 @@ const useDebounce = (value: string, delay: number): string => {
 
   return debouncedValue;
 };
-
-
-
-
-
-
-
 
 const WEIGHT_UNITS = [
   { value: 'kg', label: 'Kilogramos (kg)', suffix: 'kg' },
@@ -105,11 +131,33 @@ const AppointmentManageEdit: FC = () => {
   const [patientOptions, setPatientOptions] = useState<PatientOption[]>([]);
   const [recipes, setRecipes] = useState<APIRecipe[]>([]);
   const [diagnoses, setDiagnoses] = useState<Diagnosis[]>([]);
-  const [originalData, setOriginalData] = useState<OriginalData | null>(null);
   const [weightUnit, setWeightUnit] = useState<string>('kg');
   const [assignedDoctor, setAssignedDoctor] = useState<User | null>(null);
 
+  const [isRepresentative, setIsRepresentative] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<number | null>(null);
+
   const debouncedSearchValue = useDebounce(searchValue, 500);
+
+  const loadPatientContacts = useCallback(async (patientId: number) => {
+    setContactsLoading(true);
+    try {
+      const contactsData = await contactService.getContactsByPatientId(patientId);
+      setContacts(contactsData);
+      
+      if (contactsData.length === 0) {
+        message.info('Este paciente no tiene contactos registrados');
+      }
+    } catch (error) {
+      console.error('Error loading contacts:', error);
+      message.error('Error al cargar los contactos del paciente');
+      setContacts([]);
+    } finally {
+      setContactsLoading(false);
+    }
+  }, []);
 
   const searchPatients = useCallback(async (query: string): Promise<void> => {
     if (!query || query.length < 2) {
@@ -211,18 +259,26 @@ const AppointmentManageEdit: FC = () => {
             const patient = patientResponse.data;
             setSelectedPatient(patient);
             
+            if (patient.id)
+              await loadPatientContacts(patient.id);
+            
             const patientDisplayValue = `${patient.last_name}, ${patient.first_name} - CI: ${patient.document_id}`;
             
             const tableDiagnoses = (appointmentData as any).diagnoses 
               ? convertDiagnosesToTable((appointmentData as any).diagnoses)
               : [];
 
-              console.log("Tabla de dioagnsoticos", tableDiagnoses)
+            console.log("Tabla de dioagnsoticos", tableDiagnoses)
             
             setDiagnoses(tableDiagnoses);
 
             const weightUnitValue = appointmentData.weight_unit || 'kg';
             setWeightUnit(weightUnitValue);
+
+            const hasRep = appointmentData.has_representative || false;
+            const repId = appointmentData.representative_id || null;
+            setIsRepresentative(hasRep);
+            setSelectedContact(repId);
 
             const formData: Partial<FormValues> = {
               searchPatient: patientDisplayValue,
@@ -243,10 +299,13 @@ const AppointmentManageEdit: FC = () => {
               medical_preinscription: (appointmentData as any).medical_preinscription || '',
               examenFisico: appointmentData.physical_examination || '',
               observaciones: appointmentData.observations || '',
-              examenes: appointmentData.laboratory_tests || ''
+              examenes: appointmentData.laboratory_tests || '',
+              reposo_desde: appointmentData.rest_from ? dayjs(appointmentData.rest_from) : undefined,
+              reposo_hasta: appointmentData.rest_to ? dayjs(appointmentData.rest_to) : undefined,
+              contingency_type: (appointmentData as any).contingency_type || undefined,
+              has_representative: hasRep,
+              representative_id: repId ?? undefined
             };
-
-         
 
             let processedRecipes: Recipe[] = [];
             if (appointmentData.recipes && Array.isArray(appointmentData.recipes) && appointmentData.recipes.length > 0) {
@@ -261,17 +320,6 @@ const AppointmentManageEdit: FC = () => {
                   observations: recipe.observations ? recipe.observations.trim() : ''
                 }));
             }
-            
-            const originalDataObj: OriginalData = {
-              formData,
-              recipes: processedRecipes,
-              patient,
-              appointment: appointmentData,
-              diagnoses: tableDiagnoses,
-              assignedDoctor: appointmentData.user
-            };
-            
-            setOriginalData(originalDataObj);
             
             form.setFieldsValue(formData);
             setRecipes(processedRecipes);
@@ -319,8 +367,26 @@ const AppointmentManageEdit: FC = () => {
         antecedentes: patient.medical_history || 'Sin antecedentes médicos registrados'
       });
       
+      if (patient.id)
+        loadPatientContacts(patient.id);
+      
       message.success('Paciente seleccionado. Antecedentes cargados automáticamente.');
     }
+  };
+
+  const onRepresentativeChange = (checked: boolean) => {
+    setIsRepresentative(checked);
+    form.setFieldsValue({ has_representative: checked });
+    
+    if (!checked) {
+      setSelectedContact(null);
+      form.setFieldsValue({ representative_id: undefined });
+    }
+  };
+
+  const onContactSelect = (contactId: number) => {
+    setSelectedContact(contactId);
+    form.setFieldsValue({ representative_id: contactId });
   };
 
   const onWeightUnitChange = (value: string): void => {
@@ -366,6 +432,11 @@ const AppointmentManageEdit: FC = () => {
       return;
     }
 
+    if (isRepresentative && !selectedContact) {
+      message.error('Debe seleccionar un contacto representante');
+      return;
+    }
+
     const validDiagnoses = diagnoses.filter((diag: Diagnosis) => diag.diagnosis_code && diag.diagnosis_description);
     if (validDiagnoses.length === 0) {
       message.error('Debe agregar al menos un diagnóstico válido');
@@ -378,13 +449,13 @@ const AppointmentManageEdit: FC = () => {
         (recipe.medicine && recipe.medicine.trim()) || 
         (recipe.amount && recipe.amount.trim()) || 
         (recipe.instructions && recipe.instructions.trim()) ||
-  ((recipe as any).lunchTime && (recipe as any).lunchTime.trim()) || 
+        ((recipe as any).lunchTime && (recipe as any).lunchTime.trim()) || 
         (recipe.observations && recipe.observations.trim())
       ).map((recipe: Recipe) => ({
         medicine: recipe.medicine ? recipe.medicine.trim() : '',
         amount: recipe.amount ? recipe.amount.trim() : '',
         instructions: recipe.instructions ? recipe.instructions.trim() : '',
-  lunchTime:  (recipe as any).lunchTime ? (recipe as any).lunchTime.trim() : '',
+        lunchTime: (recipe as any).lunchTime ? (recipe as any).lunchTime.trim() : '',
         observations: recipe.observations ? recipe.observations.trim() : ''
       }));
 
@@ -420,12 +491,16 @@ const AppointmentManageEdit: FC = () => {
         weight_unit: values.pesoUnidad,
         height: values.talla ? (parseFloat(values.talla) / 100).toString() : '',
         medical_preinscription: values.medical_preinscription || '',
+        contingency_type: values.contingency_type || undefined,
+        has_representative: isRepresentative,
+        representative_id: isRepresentative && selectedContact !== null ? selectedContact : undefined,
         diagnoses: diagnosesArray,
-        recipes: validRecipes
+        recipes: validRecipes,
+        rest_from: values.reposo_desde ? values.reposo_desde.format('YYYY-MM-DD') : undefined,
+        rest_to: values.reposo_hasta ? values.reposo_hasta.format('YYYY-MM-DD') : undefined
       };
 
       console.log('Datos de la cita a actualizar:', appointmentData);
-      console.log('Medical preinscription a enviar:', appointmentData.medical_preinscription);
       
       const response: APIResponse = await AppointmentService.updateAppointment(id, appointmentData);
       
@@ -450,23 +525,6 @@ const AppointmentManageEdit: FC = () => {
   const handleCancel = (): void => {
     navigate('/manageAppointmentList');
   };
-
-  const handleClear = (): void => {
-    if (originalData) {
-      form.setFieldsValue(originalData.formData);
-      setRecipes([...originalData.recipes]); 
-      setSelectedPatient(originalData.patient);
-      setSearchValue(originalData.formData.searchPatient || '');
-      setDiagnoses([...originalData.diagnoses]);
-      setWeightUnit(originalData.formData.pesoUnidad || 'kg');
-      setAssignedDoctor(originalData.assignedDoctor || null);
-      message.info('Formulario restaurado a valores originales');
-    } else {
-      loadAppointmentData();
-      message.info('Formulario restaurado desde el servidor');
-    }
-  };
-
 
   if (loadingData) {
     return (
@@ -566,36 +624,20 @@ const AppointmentManageEdit: FC = () => {
                             setSearchValue('');
                             setPatientOptions([]);
                             setSelectedPatient(null);
+                            setContacts([]);
+                            setIsRepresentative(false);
+                            setSelectedContact(null);
                             form.setFieldsValue({
                               nombres: '',
                               apellidos: '',
                               cedula: '',
-                              antecedentes: ''
+                              antecedentes: '',
+                              has_representative: false,
+                              representative_id: undefined
                             });
                           }}
                         />
                       </Form.Item>
-                      {selectedPatient && (
-                        <div style={{ 
-                          marginBottom: '16px',
-                          padding: '12px', 
-                          background: '#f6ffed', 
-                          border: '1px solid #b7eb8f',
-                          borderRadius: '8px',
-                          fontSize: '13px',
-                          fontWeight: 500
-                        }}>
-                          <div style={{ color: '#52c41a', marginBottom: '4px' }}>
-                            ✓ Paciente seleccionado
-                          </div>
-                          <div style={{ color: '#389e0d' }}>
-                            {selectedPatient.first_name} {selectedPatient.last_name}
-                          </div>
-                          <div style={{ color: '#73d13d', fontSize: '12px' }}>
-                            CI: {selectedPatient.document_id}
-                          </div>
-                        </div>
-                      )}
                     </Col>
 
                     <Col xs={24} lg={12}>
@@ -611,27 +653,6 @@ const AppointmentManageEdit: FC = () => {
                           style={{ backgroundColor: '#f0f0f0', fontWeight: 500 }}
                         />
                       </Form.Item>
-                      {assignedDoctor && (
-                        <div style={{ 
-                          marginBottom: '16px',
-                          padding: '12px', 
-                          background: '#e6f7ff', 
-                          border: '1px solid #91d5ff',
-                          borderRadius: '8px',
-                          fontSize: '13px',
-                          fontWeight: 500
-                        }}>
-                          <div style={{ color: '#1890ff', marginBottom: '4px' }}>
-                            👨‍⚕️ Médico asignado
-                          </div>
-                          <div style={{ color: '#096dd9' }}>
-                            Dr. {assignedDoctor.first_name} {assignedDoctor.last_name}
-                          </div>
-                          <div style={{ color: '#40a9ff', fontSize: '12px' }}>
-                            {assignedDoctor.email}
-                          </div>
-                        </div>
-                      )}
                     </Col>
                   </Row>
 
@@ -654,6 +675,156 @@ const AppointmentManageEdit: FC = () => {
                       </Form.Item>
                     </Col>
                   </Row>
+
+                  <Divider style={{ margin: '12px 0' }} />
+
+                  <Row gutter={[16, 16]}>
+                    <Col xs={24}>
+                      <Form.Item 
+                        name="has_representative"
+                        valuePropName="checked"
+                        style={{ marginBottom: 4 }}
+                      >
+                        <Checkbox 
+                          checked={isRepresentative}
+                          onChange={(e) => onRepresentativeChange(e.target.checked)}
+                          disabled={!selectedPatient || contacts.length === 0}
+                          style={{ fontSize: '15px', fontWeight: 500 }}
+                        >
+                          ¿El paciente asiste con un representante?
+                        </Checkbox>
+                      </Form.Item>
+                      
+                      {!selectedPatient && (
+                        <div style={{ 
+                          marginLeft: '24px', 
+                          marginBottom: '16px',
+                          fontSize: '12px', 
+                          color: '#8c8c8c'
+                        }}>
+                          Primero debe seleccionar un paciente
+                        </div>
+                      )}
+                      
+                      {selectedPatient && contacts.length === 0 && !contactsLoading && (
+                        <div style={{ 
+                          marginLeft: '24px',
+                          marginBottom: '16px',
+                          padding: '8px 12px',
+                          background: '#fff7e6',
+                          border: '1px solid #ffd591',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          color: '#d46b08'
+                        }}>
+                          ⚠️ Este paciente no tiene contactos registrados
+                        </div>
+                      )}
+
+                      {contactsLoading && (
+                        <div style={{ 
+                          marginLeft: '24px',
+                          marginBottom: '16px',
+                          padding: '8px 12px',
+                          background: '#f0f5ff',
+                          border: '1px solid #adc6ff',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          color: '#2f54eb'
+                        }}>
+                          <Spin size="small" style={{ marginRight: '8px' }} />
+                          Cargando contactos del paciente...
+                        </div>
+                      )}
+                    </Col>
+
+                    {isRepresentative && contacts.length > 0 && (
+                      <Col xs={24} lg={12}>
+                        <Form.Item
+                          label="Seleccionar Representante"
+                          name="representative_id"
+                          rules={[
+                            { 
+                              required: isRepresentative, 
+                              message: 'Debe seleccionar un representante' 
+                            }
+                          ]}
+                          extra="Seleccione quién acompaña al paciente"
+                        >
+                          <Select
+                            placeholder="Seleccionar contacto representante"
+                            loading={contactsLoading}
+                            onChange={onContactSelect}
+                            showSearch
+                            allowClear
+                            size="large"
+                            value={selectedContact}
+                            filterOption={(input, option) => {
+                              const contact = contacts.find(c => c.id === option?.value);
+                              if (!contact) return false;
+                              const fullName = `${contact.first_name} ${contact.last_name}`.toLowerCase();
+                              const phone = contact.phone.toLowerCase();
+                              const searchTerm = input.toLowerCase();
+                              return fullName.includes(searchTerm) || phone.includes(searchTerm);
+                            }}
+                            notFoundContent={
+                              contactsLoading ? (
+                                <Spin size="small" />
+                              ) : (
+                                'No hay contactos disponibles'
+                              )
+                            }
+                            optionLabelProp="label"
+                          >
+                            {contacts.map(contact => (
+                              <Option 
+                                key={contact.id} 
+                                value={contact.id}
+                                label={`${contact.first_name} ${contact.last_name}`}
+                              >
+                                <div style={{ padding: '4px 0' }}>
+                                  <div style={{ 
+                                    fontWeight: 600, 
+                                    fontSize: '14px',
+                                    color: '#262626',
+                                    marginBottom: '4px'
+                                  }}>
+                                    {contact.first_name} {contact.last_name}
+                                  </div>
+                                  <div style={{ 
+                                    fontSize: '12px', 
+                                    color: '#8c8c8c',
+                                    display: 'flex',
+                                    gap: '12px',
+                                    flexWrap: 'wrap'
+                                  }}>
+                                    {contact.relationship_type && (
+                                      <span>
+                                        <UserOutlined style={{ marginRight: '4px' }} />
+                                        {contact.relationship_type}
+                                      </span>
+                                    )}
+                                    <span>
+                                      📞 {contact.phone}
+                                    </span>
+                                    {contact.document_id && (
+                                      <span>
+                                        🆔 CI: {contact.document_id}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </Option>
+                            ))}
+                          </Select>
+                        </Form.Item>
+                      </Col>
+                    )}
+                  </Row>
+
+                  {isRepresentative && contacts.length > 0 && (
+                    <Divider style={{ margin: '12px 0' }} />
+                  )}
 
                   <Row gutter={[16, 16]} style={{ marginTop: '8px' }}>
                     <Col xs={24} sm={12}>
@@ -849,7 +1020,6 @@ const AppointmentManageEdit: FC = () => {
                 </Card>
               </Col>
 
-              {/* Prescripción Médica */}
               <Col xs={24}>
                 <Card title={<><MedicineBoxOutlined /> Prescripción Médica</>} style={{ marginBottom: '24px' }}>
                   <Form.Item
@@ -867,7 +1037,6 @@ const AppointmentManageEdit: FC = () => {
                 </Card>
               </Col>
 
-              {/* Tabla de Diagnósticos */}
               <Col xs={24}>
                 <DiagnosisTable 
                   diagnoses={diagnoses}
@@ -880,6 +1049,102 @@ const AppointmentManageEdit: FC = () => {
                   recipes={recipes as any}
                   setRecipes={setRecipes as any}
                 />
+              </Col>
+
+              <Col xs={24}>
+                <Card title="Periodo de Reposo y Contingencia" style={{ marginBottom: '24px' }}>
+                  <Row gutter={[16, 16]}>
+                    <Col xs={24} md={8}>
+                      <Form.Item
+                        label="Fecha Inicio Reposo"
+                        name="reposo_desde"
+                        rules={[
+                          ({ getFieldValue }) => ({
+                            validator(_, value) {
+                              const hasta = getFieldValue('reposo_hasta');
+                              if (!value || !hasta || !value.isAfter(hasta)) {
+                                return Promise.resolve();
+                              }
+                              return Promise.reject('Debe ser anterior o igual a la fecha fin');
+                            }
+                          })
+                        ]}
+                      >
+                        <DatePicker
+                          style={{ width: '100%' }}
+                          format="DD/MM/YYYY"
+                          placeholder="Seleccione fecha"
+                        />
+                      </Form.Item>
+                    </Col>
+
+                    <Col xs={24} md={8}>
+                      <Form.Item
+                        label="Fecha Fin Reposo"
+                        name="reposo_hasta"
+                        dependencies={['reposo_desde']}
+                        rules={[
+                          ({ getFieldValue }) => ({
+                            validator(_, value) {
+                              const desde = getFieldValue('reposo_desde');
+                              if (!value || !desde || !value.isBefore(desde)) {
+                                return Promise.resolve();
+                              }
+                              return Promise.reject('Debe ser posterior o igual a la fecha inicio');
+                            }
+                          })
+                        ]}
+                      >
+                        <DatePicker
+                          style={{ width: '100%' }}
+                          format="DD/MM/YYYY"
+                          placeholder="Seleccione fecha"
+                        />
+                      </Form.Item>
+                    </Col>
+
+                    <Col xs={24} md={8}>
+                      <Form.Item label="Días de Reposo" shouldUpdate>
+                        {({ getFieldValue }) => {
+                          const desde = getFieldValue('reposo_desde');
+                          const hasta = getFieldValue('reposo_hasta');
+                          const dias = desde && hasta && !hasta.isBefore(desde)
+                            ? hasta.diff(desde, 'days') + 1 
+                            : 0;
+                          
+                          return (
+                            <Input
+                              value={dias > 0 ? `${dias} día${dias > 1 ? 's' : ''}` : '-'}
+                              disabled
+                              style={{ color: dias > 0 ? '#52c41a' : undefined }}
+                            />
+                          );
+                        }}
+                      </Form.Item>
+                    </Col>
+
+                    <Col xs={24}>
+                      <Form.Item
+                        label="Tipo de Contingencia"
+                        name="contingency_type"
+                        extra="Seleccione el tipo de contingencia médica que aplica a este caso"
+                      >
+                        <Select
+                          placeholder="Seleccione el tipo de contingencia"
+                          size="large"
+                          allowClear
+                        >
+                          <Option value="Enfermedad común / general">Enfermedad común / general</Option>
+                          <Option value="Accidente común">Accidente común</Option>
+                          <Option value="Accidente laboral">Accidente laboral</Option>
+                          <Option value="Enfermedad profesional">Enfermedad profesional</Option>
+                          <Option value="Maternidad / Paternidad">Maternidad / Paternidad</Option>
+                          <Option value="Rehabilitación / Tratamiento continuo">Rehabilitación / Tratamiento continuo</Option>
+                        </Select>
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </Card>
               </Col>
               
               <Col xs={24}>
@@ -902,15 +1167,6 @@ const AppointmentManageEdit: FC = () => {
               <Col xs={24}>
                 <Card>
                   <Row justify="end" gutter={[16, 16]}>
-                    <Col>
-                      <Button 
-                        size="large"
-                        onClick={handleClear}
-                        disabled={loading}
-                      >
-                        Restaurar
-                      </Button>
-                    </Col>
                     <Col>
                       <Button 
                         type="default" 

@@ -82,6 +82,7 @@ export default function PatientManageEdit() {
     last_name: '',
     phone: '',
     email: '',
+    document_id: '',
     relationship_type: ''
   });
 
@@ -130,6 +131,7 @@ export default function PatientManageEdit() {
               first_name: contact.first_name,
               last_name: contact.last_name,
               phone: contact.phone,
+              document_id: contact.document_id || '',
               email: contact.email || '',
               relationship_type: contact.relationship_type
             }))
@@ -239,6 +241,7 @@ export default function PatientManageEdit() {
       last_name: '',
       phone: '',
       email: '',
+      document_id: '',
       relationship_type: ''
     });
     setEditingContact(null);
@@ -278,6 +281,7 @@ export default function PatientManageEdit() {
       last_name: '',
       phone: '',
       email: '',
+      document_id: '',
       relationship_type: ''
     });
     setEditingContact(null);
@@ -289,6 +293,7 @@ export default function PatientManageEdit() {
       last_name: contact.last_name,
       phone: contact.phone,
       email: contact.email || '',
+      document_id: contact.document_id || '',
       relationship_type: contact.relationship_type || ''
     });
     setEditingContact(contact.id || 0);
@@ -311,6 +316,7 @@ export default function PatientManageEdit() {
       last_name: '',
       phone: '',
       email: '',
+      document_id: '',
       relationship_type: ''
     });
   };
@@ -361,6 +367,7 @@ export default function PatientManageEdit() {
           first_name: contact.first_name,
           last_name: contact.last_name,
           phone: contact.phone,
+          document_id: contact.document_id || '',
           email: contact.email || undefined,
           relationship_type: contact.relationship_type
         }))
@@ -417,6 +424,13 @@ export default function PatientManageEdit() {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
+      width: 200,
+      render: (text: string) => text || '-'
+    },
+      {
+      title: 'Cedula',
+      dataIndex: 'document_id',
+      key: 'document_id',
       width: 200,
       render: (text: string) => text || '-'
     },
@@ -988,6 +1002,20 @@ export default function PatientManageEdit() {
                   placeholder="Ej: 0987654321"
                   value={contactoForm.phone}
                   onChange={(e) => handleContactInputChange('phone', e.target.value)}
+                  size="large"
+                />
+              </Space>
+            </Col>
+
+               <Col xs={24} sm={12}>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Text strong>
+                  Teléfono <Text type="danger">*</Text>
+                </Text>
+                <Input
+                  placeholder="Ej: 1755185743"
+                  value={contactoForm.document_id}
+                  onChange={(e) => handleContactInputChange('document_id', e.target.value)}
                   size="large"
                 />
               </Space>
