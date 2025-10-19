@@ -20,7 +20,6 @@ import Laboratory from "../pages/landing/Laboratory";
 import PrivateRoute from "../components/PrivateRoute";
 import AppointmentEdit from "../pages/appointment/AppointmentEdit";
 import { ProfilePage } from "../pages/ProfilePage";
-
 import LabOrderForm from "../pages/laboratory/LabOrderForm";
 import AppointmentManageList from "../pages/manageAppointment/AppointmentManageList";
 import AppointmentManageEdit from "../pages/manageAppointment/AppointmentManageEdit";
@@ -28,7 +27,8 @@ import PatientManageList from "../pages/managePatient/PatientManageList";
 import PatientManageEdit from "../pages/managePatient/PatientManageEdit";
 import Unauthorized from "../components/Unauthorized";
 import Medical from "../pages/landing/Medical";
-import MedicalHistory from "../pages/medicalHsitory/medicalHistory";
+import MedicalHistory from "../pages/medicalHsitory/MedicalHistory";
+
 
 
 const { Content } = Layout;
