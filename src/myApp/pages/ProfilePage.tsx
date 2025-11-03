@@ -26,6 +26,7 @@ import {
   EyeTwoTone,
   InfoCircleOutlined,
   CalendarOutlined,
+  IdcardOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import { useAuthContext } from "../../auth/context/AuthContext";
@@ -54,6 +55,31 @@ const getPasswordStrength = (password: string) => {
   return { strength: 100, label: "Muy fuerte", color: "#389e0d" };
 };
 
+// Validación de cédula ecuatoriana
+const validateCedulaEcuatoriana = (cedula: string) => {
+  if (!cedula || cedula.length !== 10) return false;
+  
+  // Validar que solo contenga números
+  if (!/^\d+$/.test(cedula)) return false;
+  
+  // Los dos primeros dígitos deben ser entre 01 y 24 (provincias)
+  const provincia = parseInt(cedula.substring(0, 2));
+  if (provincia < 1 || provincia > 24) return false;
+  
+  // Validación del dígito verificador
+  const coeficientes = [2, 1, 2, 1, 2, 1, 2, 1, 2];
+  let suma = 0;
+  
+  for (let i = 0; i < 9; i++) {
+    let valor = parseInt(cedula[i]) * coeficientes[i];
+    if (valor >= 10) valor -= 9;
+    suma += valor;
+  }
+  
+  const digitoVerificador = suma % 10 === 0 ? 0 : 10 - (suma % 10);
+  return digitoVerificador === parseInt(cedula[9]);
+};
+
 export const ProfilePage: React.FC = () => {
   const { user, updateUser } = useAuthContext();
   const [loadingProfile, setLoadingProfile] = useState(false);
@@ -71,6 +97,7 @@ export const ProfilePage: React.FC = () => {
         firstName: parsedUser.first_name,
         lastName: parsedUser.last_name,
         email: parsedUser.email,
+        cedula: parsedUser.cedula || "",
         birthDate: parsedUser.birth_date ? dayjs(parsedUser.birth_date) : null,
         role: parsedUser.role?.name || "",
       });
@@ -93,6 +120,7 @@ export const ProfilePage: React.FC = () => {
         first_name: values.firstName,
         last_name: values.lastName,
         email: values.email,
+        cedula: values.cedula,
         role: user?.role?.name || "user",
         is_active: (user as any)?.is_active !== undefined ? (user as any).is_active : true,
         birth_date: values.birthDate ? values.birthDate.format("YYYY-MM-DD") : ((user as any)?.birth_date || null)
@@ -126,6 +154,7 @@ export const ProfilePage: React.FC = () => {
         first_name: updatedUserFromBackend.first_name,
         last_name: updatedUserFromBackend.last_name,
         email: updatedUserFromBackend.email,
+        cedula: updatedUserFromBackend.cedula,
         role: {
           name: updatedUserFromBackend.role
         },
@@ -258,6 +287,14 @@ export const ProfilePage: React.FC = () => {
                   <MailOutlined style={{ marginRight: 8 }} />
                   {user?.email}
                 </Text>
+                {(user as any)?.cedula && (
+                  <div style={{ marginTop: 12 }}>
+                    <Text type="secondary" style={{ fontSize: "14px" }}>
+                      <IdcardOutlined style={{ marginRight: 8 }} />
+                      CI: {(user as any).cedula}
+                    </Text>
+                  </div>
+                )}
                 {(user as any)?.birth_date && (
                   <div style={{ marginTop: 12 }}>
                     <Text type="secondary" style={{ fontSize: "14px" }}>
@@ -319,23 +356,84 @@ export const ProfilePage: React.FC = () => {
                 >
                   <Row gutter={16}>
                     <Col xs={24} sm={12}>
-                      <Form.Item label="Nombre" name="firstName" rules={[{ required: true, message: "El nombre es obligatorio" }, { min: 2, message: "Mínimo 2 caracteres" }]}>
-                        <Input prefix={<UserOutlined style={{ color: "#bfbfbf" }} />} placeholder="Tu nombre" />
+                      <Form.Item 
+                        label="Nombre" 
+                        name="firstName" 
+                        rules={[
+                          { required: true, message: "El nombre es obligatorio" }, 
+                          { min: 2, message: "Mínimo 2 caracteres" }
+                        ]}
+                      >
+                        <Input 
+                          prefix={<UserOutlined style={{ color: "#bfbfbf" }} />} 
+                          placeholder="Tu nombre" 
+                        />
                       </Form.Item>
                     </Col>
                     <Col xs={24} sm={12}>
-                      <Form.Item label="Apellido" name="lastName" rules={[{ required: true, message: "El apellido es obligatorio" }, { min: 2, message: "Mínimo 2 caracteres" }]}>
-                        <Input prefix={<UserOutlined style={{ color: "#bfbfbf" }} />} placeholder="Tu apellido" />
+                      <Form.Item 
+                        label="Apellido" 
+                        name="lastName" 
+                        rules={[
+                          { required: true, message: "El apellido es obligatorio" }, 
+                          { min: 2, message: "Mínimo 2 caracteres" }
+                        ]}
+                      >
+                        <Input 
+                          prefix={<UserOutlined style={{ color: "#bfbfbf" }} />} 
+                          placeholder="Tu apellido" 
+                        />
                       </Form.Item>
                     </Col>
                   </Row>
 
                   <Row gutter={16}>
                     <Col xs={24} sm={12}>
-                      <Form.Item label="Email" name="email" rules={[{ required: true, message: "El email es obligatorio" }, { type: "email", message: "Email inválido" }]}>
-                        <Input prefix={<MailOutlined style={{ color: "#bfbfbf" }} />} placeholder="tu@email.com" disabled />
+                      <Form.Item 
+                        label="Cédula de Identidad" 
+                        name="cedula" 
+                        rules={[
+                          { required: true, message: "La cédula es obligatoria" },
+                          { 
+                            pattern: /^\d{10}$/, 
+                            message: "La cédula debe tener 10 dígitos" 
+                          },
+                          {
+                            validator: (_, value) => {
+                              if (!value || validateCedulaEcuatoriana(value)) {
+                                return Promise.resolve();
+                              }
+                              return Promise.reject(new Error("Cédula ecuatoriana inválida"));
+                            }
+                          }
+                        ]}
+                      >
+                        <Input 
+                          prefix={<IdcardOutlined style={{ color: "#bfbfbf" }} />} 
+                          placeholder="1234567890"
+                          maxLength={10}
+                        />
                       </Form.Item>
                     </Col>
+                    <Col xs={24} sm={12}>
+                      <Form.Item 
+                        label="Email" 
+                        name="email" 
+                        rules={[
+                          { required: true, message: "El email es obligatorio" }, 
+                          { type: "email", message: "Email inválido" }
+                        ]}
+                      >
+                        <Input 
+                          prefix={<MailOutlined style={{ color: "#bfbfbf" }} />} 
+                          placeholder="tu@email.com" 
+                          disabled 
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
+                  <Row gutter={16}>
                     <Col xs={24} sm={12}>
                       <Form.Item 
                         label="Fecha de nacimiento" 
@@ -350,17 +448,18 @@ export const ProfilePage: React.FC = () => {
                         />
                       </Form.Item>
                     </Col>
+                    <Col xs={24} sm={12}>
+                      {["admin", "superadmin"].includes(user?.role?.name || "") && (
+                        <Form.Item label="Rol" name="role">
+                          <Select disabled size="large">
+                            <Option value="user">Usuario</Option>
+                            <Option value="admin">Administrador</Option>
+                            <Option value="superadmin">Super Administrador</Option>
+                          </Select>
+                        </Form.Item>
+                      )}
+                    </Col>
                   </Row>
-
-                  {["admin", "superadmin"].includes(user?.role?.name || "") && (
-                    <Form.Item label="Rol" name="role">
-                      <Select disabled size="large">
-                        <Option value="user">Usuario</Option>
-                        <Option value="admin">Administrador</Option>
-                        <Option value="superadmin">Super Administrador</Option>
-                      </Select>
-                    </Form.Item>
-                  )}
 
                   <Form.Item style={{ marginTop: 24 }}>
                     <Button
