@@ -6,10 +6,9 @@ interface Recipe {
   medicine: string;
   amount: string;
   instructions: string;
-  lunchTime?: string;
+  lunchTime?: string[]; // ✅ Cambiado a array
   observations: string;
 }
-
 
 interface Doctor {
   first_name?: string;
@@ -26,7 +25,7 @@ interface RecipePDFProps {
   appointmentId: string;
 }
 
-// Estilos inspirados en el formato físico
+// Estilos inspirados en el MedicalRecord
 const styles = StyleSheet.create({
   page: {
     padding: 20,
@@ -34,80 +33,109 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica',
     backgroundColor: '#ffffff',
   },
-  // Header con logo y título
+  // Header
+  headerBar: {
+    height: 8,
+    backgroundColor: '#1E3A8A',
+    marginBottom: 15,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 15,
-    paddingBottom: 10,
-    borderBottomWidth: 2,
-    borderBottomColor: '#2563eb',
+    alignItems: 'flex-start',
+    marginBottom: 20,
   },
   logoSection: {
-    width: '30%',
+    width: '70%',
   },
   titleSection: {
-    width: '70%',
+    width: '30%',
     alignItems: 'flex-end',
   },
   clinicName: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#1E3A8A',
     marginBottom: 2,
   },
   subtitle: {
-    fontSize: 10,
-    color: '#64748b',
+    fontSize: 9,
+    color: '#6B7280',
+    fontStyle: 'italic',
     marginBottom: 1,
+  },
+  dateText: {
+    fontSize: 10,
+    color: '#4B5563',
+    marginTop: 10,
   },
   // Información del doctor
   doctorSection: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#F3F4F6',
     padding: 10,
-    marginBottom: 12,
-    borderRadius: 4,
+    marginBottom: 15,
+    borderRadius: 2,
   },
   doctorName: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
-    color: '#1e40af',
-    marginBottom: 4,
+    color: '#1E3A8A',
+    marginBottom: 3,
   },
   doctorInfo: {
     fontSize: 9,
-    color: '#475569',
+    color: '#4B5563',
     marginBottom: 2,
+  },
+  // Título sección
+  sectionTitleBox: {
+    backgroundColor: '#1E3A8A',
+    padding: 10,
+    marginBottom: 15,
+    marginTop: 10,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    textAlign: 'center',
   },
   // Datos del paciente
   patientSection: {
+    backgroundColor: '#F3F4F6',
+    padding: 8,
     marginBottom: 15,
+  },
+  patientSectionTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#1E3A8A',
+    marginBottom: 8,
   },
   patientRow: {
     flexDirection: 'row',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   patientLabel: {
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: 'bold',
     width: '25%',
-    color: '#334155',
+    color: '#1E3A8A',
   },
   patientValue: {
-    fontSize: 9,
+    fontSize: 10,
     width: '75%',
-    color: '#1e293b',
+    color: '#1F2937',
   },
-  // Sección RP (Receta)
+  // Sección RP
   rpSection: {
     marginTop: 10,
     marginBottom: 15,
   },
   rpHeader: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#dc2626',
+    color: '#1E3A8A',
     marginBottom: 10,
     textAlign: 'center',
   },
@@ -117,47 +145,54 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#F3F4F6',
     padding: 6,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: '#94a3b8',
+    borderColor: '#1E3A8A',
   },
   tableHeaderCell: {
     fontSize: 8,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#1E3A8A',
+    textAlign: 'center',
   },
   tableRow: {
     flexDirection: 'row',
     padding: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    minHeight: 35,
+    borderBottomColor: '#E5E7EB',
+    minHeight: 30,
   },
   tableCell: {
     fontSize: 9,
-    color: '#1e293b',
+    color: '#1F2937',
+  },
+  tableCellCenter: {
+    fontSize: 10,
+    color: '#1F2937',
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
   // Columnas de la tabla
   colMedicine: {
-    width: '30%',
+    width: '25%',
     paddingRight: 5,
   },
   colAmount: {
-    width: '15%',
+    width: '12%',
     paddingRight: 5,
   },
   colInstructions: {
-    width: '30%',
+    width: '23%',
     paddingRight: 5,
   },
-  colTime: {
-    width: '15%',
-    paddingRight: 5,
+  colMeal: {
+    width: '8%',
+    paddingRight: 3,
   },
   colObs: {
-    width: '10%',
+    width: '16%',
   },
   // Indicaciones
   indicationsSection: {
@@ -165,22 +200,22 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   indicationsTitle: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#1E3A8A',
     marginBottom: 6,
   },
   indicationsBox: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#F3F4F6',
     padding: 8,
-    borderRadius: 4,
+    borderRadius: 2,
     borderLeftWidth: 3,
-    borderLeftColor: '#2563eb',
+    borderLeftColor: '#1E3A8A',
     minHeight: 40,
   },
   indicationsText: {
     fontSize: 9,
-    color: '#334155',
+    color: '#4B5563',
     lineHeight: 1.4,
   },
   // Firma
@@ -189,20 +224,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   signatureLine: {
-    borderTopWidth: 1,
-    borderTopColor: '#1e293b',
+    borderTopWidth: 1.5,
+    borderTopColor: '#1E3A8A',
     width: 200,
     marginBottom: 5,
   },
   signatureText: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#1E3A8A',
     marginBottom: 2,
   },
   signatureSubtext: {
     fontSize: 8,
-    color: '#64748b',
+    color: '#6B7280',
   },
   // Footer
   footer: {
@@ -210,9 +245,9 @@ const styles = StyleSheet.create({
     bottom: 15,
     left: 20,
     right: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    paddingTop: 8,
+    borderTopWidth: 3,
+    borderTopColor: '#1E3A8A',
+    paddingTop: 10,
   },
   footerRow: {
     flexDirection: 'row',
@@ -220,8 +255,8 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   footerText: {
-    fontSize: 7,
-    color: '#94a3b8',
+    fontSize: 8,
+    color: '#6B7280',
   },
 });
 
@@ -242,45 +277,70 @@ const RecipePdf = ({
     });
   };
 
+  // ✅ Función para verificar si tiene una comida específica
+  const hasMeal = (lunchTime: string[] | undefined, meal: string): string => {
+    if (!lunchTime || !Array.isArray(lunchTime)) return '';
+    return lunchTime.includes(meal) ? 'X' : '';
+  };
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        {/* Barra superior azul */}
+        <View style={styles.headerBar} />
+
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoSection}>
-            {/* Aquí iría el logo si lo tienes */}
-            <PDFText style={{ fontSize: 8, color: '#64748b' }}>
-              Logo FENIX
+            <PDFText style={styles.clinicName}>Clínica FENIX</PDFText>
+            <PDFText style={styles.subtitle}>Tu Salud Merece</PDFText>
+            <PDFText style={styles.dateText}>
+              El Quinche, {formatDate(new Date().toISOString())}
             </PDFText>
           </View>
           <View style={styles.titleSection}>
-            <PDFText style={styles.clinicName}>FENIX</PDFText>
-            <PDFText style={styles.subtitle}>clínica</PDFText>
-            <PDFText style={styles.subtitle}>Tu salud es nuestra prioridad</PDFText>
+            <PDFText style={{ fontSize: 8, color: '#6B7280' }}>
+              Logo FENIX
+            </PDFText>
           </View>
+        </View>
+
+        {/* Título de sección */}
+        <View style={styles.sectionTitleBox}>
+          <PDFText style={styles.sectionTitle}>RECETA MÉDICA</PDFText>
         </View>
 
         {/* Información del Doctor */}
         {doctor && (
           <View style={styles.doctorSection}>
             <PDFText style={styles.doctorName}>
-              {doctor.first_name} {doctor.last_name}
+              Dra. {doctor.first_name} {doctor.last_name}
             </PDFText>
             <PDFText style={styles.doctorInfo}>
               Especialista en Pediatría
             </PDFText>
             <PDFText style={styles.doctorInfo}>
-              Esmeraldas: NV 71, Quito 2 Julio 3 BB 17/1 (593) 99 21 85 67
+              dra.rosalespedia@outlook.es | Tel: 2 388 177 / 0995230857
+            </PDFText>
+            <PDFText style={styles.doctorInfo}>
+              Dir: Emsara Mas N1-77 y Quito, El Quinche - Ecuador
             </PDFText>
           </View>
         )}
 
         {/* Datos del Paciente */}
         <View style={styles.patientSection}>
+          <PDFText style={styles.patientSectionTitle}>DATOS DEL PACIENTE</PDFText>
           <View style={styles.patientRow}>
             <PDFText style={styles.patientLabel}>Paciente:</PDFText>
             <PDFText style={styles.patientValue}>
               {patient.first_name} {patient.last_name}
+            </PDFText>
+          </View>
+          <View style={styles.patientRow}>
+            <PDFText style={styles.patientLabel}>Cédula:</PDFText>
+            <PDFText style={styles.patientValue}>
+              {patient.document_id}
             </PDFText>
           </View>
           <View style={styles.patientRow}>
@@ -292,7 +352,7 @@ const RecipePdf = ({
           <View style={styles.patientRow}>
             <PDFText style={styles.patientLabel}>Edad:</PDFText>
             <PDFText style={styles.patientValue}>
-              {patient.age || 'N/A'} años
+              {patient.age || 'N/A'}
             </PDFText>
           </View>
           <View style={styles.patientRow}>
@@ -303,7 +363,7 @@ const RecipePdf = ({
           </View>
         </View>
 
-        {/* RP - Receta */}
+        {/* RP */}
         <View style={styles.rpSection}>
           <PDFText style={styles.rpHeader}>Rp.</PDFText>
         </View>
@@ -320,8 +380,14 @@ const RecipePdf = ({
             <PDFText style={[styles.tableHeaderCell, styles.colInstructions]}>
               Instrucciones
             </PDFText>
-            <PDFText style={[styles.tableHeaderCell, styles.colTime]}>
-              Hora de comida
+            <PDFText style={[styles.tableHeaderCell, styles.colMeal]}>
+              Desayuno
+            </PDFText>
+            <PDFText style={[styles.tableHeaderCell, styles.colMeal]}>
+              Almuerzo
+            </PDFText>
+            <PDFText style={[styles.tableHeaderCell, styles.colMeal]}>
+              Cena
             </PDFText>
             <PDFText style={[styles.tableHeaderCell, styles.colObs]}>
               Observaciones
@@ -340,8 +406,14 @@ const RecipePdf = ({
                 <PDFText style={[styles.tableCell, styles.colInstructions]}>
                   {recipe.instructions}
                 </PDFText>
-                <PDFText style={[styles.tableCell, styles.colTime]}>
-                  {recipe.lunchTime || '-'}
+                <PDFText style={[styles.tableCellCenter, styles.colMeal]}>
+                  {hasMeal(recipe.lunchTime, 'desayuno')}
+                </PDFText>
+                <PDFText style={[styles.tableCellCenter, styles.colMeal]}>
+                  {hasMeal(recipe.lunchTime, 'almuerzo')}
+                </PDFText>
+                <PDFText style={[styles.tableCellCenter, styles.colMeal]}>
+                  {hasMeal(recipe.lunchTime, 'cena')}
                 </PDFText>
                 <PDFText style={[styles.tableCell, styles.colObs]}>
                   {recipe.observations}
@@ -350,7 +422,7 @@ const RecipePdf = ({
             ))
           ) : (
             <View style={styles.tableRow}>
-              <PDFText style={[styles.tableCell, { width: '100%', textAlign: 'center', fontStyle: 'italic', color: '#94a3b8' }]}>
+              <PDFText style={[styles.tableCell, { width: '100%', textAlign: 'center', fontStyle: 'italic', color: '#6B7280' }]}>
                 No se registraron medicamentos
               </PDFText>
             </View>
@@ -359,10 +431,9 @@ const RecipePdf = ({
 
         {/* Indicaciones */}
         <View style={styles.indicationsSection}>
-          <PDFText style={styles.indicationsTitle}>Indicaciones:</PDFText>
+          <PDFText style={styles.indicationsTitle}>INDICACIONES</PDFText>
           <View style={styles.indicationsBox}>
             <PDFText style={styles.indicationsText}>
-              {/* Aquí irían las indicaciones generales si las hay */}
               Seguir el tratamiento según lo prescrito. En caso de presentar efectos secundarios o reacciones adversas, suspender el tratamiento y consultar inmediatamente.
             </PDFText>
           </View>
@@ -391,10 +462,18 @@ const RecipePdf = ({
           </View>
           <View style={styles.footerRow}>
             <PDFText style={styles.footerText}>
-              Re enviar rcp: ___ de ___
+              dra.rosalespedia@outlook.es
             </PDFText>
             <PDFText style={styles.footerText}>
-              Atendido: el quiniche a ___ del 20__
+              Tel: 2 388 177 / 0995230857
+            </PDFText>
+          </View>
+          <View style={styles.footerRow}>
+            <PDFText style={styles.footerText}>
+              El Quinche, Quito - Ecuador
+            </PDFText>
+            <PDFText style={styles.footerText}>
+              Dir: Emsara Mas N1-77 y Quito
             </PDFText>
           </View>
         </View>

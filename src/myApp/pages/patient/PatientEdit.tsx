@@ -31,7 +31,8 @@ import {
   CloseOutlined,
   CaretRightOutlined,
   LockOutlined,
-  ContactsOutlined
+  ContactsOutlined,
+  MailOutlined
 } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -63,6 +64,9 @@ export default function PatientEdit() {
     age: '',
     gender: '',
     document_id: '',
+    email: '',
+    telephone: '',
+    telephone2: '',
     marital_status: '',
     occupation: '',
     education: '',
@@ -91,7 +95,6 @@ export default function PatientEdit() {
   const [activeKey, setActiveKey] = useState<string[]>(['1']);
   const [loading, setLoading] = useState<boolean>(false);
   const [initialLoading, setInitialLoading] = useState<boolean>(true);
-  const [originalData, setOriginalData] = useState<Patient | null>(null);
 
   const provincias = Object.keys(dataEcuador as DataEcuador);
   const ciudades = formData.province ? (dataEcuador as DataEcuador)[formData.province] : [];
@@ -106,7 +109,6 @@ export default function PatientEdit() {
         
         if (response.success && response.data) {
           const patient: Patient = response.data;
-          setOriginalData(patient);
           
           setFormData({
             last_name: patient.last_name || '',
@@ -115,6 +117,9 @@ export default function PatientEdit() {
             age: calculateAge(patient.birth_date || ''),
             gender: patient.gender || '',
             document_id: patient.document_id || '',
+            email: patient.email || '',
+            telephone: patient.telephone || '',
+            telephone2: patient.telephone2 || '',
             marital_status: patient.marital_status || '',
             occupation: patient.occupation || '',
             education: patient.education || '',
@@ -158,62 +163,6 @@ export default function PatientEdit() {
 
   const goToPatientList = (): void => {
     navigate("/patientList");
-  };
-
-  const hasChanges = (): boolean => {
-    if (!originalData) return false;
-    
-    if (
-      formData.first_name !== originalData.first_name ||
-      formData.last_name !== originalData.last_name ||
-      formData.age !== originalData.age ||
-      formData.gender !== originalData.gender ||
-      formData.marital_status !== (originalData.marital_status || '') ||
-      formData.occupation !== (originalData.occupation || '') ||
-      formData.education !== (originalData.education || '') ||
-      formData.origin !== (originalData.origin || '') ||
-      formData.province !== (originalData.province || '') ||
-      formData.city !== (originalData.city || '') ||
-      formData.neighborhood !== (originalData.neighborhood || '') ||
-      formData.street !== (originalData.street || '') ||
-      formData.house_number !== (originalData.house_number || '') ||
-      formData.enterprise !== (originalData.enterprise || '') ||
-      formData.work_activity !== (originalData.work_activity || '')
-    ) {
-      return true;
-    }
-
-    const originalDate = originalData.birth_date ? dayjs(originalData.birth_date) : null;
-    const currentDate = formData.birth_date;
-    if (
-      (originalDate && !currentDate) ||
-      (!originalDate && currentDate) ||
-      (originalDate && currentDate && !originalDate.isSame(currentDate, 'day'))
-    ) {
-      return true;
-    }
-
-    const originalContacts = originalData.contacts || [];
-    if (formData.contacts.length !== originalContacts.length) {
-      return true;
-    }
-
-    for (let i = 0; i < formData.contacts.length; i++) {
-      const current = formData.contacts[i];
-      const original = originalContacts[i];
-      
-      if (
-        current.first_name !== original.first_name ||
-        current.last_name !== original.last_name ||
-        current.phone !== original.phone ||
-        (current.email || '') !== (original.email || '') ||
-        current.relationship_type !== original.relationship_type
-      ) {
-        return true;
-      }
-    }
-
-    return false;
   };
 
   const handleInputChange = (field: keyof FormData, value: string): void => {
@@ -330,11 +279,6 @@ export default function PatientEdit() {
       return;
     }
 
-    if (!hasChanges()) {
-      message.info('No hay cambios para guardar');
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -343,6 +287,9 @@ export default function PatientEdit() {
         last_name: formData.last_name,
         birth_date: formData.birth_date.format('YYYY-MM-DD'),
         gender: formData.gender,
+        email: formData.email || undefined,
+        telephone: formData.telephone || undefined,
+        telephone2: formData.telephone2 || undefined,
         marital_status: formData.marital_status || undefined,
         occupation: formData.occupation || undefined,
         education: formData.education || undefined,
@@ -355,6 +302,7 @@ export default function PatientEdit() {
         enterprise: formData.enterprise || undefined,
         work_activity: formData.work_activity || undefined,
         contacts: formData.contacts.map(contact => ({
+          id: contact.id,
           first_name: contact.first_name,
           last_name: contact.last_name,
           phone: contact.phone,
@@ -494,13 +442,6 @@ export default function PatientEdit() {
                   <div style={{ marginTop: '8px' }}>
                     <Text type="secondary">
                       CI: {formData.document_id}
-                    </Text>
-                  </div>
-                )}
-                {originalData && hasChanges() && (
-                  <div style={{ marginTop: '8px' }}>
-                    <Text type="warning" style={{ fontSize: '12px' }}>
-                      ⚠ Hay cambios sin guardar
                     </Text>
                   </div>
                 )}
@@ -674,6 +615,49 @@ export default function PatientEdit() {
                         <Option value="Viudo">Viudo</Option>
                         <Option value="Union Libre">Unión Libre</Option>
                       </Select>
+                    </Space>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={8}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>
+                        <MailOutlined /> Email
+                      </Text>
+                      <Input
+                        placeholder="ejemplo@correo.com"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={8}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>
+                        <PhoneOutlined /> Teléfono 1
+                      </Text>
+                      <Input
+                        placeholder="Ej: 0987654321"
+                        value={formData.telephone}
+                        onChange={(e) => handleInputChange('telephone', e.target.value)}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={8}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>
+                        <PhoneOutlined /> Teléfono 2
+                      </Text>
+                      <Input
+                        placeholder="Ej: 022345678"
+                        value={formData.telephone2}
+                        onChange={(e) => handleInputChange('telephone2', e.target.value)}
+                        size="large"
+                      />
                     </Space>
                   </Col>
                 </Row>
@@ -904,7 +888,6 @@ export default function PatientEdit() {
                 icon={<SaveOutlined />}
                 onClick={handleSubmit}
                 loading={loading}
-                disabled={!originalData || !hasChanges()}
               >
                 Actualizar Paciente
               </Button>

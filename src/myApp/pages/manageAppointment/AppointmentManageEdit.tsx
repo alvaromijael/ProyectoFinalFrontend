@@ -307,6 +307,7 @@ const AppointmentManageEdit: FC = () => {
               representative_id: repId ?? undefined
             };
 
+            // ✅ SECCIÓN CORREGIDA - CARGA DE RECETAS
             let processedRecipes: Recipe[] = [];
             if (appointmentData.recipes && Array.isArray(appointmentData.recipes) && appointmentData.recipes.length > 0) {
               processedRecipes = appointmentData.recipes
@@ -316,7 +317,11 @@ const AppointmentManageEdit: FC = () => {
                   medicine: recipe.medicine ? recipe.medicine.trim() : '',
                   amount: recipe.amount ? recipe.amount.trim() : '',
                   instructions: recipe.instructions ? recipe.instructions.trim() : '',
-                  lunchTime: (recipe as any).lunchTime ? (recipe as any).lunchTime.trim() : '', 
+                  lunchTime: (recipe as any).lunchTime 
+                    ? (Array.isArray((recipe as any).lunchTime) 
+                        ? (recipe as any).lunchTime 
+                        : [(recipe as any).lunchTime]) // Convertir string a array si es necesario
+                    : [], // Array vacío por defecto
                   observations: recipe.observations ? recipe.observations.trim() : ''
                 }));
             }
@@ -445,17 +450,18 @@ const AppointmentManageEdit: FC = () => {
 
     setLoading(true);
     try {
+      // ✅ SECCIÓN CORREGIDA - GUARDADO DE RECETAS
       const validRecipes = recipes.filter((recipe: Recipe) => 
         (recipe.medicine && recipe.medicine.trim()) || 
         (recipe.amount && recipe.amount.trim()) || 
         (recipe.instructions && recipe.instructions.trim()) ||
-        ((recipe as any).lunchTime && (recipe as any).lunchTime.trim()) || 
+        ((recipe as any).lunchTime && Array.isArray((recipe as any).lunchTime) && (recipe as any).lunchTime.length > 0) || 
         (recipe.observations && recipe.observations.trim())
       ).map((recipe: Recipe) => ({
         medicine: recipe.medicine ? recipe.medicine.trim() : '',
         amount: recipe.amount ? recipe.amount.trim() : '',
         instructions: recipe.instructions ? recipe.instructions.trim() : '',
-        lunchTime: (recipe as any).lunchTime ? (recipe as any).lunchTime.trim() : '',
+        lunchTime: (recipe as any).lunchTime || [], // Enviar el array completo
         observations: recipe.observations ? recipe.observations.trim() : ''
       }));
 

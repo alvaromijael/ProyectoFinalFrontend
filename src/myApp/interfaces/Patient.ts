@@ -60,6 +60,9 @@ export interface FormData {
   house_number: string;
   enterprise?: string;
   work_activity?: string;
+  email?: string,
+  telephone?: string,
+  telephone2?: string,
   contacts: ContactForm[];
 }
 
@@ -84,6 +87,9 @@ export interface PatientManage {
   street?: string;
   house_number?: string;
   notes?: string;
+  email?: string,
+  telephone?: string,
+telephone2?: string,
   contacts: ContactCreate[];
 }
 import type { Contact, ContactCreate } from "./Contact";
@@ -109,6 +115,9 @@ export interface Patient {
   notes?: string;
   enterprise?: string;
   work_activity?: string;
+  email?: string,
+  telephone?: string,
+  telephone2?: string,
   created_at?: string;
   updated_at?: string;
   contacts?: Contact[];
@@ -154,6 +163,9 @@ export interface PatientUpdate {
   medical_history?: string;
   enterprise?: string;
   work_activity?: string;
+    email?: string,
+  telephone?: string,
+  telephone2?: string,
   notes?: string;
   contacts?: ContactCreate[];
 }

@@ -112,19 +112,17 @@ export default function PatientList() {
     
     const trimmedValue = value.trim();
     
-    if (trimmedValue.length >= 3) {  // Vuelve a 3 caracteres
+    if (trimmedValue.length >= 3) {  
       setSearchLoading(true);
       setTableLoading(true);
       try {
-        console.log('🔍 Buscando:', trimmedValue); // Debug
+        console.log('🔍 Buscando:', trimmedValue); 
         
-        // Usar el servicio de búsqueda del backend
         const response = await PatientService.searchPatients(trimmedValue);
         
-        console.log('📊 Respuesta del backend:', response); // Debug
+        console.log('📊 Respuesta del backend:', response); 
         
         if (response.success) {
-          // Debug: mostrar qué pacientes coinciden y por qué campo
           response.data.forEach(patient => {
             const searchTerm = trimmedValue.toLowerCase();
             const firstName = (patient.first_name || '').toLowerCase();

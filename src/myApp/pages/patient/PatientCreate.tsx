@@ -30,7 +30,8 @@ import {
   SaveOutlined,
   CloseOutlined,
   CaretRightOutlined,
-  ContactsOutlined
+  ContactsOutlined,
+  MailOutlined
 } from '@ant-design/icons';
 
 const { Option } = Select;
@@ -56,6 +57,9 @@ export default function PatientCreateC() {
     age: '',
     gender: '',
     document_id: '',
+    email: '',
+    telephone: '',
+    telephone2: '',
     marital_status: '',
     occupation: '',
     education: '',
@@ -102,25 +106,52 @@ export default function PatientCreateC() {
   };
 
   const handleBirthDateChange = (value: any) => {
-    handleInputChange('birth_date', value);
-    if (!value) {
-      handleInputChange('age', '');
-      return;
+   handleInputChange('birth_date', value);
+  if (!value) {
+    handleInputChange('age', '');
+    return;
+  }
+  
+  const today = dayjs();
+  const birth = dayjs(value);
+  
+  let years = today.diff(birth, 'year');
+  
+  const afterYears = birth.add(years, 'year');
+  let months = today.diff(afterYears, 'month');
+  
+  const afterMonths = afterYears.add(months, 'month');
+  let days = today.diff(afterMonths, 'day');
+  
+  let ageText = '';
+  
+  if (years < 2) {
+    if (years === 0 && months === 0) {
+      // Solo días
+      ageText = `${days} ${days === 1 ? 'día' : 'días'}`;
+    } else if (years === 0) {
+      ageText = `${months} ${months === 1 ? 'mes' : 'meses'}`;
+      if (days > 0) {
+        ageText += ` y ${days} ${days === 1 ? 'día' : 'días'}`;
+      }
+    } else {
+      ageText = `${years} año`;
+      if (months > 0) {
+        ageText += `, ${months} ${months === 1 ? 'mes' : 'meses'}`;
+      }
+      if (days > 0) {
+        ageText += ` y ${days} ${days === 1 ? 'día' : 'días'}`;
+      }
     }
-    
-    const today = dayjs();
-    const birth = dayjs(value);
-    let years = today.diff(birth, 'year');
-    const monthsDiff = today.diff(birth.add(years, 'year'), 'month');
-    let ageText = '';
-    if (years === 0) {
-      ageText = `${monthsDiff} ${monthsDiff === 1 ? 'mes' : 'meses'}`;
-    } else if (monthsDiff === 0) {
+  } else {
+    if (months === 0) {
       ageText = `${years} ${years === 1 ? 'año' : 'años'}`;
     } else {
-      ageText = `${years} ${years === 1 ? 'año' : 'años'} y ${monthsDiff} ${monthsDiff === 1 ? 'mes' : 'meses'}`;
+      ageText = `${years} ${years === 1 ? 'año' : 'años'} y ${months} ${months === 1 ? 'mes' : 'meses'}`;
     }
-    handleInputChange('age', ageText);
+  }
+  
+  handleInputChange('age', ageText);
   };
 
   const handleContactInputChange = <K extends keyof typeof contactoForm>(
@@ -235,6 +266,9 @@ export default function PatientCreateC() {
         birth_date: formData.birth_date.format('YYYY-MM-DD'),
         gender: formData.gender,
         document_id: formData.document_id,
+        email: formData.email || undefined,
+        telephone: formData.telephone || undefined,
+        telephone2: formData.telephone2 || undefined,
         marital_status: formData.marital_status || undefined,
         occupation: formData.occupation || undefined,
         education: formData.education || undefined,
@@ -269,6 +303,9 @@ export default function PatientCreateC() {
           age: '',
           gender: '',
           document_id: '',
+          email: '',
+          telephone: '',
+          telephone2: '',
           marital_status: '',
           occupation: '',
           education: '',
@@ -552,6 +589,49 @@ export default function PatientCreateC() {
                       </Select>
                     </Space>
                   </Col>
+
+                  <Col xs={24} sm={12} lg={8}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>
+                        <MailOutlined /> Email
+                      </Text>
+                      <Input
+                        placeholder="ejemplo@correo.com"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={8}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>
+                        <PhoneOutlined /> Teléfono 1
+                      </Text>
+                      <Input
+                        placeholder="Ej: 0987654321"
+                        value={formData.telephone}
+                        onChange={(e) => handleInputChange('telephone', e.target.value)}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
+
+                  <Col xs={24} sm={12} lg={8}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Text strong>
+                        <PhoneOutlined /> Teléfono 2
+                      </Text>
+                      <Input
+                        placeholder="Ej: 022345678"
+                        value={formData.telephone2}
+                        onChange={(e) => handleInputChange('telephone2', e.target.value)}
+                        size="large"
+                      />
+                    </Space>
+                  </Col>
                 </Row>
               </div>
 
@@ -707,7 +787,7 @@ export default function PatientCreateC() {
                     <Space direction="vertical" style={{ width: '100%' }}>
                       <Text strong>Actividad Laboral</Text>
                       <Input
-                        placeholder="Empresa donde trabaja"
+                        placeholder="Actividad que realiza"
                         value={formData.work_activity}
                         onChange={(e) => handleInputChange('work_activity', e.target.value)}
                         size="large"
@@ -867,7 +947,7 @@ export default function PatientCreateC() {
               <Col xs={24} sm={12}>
               <Space direction="vertical" style={{ width: '100%' }}>
                 <Text strong>
-                  Cèdula <Text type="danger">*</Text>
+                  Cédula <Text type="danger">*</Text>
                 </Text>
                 <Input
                   placeholder="Ej: 1755187483"

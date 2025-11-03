@@ -11,7 +11,7 @@ import {
   message,
   Popconfirm,
   Modal,
-  Select
+  Checkbox
 } from 'antd';
 import {
   PlusOutlined,
@@ -22,29 +22,31 @@ import {
 
 const { TextArea } = Input;
 
-// Interfaz para la receta
 interface Recipe {
   key: string;
   medicine: string;
   amount: string;
   instructions: string;
-  lunchTime: string;
+  lunchTime: string[]; 
   observations: string;
 }
 
-// Props del componente
 interface RecipeTableProps {
   recipes: Recipe[];
   setRecipes: React.Dispatch<React.SetStateAction<Recipe[]>>;
 }
 
-// Componente de la tabla de recetas
 const RecipeTable: React.FC<RecipeTableProps> = ({ recipes, setRecipes }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [form] = Form.useForm();
 
-  // Columnas de la tabla
+  const mealOptions = [
+    { label: 'Desayuno', value: 'desayuno' },
+    { label: 'Almuerzo', value: 'almuerzo' },
+    { label: 'Cena', value: 'cena' }
+  ];
+
   const columns = [
     {
       title: 'Medicamento',
@@ -69,16 +71,23 @@ const RecipeTable: React.FC<RecipeTableProps> = ({ recipes, setRecipes }) => {
       title: 'Observaciones',
       dataIndex: 'observations',
       key: 'observations',
-      width: '25%'
+      width: '20%'
     },
-
     {
       title: 'Hora de comida',
       dataIndex: 'lunchTime',
       key: 'lunchTime',
-      width: '25%'
+      width: '15%',
+      render: (times: string[]) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {times?.map((time, index) => (
+            <span key={index} style={{ textTransform: 'capitalize' }}>
+              • {time}
+            </span>
+          ))}
+        </div>
+      )
     },
-
     {
       title: 'Acciones',
       key: 'actions',
@@ -246,20 +255,22 @@ const RecipeTable: React.FC<RecipeTableProps> = ({ recipes, setRecipes }) => {
             </Col>
 
             <Col xs={24}>
-  <Form.Item
-    label="Hora de comida"
-    name="lunchTime"
-    rules={[
-      { required: true, message: 'Seleccione la hora de comida' }
-    ]}
-  >
-    <Select placeholder="Seleccione una opción">
-      <Select.Option value="desayuno">Desayuno</Select.Option>
-      <Select.Option value="almuerzo">Almuerzo</Select.Option>
-      <Select.Option value="merienda">Merienda</Select.Option>
-    </Select>
-  </Form.Item>
-</Col>
+              <Form.Item
+                label="Hora de comida"
+                name="lunchTime"
+                rules={[
+                  { 
+                    required: true, 
+                    message: 'Seleccione al menos una hora de comida',
+                    type: 'array',
+                    min: 1
+                  }
+                ]}
+              >
+                <Checkbox.Group options={mealOptions} />
+              </Form.Item>
+            </Col>
+
             <Col xs={24}>
               <Form.Item
                 label="Observaciones"
